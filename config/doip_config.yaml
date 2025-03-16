@@ -1,0 +1,163 @@
+# DoIP Server Configuration
+# This file contains all configurable parameters for the DoIP server
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 13400
+  max_connections: 5
+  timeout: 30
+
+# Protocol Configuration
+protocol:
+  version: 0x02
+  inverse_version: 0xFD
+  supported_payload_types:
+    - 0x0001  # Alive Check Request
+    - 0x0002  # Alive Check Response
+    - 0x0005  # Routine Activation Request
+    - 0x0006  # Routine Activation Response
+    - 0x8001  # Diagnostic Message
+    - 0x8002  # Diagnostic Message ACK
+    - 0x8003  # Diagnostic Message NACK
+
+# Address Configuration
+addresses:
+  # Source addresses that are allowed to send requests
+  allowed_sources:
+    - 0x0E00  # Tester
+    - 0x0E01  # Alternative tester
+    - 0x0E02  # Another tester
+  
+  # Target addresses this server represents
+  target_addresses:
+    - 0x1000  # ECU 1
+    - 0x1001  # ECU 2
+    - 0x1002  # ECU 3
+  
+  # Default source address for responses (this server)
+  default_source: 0x1000
+
+# Routine Activation Configuration
+routine_activation:
+  # Supported routine identifiers and their configurations
+  supported_routines:
+    0x0202:
+      name: "Example Routine 1"
+      description: "Basic test routine"
+      type: 0x0001
+      response_code: 0x10  # Success
+      conditions:
+        - "Engine off"
+        - "Ignition on"
+    
+    0x0203:
+      name: "Example Routine 2"
+      description: "Advanced test routine"
+      type: 0x0002
+      response_code: 0x10  # Success
+      conditions:
+        - "Engine running"
+        - "Vehicle stationary"
+    
+    0x0204:
+      name: "Example Routine 3"
+      description: "Maintenance routine"
+      type: 0x0003
+      response_code: 0x10  # Success
+      conditions:
+        - "Service mode active"
+  
+  # Default response for unsupported routines
+  default_response:
+    code: 0x31  # Incorrect Routine Identifier
+    message: "Routine not supported"
+
+# UDS Services Configuration
+uds_services:
+  # Service 0x22 - Read Data by Identifier
+  0x22:
+    name: "Read Data by Identifier"
+    description: "Read data by identifier service"
+    
+    # Supported data identifiers and their responses
+    supported_data_identifiers:
+      0xF187:
+        name: "Vehicle Identification Number"
+        description: "VIN data"
+        response_data: [0x01, 0x02, 0x03, 0x04]
+        response_format: "raw"
+        access_control: "public"
+      
+      0xF188:
+        name: "Vehicle Type"
+        description: "Vehicle type information"
+        response_data: [0xAA, 0xBB, 0xCC, 0xDD]
+        response_format: "raw"
+        access_control: "public"
+      
+      0xF189:
+        name: "System Information"
+        description: "System configuration data"
+        response_data: [0x11, 0x22, 0x33, 0x44, 0x55, 0x66]
+        response_format: "raw"
+        access_control: "public"
+      
+      0xF190:
+        name: "Calibration Data"
+        description: "ECU calibration information"
+        response_data: [0x99, 0x88, 0x77, 0x66]
+        response_format: "raw"
+        access_control: "restricted"
+    
+    # Default negative response for unsupported data identifiers
+    default_negative_response:
+      code: 0x31  # RequestOutOfRange
+      message: "Data identifier not supported"
+
+# Response Codes
+response_codes:
+  routine_activation:
+    0x10: "Routine started successfully"
+    0x22: "Conditions not correct"
+    0x31: "Incorrect routine identifier"
+    0x33: "Security access denied"
+  
+  uds:
+    0x10: "General reject"
+    0x12: "Sub-function not supported"
+    0x13: "Incorrect message length or invalid format"
+    0x22: "Conditions not correct"
+    0x24: "Request sequence error"
+    0x31: "Request out of range"
+    0x33: "Security access denied"
+    0x35: "Invalid key"
+    0x36: "Exceeded number of attempts"
+    0x37: "Required time delay not expired"
+    0x70: "Upload download not accepted"
+    0x71: "Transfer data suspended"
+    0x72: "General programming failure"
+    0x73: "Wrong block sequence counter"
+    0x78: "Request correctly received - response pending"
+    0x7E: "Sub-function not supported in active session"
+    0x7F: "Service not supported in active session"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "doip_server.log"
+  console: true
+
+# Security Configuration
+security:
+  # Enable/disable security features
+  enabled: false
+  
+  # Allowed source addresses (if security is enabled)
+  allowed_sources_strict: false
+  
+  # Authentication required for sensitive operations
+  require_auth_for:
+    - "routine_activation"
+    - "uds_write_operations"

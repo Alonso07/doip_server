@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Poetry
+poetry.lock
+.venv/
+venv/
+
+# Distribution / packaging
+.eggs/
+dist/
+build/
+sdist/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.log
+*.rpt
+*.out
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# OS or Editor Folders
+.DS_Store
+.vscode/
+*.swp
+
+# Other
+*.sqlite

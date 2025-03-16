@@ -1,0 +1,131 @@
+# Example DoIP Configuration
+# This file shows how to customize the DoIP server behavior
+
+# Server Configuration
+server:
+  host: "127.0.0.1"  # Only listen on localhost
+  port: 13400
+  max_connections: 10
+  timeout: 60
+
+# Protocol Configuration
+protocol:
+  version: 0x02
+  inverse_version: 0xFD
+
+# Address Configuration
+addresses:
+  # Only allow specific testers
+  allowed_sources:
+    - 0x0E00  # Primary tester
+    - 0x0E01  # Backup tester
+  
+  # This server represents a single ECU
+  target_addresses:
+    - 0x1000  # Engine Control Unit
+  
+  # Default source address for responses
+  default_source: 0x1000
+
+# Routine Activation Configuration
+routine_activation:
+  supported_routines:
+    0x0202:
+      name: "Engine Test Routine"
+      description: "Basic engine functionality test"
+      type: 0x0001
+      response_code: 0x10  # Success
+      conditions:
+        - "Engine off"
+        - "Ignition on"
+    
+    0x0203:
+      name: "Emission Test Routine"
+      description: "Emission system diagnostic"
+      type: 0x0002
+      response_code: 0x10  # Success
+      conditions:
+        - "Engine running"
+        - "Warm engine"
+  
+  # Default response for unsupported routines
+  default_response:
+    code: 0x31  # Incorrect Routine Identifier
+    message: "Routine not supported by this ECU"
+
+# UDS Services Configuration
+uds_services:
+  # Service 0x22 - Read Data by Identifier
+  0x22:
+    name: "Read Data by Identifier"
+    description: "Read data by identifier service"
+    
+    # Supported data identifiers and their responses
+    supported_data_identifiers:
+      0xF187:
+        name: "Vehicle Identification Number"
+        description: "VIN data (17 characters)"
+        response_data: [0x31, 0x48, 0x4D, 0x42, 0x43, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32]  # "1HMB123456789012"
+        response_format: "raw"
+        access_control: "public"
+      
+      0xF188:
+        name: "Vehicle Type"
+        description: "Vehicle type information"
+        response_data: [0x48, 0x4F, 0x4E, 0x44, 0x41, 0x20, 0x43, 0x49, 0x56, 0x49, 0x43]  # "HONDA CIVIC"
+        response_format: "raw"
+        access_control: "public"
+      
+      0xF189:
+        name: "ECU Software Version"
+        description: "Software version information"
+        response_data: [0x56, 0x31, 0x2E, 0x32, 0x2E, 0x33]  # "V1.2.3"
+        response_format: "raw"
+        access_control: "public"
+    
+    # Default negative response for unsupported data identifiers
+    default_negative_response:
+      code: 0x31  # RequestOutOfRange
+      message: "Data identifier not supported by this ECU"
+
+# Response Codes
+response_codes:
+  routine_activation:
+    0x10: "Routine started successfully"
+    0x22: "Conditions not correct"
+    0x31: "Incorrect routine identifier"
+    0x33: "Security access denied"
+  
+  uds:
+    0x10: "General reject"
+    0x12: "Sub-function not supported"
+    0x13: "Incorrect message length or invalid format"
+    0x22: "Conditions not correct"
+    0x24: "Request sequence error"
+    0x31: "Request out of range"
+    0x33: "Security access denied"
+    0x35: "Invalid key"
+    0x36: "Exceeded number of attempts"
+    0x37: "Required time delay not expired"
+    0x70: "Upload download not accepted"
+    0x71: "Transfer data suspended"
+    0x72: "General programming failure"
+    0x73: "Wrong block sequence counter"
+    0x78: "Request correctly received - response pending"
+    0x7E: "Sub-function not supported in active session"
+    0x7F: "Service not supported in active session"
+
+# Logging Configuration
+logging:
+  level: "DEBUG"  # More detailed logging for development
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "doip_server_example.log"
+  console: true
+
+# Security Configuration
+security:
+  enabled: false  # Disable security for testing
+  allowed_sources_strict: false
+  require_auth_for:
+    - "routine_activation"
+    - "uds_write_operations"
