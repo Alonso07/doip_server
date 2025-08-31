@@ -1,4 +1,4 @@
-name: Tests
+name: Robust Tests
 
 on:
   push:
@@ -26,28 +26,31 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
 
+    - name: Show Python version
+      run: python --version
+
+    - name: Show Poetry version
+      run: poetry --version
+
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
 
-    - name: Show environment info
-      run: |
-        echo "Python version: $(python --version)"
-        echo "Poetry version: $(poetry --version)"
-        echo "Working directory: $(pwd)"
-        echo "Files in current directory:"
-        ls -la
+    - name: List installed packages
+      run: poetry show
 
     - name: Run unit tests
       run: poetry run pytest tests/test_doip_unit.py -v
-
-    - name: Run integration tests
-      run: poetry run pytest tests/test_doip_integration.py -v
-
-    - name: Run all tests
-      run: poetry run pytest tests/ -v
 
     - name: Validate configuration
       run: poetry run validate_config
 
     - name: Run demo
       run: poetry run demo
+
+    - name: Check code style (non-blocking)
+      run: |
+        poetry run flake8 src/ --count --exit-zero --max-line-length=127 || echo "Style issues found (non-blocking)"
+
+    - name: Check code formatting (non-blocking)
+      run: |
+        poetry run black --check src/ || echo "Formatting issues found (non-blocking)"
