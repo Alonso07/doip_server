@@ -22,7 +22,7 @@ pytest-cov = "^6.0.0"
 flake8 = "^7.0.0"
 black = "^24.0.0"
 bandit = "^1.7.0"
-safety = "^2.3.0"
+safety = "^3.6.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
