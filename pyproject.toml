@@ -19,6 +19,10 @@ packages = [{include = "doip_server", from = "src"}]
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
 pytest-cov = "^6.0.0"
+flake8 = "^7.0.0"
+black = "^24.0.0"
+bandit = "^1.7.0"
+safety = "^2.3.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

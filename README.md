@@ -1,6 +1,8 @@
 # DoIP Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/YOUR_USERNAME/doip_server/workflows/Tests/badge.svg)](https://github.com/YOUR_USERNAME/doip_server/actions)
+[![CI](https://github.com/YOUR_USERNAME/doip_server/workflows/CI/badge.svg)](https://github.com/YOUR_USERNAME/doip_server/actions)
 
 A Python implementation of DoIP (Diagnostics over Internet Protocol) server and client with comprehensive YAML configuration management.
 
@@ -584,6 +586,45 @@ poetry run pytest tests/test_doip_integration.py -v  # Run integration tests
 
 # Development
 poetry run main                # Run main application
+```
+
+## Continuous Integration
+
+This project uses GitHub Actions for automated testing and quality assurance:
+
+### Automated Workflows
+
+- **Tests**: Runs on every push and pull request
+  - Unit tests
+  - Integration tests  
+  - Configuration validation
+  - Demo execution
+
+- **CI**: Comprehensive testing across multiple platforms
+  - Python versions: 3.9, 3.10, 3.11, 3.12
+  - Operating systems: Ubuntu, macOS, Windows
+  - Code quality checks (flake8, black)
+  - Security scanning (bandit, safety)
+  - Package building
+
+### Local Development
+
+To run the same checks locally:
+
+```bash
+# Install development dependencies
+poetry install --with dev
+
+# Run code quality checks
+poetry run flake8 src/ tests/
+poetry run black --check src/ tests/
+
+# Run security checks
+poetry run bandit -r src/
+poetry run safety check
+
+# Run tests with coverage
+poetry run pytest tests/ --cov=doip_server --cov-report=html
 ```
 
 ## Best Practices
