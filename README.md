@@ -1,5 +1,7 @@
 # DoIP Server
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Python implementation of DoIP (Diagnostics over Internet Protocol) server and client with comprehensive YAML configuration management.
 
 ## Features
