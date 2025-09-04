@@ -1,0 +1,43 @@
+# ECU Configuration - ABS Control Unit
+# This file contains the ECU-specific configuration including addresses and UDS services
+
+ecu:
+  name: "ABS_ECU"
+  description: "Anti-lock Braking System Control Unit"
+  target_address: 0x1002
+  tester_addresses:
+    - 0x0E00  # Primary tester
+    - 0x0E01  # Backup tester
+    - 0x0E02  # Diagnostic tool
+  
+  # ECU-specific settings
+  settings:
+    enable_routine_activation: true
+    enable_uds_services: true
+    session_timeout: 30
+    max_concurrent_sessions: 2
+    
+  # Routine Activation Configuration
+  routine_activation:
+    active_type: 0x00  # default
+    reserved_by_iso: 0x00000000
+    reserved_by_manufacturer: 0x00000000
+    
+  # UDS Services Reference - Points to services configuration
+  uds_services:
+    # Common services shared across all ECUs
+    common_services:
+      - "Read_VIN"
+      - "Read_Vehicle_Type"
+      - "Routine_calibration_start"
+      - "Routine_calibration_stop"
+      - "Routine_calibration_status"
+    
+    # ECU-specific services (only available for this ECU)
+    specific_services:
+      - "ABS_Wheel_Speed_Read"
+      - "ABS_System_Status_Read"
+      - "ABS_Valve_Test"
+      - "ABS_Pump_Test"
+      - "ABS_Diagnostic_Codes"
+      - "ABS_Calibration_Reset"

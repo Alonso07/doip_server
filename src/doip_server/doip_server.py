@@ -2,8 +2,7 @@
 import socket
 import struct
 import logging
-from scapy.all import *
-from .config_manager import DoIPConfigManager
+from .hierarchical_config_manager import HierarchicalConfigManager
 
 # DoIP Protocol constants
 DOIP_PROTOCOL_VERSION = 0x02
@@ -12,24 +11,31 @@ DOIP_INVERSE_PROTOCOL_VERSION = 0xFD
 # DoIP Payload types
 PAYLOAD_TYPE_ALIVE_CHECK_REQUEST = 0x0001
 PAYLOAD_TYPE_ALIVE_CHECK_RESPONSE = 0x0002
-PAYLOAD_TYPE_ROUTINE_ACTIVATION_REQUEST = 0x0005
-PAYLOAD_TYPE_ROUTINE_ACTIVATION_RESPONSE = 0x0006
+PAYLOAD_TYPE_ROUTING_ACTIVATION_REQUEST = 0x0005
+PAYLOAD_TYPE_ROUTING_ACTIVATION_RESPONSE = 0x0006
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE = 0x8001
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_ACK = 0x8002
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_NACK = 0x8003
 
-# UDS Service IDs
-UDS_READ_DATA_BY_IDENTIFIER = 0x22
+# UDS Service IDs (legacy - now handled by configuration)
 
 # Response codes
-ROUTINE_ACTIVATION_RESPONSE_CODE_SUCCESS = 0x10
-ROUTINE_ACTIVATION_RESPONSE_CODE_INCORRECT_ROUTINE_IDENTIFIER = 0x31
-ROUTINE_ACTIVATION_RESPONSE_CODE_CONDITIONS_NOT_CORRECT = 0x22
+ROUTING_ACTIVATION_RESPONSE_CODE_SUCCESS = 0x10
+ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS = 0x02
+ROUTING_ACTIVATION_RESPONSE_CODE_ALL_SOCKETS_TAKEN = 0x03
+ROUTING_ACTIVATION_RESPONSE_CODE_DIFFERENT_SOURCE_ADDRESS = 0x04
+ROUTING_ACTIVATION_RESPONSE_CODE_ALREADY_ACTIVATED = 0x05
 
 class DoIPServer:
-    def __init__(self, host=None, port=None, config_path=None):
-        # Initialize configuration manager
-        self.config_manager = DoIPConfigManager(config_path)
+    def __init__(self, host=None, port=None, gateway_config_path=None):
+        # Initialize configuration manager based on provided path
+        if gateway_config_path is None:
+            # Use legacy configuration manager for backward compatibility
+            from .config_manager import DoIPConfigManager
+            self.config_manager = DoIPConfigManager()
+        else:
+            # Use hierarchical configuration manager
+            self.config_manager = HierarchicalConfigManager(gateway_config_path)
         
         # Get server configuration - prioritize explicit parameters over config
         config_host, config_port = self.config_manager.get_server_binding_info()
@@ -37,9 +43,16 @@ class DoIPServer:
         self.port = port if port is not None else config_port
         
         # Get other server configuration
-        server_config = self.config_manager.get_server_config()
-        self.max_connections = server_config.get('max_connections', 5)
-        self.timeout = server_config.get('timeout', 30)
+        if hasattr(self.config_manager, 'get_network_config'):
+            # Hierarchical configuration manager
+            network_config = self.config_manager.get_network_config()
+            self.max_connections = network_config.get('max_connections', 5)
+            self.timeout = network_config.get('timeout', 30)
+        else:
+            # Legacy configuration manager
+            server_config = self.config_manager.get_server_config()
+            self.max_connections = server_config.get('max_connections', 5)
+            self.timeout = server_config.get('timeout', 30)
         
         # Get protocol configuration
         protocol_config = self.config_manager.get_protocol_config()
@@ -50,12 +63,21 @@ class DoIPServer:
         self.server_socket = None
         self.running = False
         
+        # Response cycling state - tracks current response index for each service per ECU
+        self.response_cycle_state = {}  # Format: {(ecu_address, service_name): current_index}
+        
         # Setup logging
         self._setup_logging()
         
         # Validate configuration
-        if not self.config_manager.validate_config():
-            self.logger.warning("Configuration validation failed, using fallback settings")
+        if hasattr(self.config_manager, 'validate_configs'):
+            # Hierarchical configuration manager
+            if not self.config_manager.validate_configs():
+                self.logger.warning("Configuration validation failed, using fallback settings")
+        else:
+            # Legacy configuration manager
+            if not self.config_manager.validate_config():
+                self.logger.warning("Configuration validation failed, using fallback settings")
         
         # Validate host and port configuration
         self._validate_binding_config()
@@ -197,40 +219,54 @@ class DoIPServer:
             return self.create_doip_nack(0x02)  # Invalid protocol version
         
         # Process based on payload type
-        if payload_type == PAYLOAD_TYPE_ROUTINE_ACTIVATION_REQUEST:
-            return self.handle_routine_activation(data[8:])
+        if payload_type == PAYLOAD_TYPE_ROUTING_ACTIVATION_REQUEST:
+            return self.handle_routing_activation(data[8:])
         elif payload_type == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE:
             return self.handle_diagnostic_message(data[8:])
         elif payload_type == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST:
             return self.handle_alive_check()
+        elif payload_type == 0x0007:
+            return self.handle_alive_check_0007()
+        elif payload_type == 0x0008:
+            return self.handle_power_mode_request(data[8:])
         else:
             print(f"Unsupported payload type: 0x{payload_type:04X}")
             return None
     
-    def handle_routine_activation(self, payload):
-        """Handle routine activation request"""
-        self.logger.info("Processing routine activation request")
+    def handle_routing_activation(self, payload):
+        """Handle routing activation request"""
+        self.logger.info("Processing routing activation request")
         
-        if len(payload) < 4:
-            self.logger.warning("Routine activation payload too short")
-            return self.create_routine_activation_response(ROUTINE_ACTIVATION_RESPONSE_CODE_CONDITIONS_NOT_CORRECT)
+        if len(payload) < 7:
+            self.logger.warning("Routing activation payload too short")
+            return self.create_routing_activation_response(ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS)
         
-        # Extract routine identifier
-        routine_identifier = struct.unpack('>H', payload[0:2])[0]
-        routine_type = struct.unpack('>H', payload[2:4])[0]
+        # Extract routing activation parameters
+        client_logical_address = struct.unpack('>H', payload[0:2])[0]
+        logical_address = struct.unpack('>H', payload[2:4])[0]
+        response_code = payload[4]
+        reserved = struct.unpack('>I', payload[5:9])[0] if len(payload) >= 9 else 0
         
-        self.logger.info(f"Routine Identifier: 0x{routine_identifier:04X}")
-        self.logger.info(f"Routine Type: 0x{routine_type:04X}")
+        self.logger.info(f"Client Logical Address: 0x{client_logical_address:04X}")
+        self.logger.info(f"Logical Address: 0x{logical_address:04X}")
+        self.logger.info(f"Response Code: 0x{response_code:02X}")
+        self.logger.info(f"Reserved: 0x{reserved:08X}")
         
-        # Check if routine is supported
-        routine_config = self.config_manager.get_supported_routine(routine_identifier)
-        if routine_config:
-            self.logger.info(f"Routine '{routine_config.get('name', 'Unknown')}' activated successfully")
-            return self.create_routine_activation_response(routine_config.get('response_code', 0x10))
+        # Check if source address is allowed
+        if hasattr(self.config_manager, 'get_all_ecu_addresses'):
+            # Hierarchical configuration manager - check all ECUs
+            if not self.config_manager.is_source_address_allowed(client_logical_address):
+                self.logger.warning(f"Source address 0x{client_logical_address:04X} not allowed")
+                return self.create_routing_activation_response(ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS)
         else:
-            default_response = self.config_manager.get_routine_default_response()
-            self.logger.warning(f"Unsupported routine 0x{routine_identifier:04X}: {default_response.get('message', 'Routine not supported')}")
-            return self.create_routine_activation_response(default_response.get('code', 0x31))
+            # Legacy configuration manager
+            if not self.config_manager.is_source_address_allowed(client_logical_address):
+                self.logger.warning(f"Source address 0x{client_logical_address:04X} not allowed")
+                return self.create_routing_activation_response(ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS)
+        
+        # Accept the routing activation
+        self.logger.info(f"Routing activation accepted for client 0x{client_logical_address:04X}")
+        return self.create_routing_activation_response(ROUTING_ACTIVATION_RESPONSE_CODE_SUCCESS, client_logical_address, logical_address)
     
     def handle_diagnostic_message(self, payload):
         """Handle diagnostic message (UDS)"""
@@ -250,97 +286,196 @@ class DoIPServer:
         self.logger.info(f"UDS Payload: {uds_payload.hex()}")
         
         # Validate addresses
-        if not self.config_manager.is_source_address_allowed(source_address):
-            self.logger.warning(f"Source address 0x{source_address:04X} not allowed")
-            return self.create_doip_nack(0x03)  # Unsupported source address
-        
-        if not self.config_manager.is_target_address_valid(target_address):
-            self.logger.warning(f"Target address 0x{target_address:04X} not valid")
-            return self.create_doip_nack(0x04)  # Unsupported target address
+        if hasattr(self.config_manager, 'get_all_ecu_addresses'):
+            # Hierarchical configuration manager
+            if not self.config_manager.is_source_address_allowed(source_address, target_address):
+                self.logger.warning(f"Source address 0x{source_address:04X} not allowed for target 0x{target_address:04X}")
+                return self.create_doip_nack(0x03)  # Unsupported source address
+            
+            if not self.config_manager.is_target_address_valid(target_address):
+                self.logger.warning(f"Target address 0x{target_address:04X} not valid")
+                return self.create_doip_nack(0x04)  # Unsupported target address
+        else:
+            # Legacy configuration manager
+            if not self.config_manager.is_source_address_allowed(source_address):
+                self.logger.warning(f"Source address 0x{source_address:04X} not allowed")
+                return self.create_doip_nack(0x03)  # Unsupported source address
+            
+            if not self.config_manager.is_target_address_valid(target_address):
+                self.logger.warning(f"Target address 0x{target_address:04X} not valid")
+                return self.create_doip_nack(0x04)  # Unsupported target address
         
         # Process UDS message
-        uds_response = self.process_uds_message(uds_payload)
+        if hasattr(self.config_manager, 'get_all_ecu_addresses'):
+            # Hierarchical configuration manager - process for specific ECU
+            uds_response = self.process_uds_message(uds_payload, target_address)
+        else:
+            # Legacy configuration manager - process without target address
+            uds_response = self.process_uds_message(uds_payload, None)
+        
         if uds_response:
             return self.create_diagnostic_message_response(target_address, source_address, uds_response)
         
         return None
     
-    def process_uds_message(self, uds_payload):
-        """Process UDS message and return response"""
+    def process_uds_message(self, uds_payload, target_address):
+        """Process UDS message and return response for specific ECU"""
         if not uds_payload:
             return None
         
-        service_id = uds_payload[0]
-        self.logger.info(f"UDS Service ID: 0x{service_id:02X}")
+        # Convert UDS payload to hex string for matching
+        uds_hex = uds_payload.hex().upper()
+        self.logger.info(f"UDS Payload: {uds_hex}")
         
-        # Check if service is supported
-        service_config = self.config_manager.get_supported_uds_service(service_id)
-        if service_config:
-            self.logger.info(f"Processing UDS service: {service_config.get('name', 'Unknown')}")
-            if service_id == UDS_READ_DATA_BY_IDENTIFIER:
-                return self.handle_read_data_by_identifier(uds_payload[1:])
-            # Add more UDS services here as needed
+        # Check if this UDS request matches any configured service
+        if hasattr(self.config_manager, 'get_all_ecu_addresses'):
+            # Hierarchical configuration manager - check for specific ECU
+            service_config = self.config_manager.get_uds_service_by_request(uds_hex, target_address)
+            if service_config:
+                self.logger.info(f"Processing UDS service: {service_config.get('name', 'Unknown')} for ECU 0x{target_address:04X}")
+            else:
+                self.logger.warning(f"Unsupported UDS request: {uds_hex} for ECU 0x{target_address:04X}")
+                return self.create_uds_negative_response(0x7F, 0x7F)  # Service not supported in active session
         else:
-            self.logger.warning(f"Unsupported UDS service: 0x{service_id:02X}")
-            default_response = self.config_manager.get_uds_default_negative_response(service_id)
-            return self.create_uds_negative_response(service_id, default_response.get('code', 0x7F))
+            # Legacy configuration manager - check without target address
+            service_config = self.config_manager.get_uds_service_by_request(uds_hex)
+            if service_config:
+                self.logger.info(f"Processing UDS service: {service_config.get('name', 'Unknown')}")
+            else:
+                self.logger.warning(f"Unsupported UDS request: {uds_hex}")
+                return self.create_uds_negative_response(0x7F, 0x7F)  # Service not supported in active session
+        
+        if service_config:
+            # Get responses for this service
+            responses = service_config.get('responses', [])
+            if responses:
+                # Get service name for cycling
+                service_name = service_config.get('name', 'Unknown')
+                
+                # Create unique key for this ECU-service combination
+                if hasattr(self.config_manager, 'get_all_ecu_addresses'):
+                    # Hierarchical configuration manager - use target address
+                    cycle_key = (target_address, service_name)
+                else:
+                    # Legacy configuration manager - use 0 as default ECU address
+                    cycle_key = (0, service_name)
+                
+                # Get current response index for this service-ECU combination
+                current_index = self.response_cycle_state.get(cycle_key, 0)
+                
+                # Select response based on current index
+                response_hex = responses[current_index]
+                
+                # Update index for next time (cycle back to 0 when reaching end)
+                next_index = (current_index + 1) % len(responses)
+                self.response_cycle_state[cycle_key] = next_index
+                
+                self.logger.info(f"Returning response {current_index + 1}/{len(responses)} for service {service_name}: {response_hex}")
+                self.logger.debug(f"Next response will be index {next_index}")
+                
+                # Convert hex string back to bytes
+                try:
+                    # Strip "0x" prefix if present
+                    hex_str = response_hex[2:] if response_hex.startswith('0x') else response_hex
+                    self.logger.debug(f"Processing hex string: '{hex_str}' (length: {len(hex_str)})")
+                    response_bytes = bytes.fromhex(hex_str)
+                    return response_bytes
+                except ValueError as e:
+                    self.logger.error(f"Invalid response hex format: {response_hex} - {e}")
+                    self.logger.error(f"Processed hex string: '{hex_str}' (length: {len(hex_str)})")
+                    return self.create_uds_negative_response(0x7F, 0x72)  # General programming failure
+            else:
+                self.logger.warning(f"No responses configured for service: {service_config.get('name', 'Unknown')}")
+                return self.create_uds_negative_response(0x7F, 0x72)  # General programming failure
         
         return None
     
-    def handle_read_data_by_identifier(self, payload):
-        """Handle UDS Read Data by Identifier (0x22)"""
-        self.logger.info("Processing Read Data by Identifier request")
+    def reset_response_cycling(self, ecu_address=None, service_name=None):
+        """Reset response cycling state for a specific ECU-service combination or all states
         
-        if len(payload) < 2:
-            self.logger.warning("Data identifier payload too short")
-            return None
-        
-        data_identifier = struct.unpack('>H', payload[0:2])[0]
-        self.logger.info(f"Data Identifier: 0x{data_identifier:04X}")
-        
-        # Check if data identifier is supported
-        data_config = self.config_manager.get_supported_data_identifier(UDS_READ_DATA_BY_IDENTIFIER, data_identifier)
-        if data_config:
-            self.logger.info(f"Data identifier '{data_config.get('name', 'Unknown')}' requested")
-            
-            # Convert response data from list to bytes
-            response_data = bytes(data_config.get('response_data', []))
-            
-            # Create UDS positive response (0x62 + data identifier + data)
-            uds_response = b'\x62' + struct.pack('>H', data_identifier) + response_data
-            
-            self.logger.info(f"Returning {len(response_data)} bytes of data")
-            return uds_response
+        Args:
+            ecu_address: ECU address to reset (None for all ECUs)
+            service_name: Service name to reset (None for all services)
+        """
+        if ecu_address is None and service_name is None:
+            # Reset all cycling states
+            self.response_cycle_state.clear()
+            self.logger.info("Reset all response cycling states")
+        elif ecu_address is not None and service_name is not None:
+            # Reset specific ECU-service combination
+            cycle_key = (ecu_address, service_name)
+            if cycle_key in self.response_cycle_state:
+                del self.response_cycle_state[cycle_key]
+                self.logger.info(f"Reset response cycling for ECU 0x{ecu_address:04X}, service {service_name}")
+            else:
+                self.logger.warning(f"No cycling state found for ECU 0x{ecu_address:04X}, service {service_name}")
         else:
-            # Negative response - data identifier not supported
-            default_response = self.config_manager.get_uds_default_negative_response(UDS_READ_DATA_BY_IDENTIFIER)
-            self.logger.warning(f"Unsupported data identifier 0x{data_identifier:04X}: {default_response.get('message', 'Data identifier not supported')}")
-            return self.create_uds_negative_response(UDS_READ_DATA_BY_IDENTIFIER, default_response.get('code', 0x31))
+            # Reset all states for a specific ECU or service
+            keys_to_remove = []
+            for key in self.response_cycle_state.keys():
+                if ecu_address is not None and key[0] == ecu_address:
+                    keys_to_remove.append(key)
+                elif service_name is not None and key[1] == service_name:
+                    keys_to_remove.append(key)
+            
+            for key in keys_to_remove:
+                del self.response_cycle_state[key]
+            
+            if keys_to_remove:
+                self.logger.info(f"Reset {len(keys_to_remove)} response cycling states")
+            else:
+                self.logger.warning("No matching cycling states found to reset")
+    
+    def get_response_cycling_state(self):
+        """Get current response cycling state for debugging
+        
+        Returns:
+            dict: Current cycling state with readable format
+        """
+        readable_state = {}
+        for (ecu_addr, service_name), index in self.response_cycle_state.items():
+            readable_state[f"ECU_0x{ecu_addr:04X}_{service_name}"] = index
+        return readable_state
+    
     
     def handle_alive_check(self):
         """Handle alive check request"""
         self.logger.info("Processing alive check request")
         return self.create_alive_check_response()
     
+    def handle_alive_check_0007(self):
+        """Handle alive check request with payload type 0x0007"""
+        self.logger.info("Processing alive check request (0x0007)")
+        return self.create_alive_check_response_0007()
+    
+    def handle_power_mode_request(self, payload):
+        """Handle power mode request (payload type 0x0008)"""
+        self.logger.info("Processing power mode request")
+        return self.create_power_mode_response()
+    
     def create_uds_negative_response(self, service_id: int, nrc: int) -> bytes:
         """Create UDS negative response"""
         # UDS negative response format: 0x7F + service_id + NRC
         return b'\x7F' + bytes([service_id]) + bytes([nrc])
     
-    def create_routine_activation_response(self, response_code):
-        """Create routine activation response"""
-        payload = struct.pack('>H', response_code)  # Response code
-        payload += b'\x00\x00'  # Optional routine type
+    def create_routing_activation_response(self, response_code, client_logical_address, logical_address):
+        """Create routing activation response"""
+        # Create payload according to DoIP standard: !HHBLL format
+        payload = struct.pack('>H', client_logical_address)  # Client logical address
+        payload += struct.pack('>H', logical_address)        # Logical address
+        payload += struct.pack('>B', response_code)          # Response code
+        payload += struct.pack('>I', 0x00000000)             # Reserved (4 bytes)
+        payload += struct.pack('>I', 0x00000000)             # VM specific (4 bytes)
         
         header = struct.pack('>BBHI', 
                            self.protocol_version,
                            self.inverse_protocol_version,
-                           PAYLOAD_TYPE_ROUTINE_ACTIVATION_RESPONSE,
+                           PAYLOAD_TYPE_ROUTING_ACTIVATION_RESPONSE,
                            len(payload))
         
         # Log response code description
         response_desc = self.config_manager.get_response_code_description('routine_activation', response_code)
-        self.logger.info(f"Routine activation response: {response_desc}")
+        self.logger.info(f"Routing activation response: {response_desc}")
         
         return header + payload
     
@@ -358,12 +493,39 @@ class DoIPServer:
     
     def create_alive_check_response(self):
         """Create alive check response"""
-        payload = b'\x00\x00'  # Empty payload for alive check response
+        # DoIP alive check response should have 6 bytes payload
+        payload = b'\x00\x00\x00\x00\x00\x00'  # 6 bytes for alive check response
         
         header = struct.pack('>BBHI',
                            self.protocol_version,
                            self.inverse_protocol_version,
                            PAYLOAD_TYPE_ALIVE_CHECK_RESPONSE,
+                           len(payload))
+        
+        return header + payload
+    
+    def create_alive_check_response_0007(self):
+        """Create alive check response for payload type 0x0007"""
+        # Respond with the same payload type 0x0007
+        payload = b'\x00\x00\x00\x00\x00\x00'  # 6 bytes for alive check response
+        
+        header = struct.pack('>BBHI',
+                           self.protocol_version,
+                           self.inverse_protocol_version,
+                           0x0007,  # Same payload type as request
+                           len(payload))
+        
+        return header + payload
+    
+    def create_power_mode_response(self):
+        """Create power mode response for payload type 0x0008"""
+        # Power mode response - client expects 2 bytes (H format)
+        payload = b'\x00\x00'  # 2 bytes indicating power mode status
+        
+        header = struct.pack('>BBHI',
+                           self.protocol_version,
+                           self.inverse_protocol_version,
+                           0x0008,  # Same payload type as request
                            len(payload))
         
         return header + payload
@@ -380,9 +542,9 @@ class DoIPServer:
         
         return header + payload
 
-def start_doip_server(host=None, port=None, config_path=None):
+def start_doip_server(host=None, port=None, gateway_config_path=None):
     """Start the DoIP server (entry point for poetry script)"""
-    server = DoIPServer(host, port, config_path)
+    server = DoIPServer(host, port, gateway_config_path)
     server.start()
 
 if __name__ == "__main__":

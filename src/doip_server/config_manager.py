@@ -62,17 +62,15 @@ addresses:
   default_source: 0x1000
 
 routine_activation:
-  supported_routines:
-    0x0202:
-      name: "Example Routine"
-      response_code: 0x10
-      type: 0x0001
+  active_type: 0x00
+  reserved_by_iso: 0x00000000
+  reserved_by_manufacturer: 0x00000000
 
 uds_services:
-  0x22:
-    supported_data_identifiers:
-      0xF187:
-        response_data: [0x01, 0x02, 0x03, 0x04]
+  Read_VIN:
+    request: 0x22F190
+    responses:
+      - 0x62F19010200112233445566778899AA
 """
         
         # Create config directory if it doesn't exist
@@ -101,7 +99,7 @@ uds_services:
             'server': {'host': '0.0.0.0', 'port': 13400},
             'protocol': {'version': 0x02, 'inverse_version': 0xFD},
             'addresses': {'allowed_sources': [0x0E00], 'target_addresses': [0x1000]},
-            'routine_activation': {'supported_routines': {}},
+            'routine_activation': {'active_type': 0x00, 'reserved_by_iso': 0x00000000, 'reserved_by_manufacturer': 0x00000000},
             'uds_services': {}
         }
     
@@ -162,40 +160,55 @@ uds_services:
         """Get default source address for responses"""
         return self.get_addresses_config().get('default_source', 0x1000)
     
-    def get_supported_routine(self, routine_id: int) -> Optional[Dict[str, Any]]:
-        """Get supported routine configuration"""
-        routines = self.get_routine_activation_config().get('supported_routines', {})
-        return routines.get(routine_id)
+    def get_routine_activation_type(self) -> int:
+        """Get routine activation type"""
+        return self.get_routine_activation_config().get('active_type', 0x00)
     
-    def get_routine_default_response(self) -> Dict[str, Any]:
-        """Get default response for unsupported routines"""
-        return self.get_routine_activation_config().get('default_response', {
-            'code': 0x31,
-            'message': 'Routine not supported'
-        })
+    def get_routine_reserved_by_iso(self) -> int:
+        """Get routine reserved by ISO"""
+        return self.get_routine_activation_config().get('reserved_by_iso', 0x00000000)
     
-    def get_supported_uds_service(self, service_id: int) -> Optional[Dict[str, Any]]:
-        """Get supported UDS service configuration"""
+    def get_routine_reserved_by_manufacturer(self) -> int:
+        """Get routine reserved by manufacturer"""
+        return self.get_routine_activation_config().get('reserved_by_manufacturer', 0x00000000)
+    
+    def get_uds_service_by_request(self, request: str) -> Optional[Dict[str, Any]]:
+        """Get UDS service configuration by request string"""
         services = self.get_uds_services_config()
-        return services.get(service_id)
-    
-    def get_supported_data_identifier(self, service_id: int, data_id: int) -> Optional[Dict[str, Any]]:
-        """Get supported data identifier configuration"""
-        service = self.get_supported_uds_service(service_id)
-        if service:
-            data_ids = service.get('supported_data_identifiers', {})
-            return data_ids.get(data_id)
+        for service_name, service_config in services.items():
+            config_request = service_config.get('request', '')
+            # Handle both with and without 0x prefix
+            if config_request == request or config_request == f"0x{request}" or config_request.lstrip('0x') == request:
+                return {
+                    'name': service_name,
+                    'request': service_config.get('request'),
+                    'responses': service_config.get('responses', [])
+                }
         return None
     
-    def get_uds_default_negative_response(self, service_id: int) -> Dict[str, Any]:
-        """Get default negative response for UDS service"""
-        service = self.get_supported_uds_service(service_id)
-        if service:
-            return service.get('default_negative_response', {
-                'code': 0x31,
-                'message': 'Service not supported'
-            })
-        return {'code': 0x7F, 'message': 'Service not supported'}
+    def get_uds_service_by_name(self, service_name: str) -> Optional[Dict[str, Any]]:
+        """Get UDS service configuration by service name"""
+        services = self.get_uds_services_config()
+        service_config = services.get(service_name)
+        if service_config:
+            return {
+                'name': service_name,
+                'request': service_config.get('request'),
+                'responses': service_config.get('responses', [])
+            }
+        return None
+    
+    def get_all_uds_services(self) -> Dict[str, Dict[str, Any]]:
+        """Get all UDS services configuration"""
+        services = self.get_uds_services_config()
+        result = {}
+        for service_name, service_config in services.items():
+            result[service_name] = {
+                'name': service_name,
+                'request': service_config.get('request'),
+                'responses': service_config.get('responses', [])
+            }
+        return result
     
     def get_response_code_description(self, category: str, code: int) -> str:
         """Get description for a response code"""
@@ -229,6 +242,12 @@ uds_services:
             self.logger.error("Missing or empty target addresses configuration")
             return False
         
+        # Validate routine activation
+        routine_activation = self.get_routine_activation_config()
+        if 'active_type' not in routine_activation:
+            self.logger.error("Missing routine activation type configuration")
+            return False
+        
         self.logger.info("Configuration validation passed")
         return True
     
@@ -253,8 +272,7 @@ uds_services:
         
         # Routines
         routines = self.get_routine_activation_config()
-        supported_routines = routines.get('supported_routines', {})
-        summary.append(f"Supported Routines: {len(supported_routines)}")
+        summary.append(f"Routine Activation Type: 0x{routines.get('active_type', 0x00):02X}")
         
         # UDS Services
         uds_services = self.get_uds_services_config()

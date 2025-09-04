@@ -1,0 +1,164 @@
+# UDS Services Configuration
+# This file contains all UDS service definitions that can be referenced by ECUs
+
+# Common UDS Services (available to all ECUs)
+common_services:
+  Read_VIN:
+    request: "0x22F190"
+    responses:  
+      - "0x62F1901020011223344556677889AABB"
+      - "0x62F1901020011223344556677889BBCC"
+    description: "Read Vehicle Identification Number"
+    
+  Read_Vehicle_Type:
+    request: "0x22F191"
+    responses:  
+      - "0x62F1911020011223344556677889AABB"
+      - "0x62F1911020011223344556677889BBCC"
+    description: "Read Vehicle Type Information"
+    
+  Routine_calibration_start:
+    request: "0x31010202"
+    responses:  
+      - "0x71010202"
+    description: "Start calibration routine"
+    
+  Routine_calibration_stop:
+    request: "0x31020202"
+    responses:  
+      - "0x71020202"
+    description: "Stop calibration routine"
+    
+  Routine_calibration_status:
+    request: "0x31030202"
+    responses:  
+      - "0x7103020210"
+      - "0x7103020212"
+    description: "Get calibration routine status"
+
+# Engine-specific UDS Services
+engine_services:
+  Engine_RPM_Read:
+    request: "0x220C01"
+    responses:
+      - "0x620C018000"  # 8000 RPM
+      - "0x620C017500"  # 7500 RPM
+    description: "Read engine RPM"
+    
+  Engine_Temperature_Read:
+    request: "0x220C05"
+    responses:
+      - "0x620C0580"  # 80°C
+      - "0x620C0590"  # 90°C
+    description: "Read engine temperature"
+    
+  Fuel_Level_Read:
+    request: "0x220C2F"
+    responses:
+      - "0x620C2F80"  # 80% fuel level
+      - "0x620C2F50"  # 50% fuel level
+    description: "Read fuel level"
+    
+  Engine_Start_Stop:
+    request: "0x31010001"
+    responses:
+      - "0x71010001"
+    description: "Engine start/stop control"
+    
+  Throttle_Position_Read:
+    request: "0x220C11"
+    responses:
+      - "0x620C1180"  # 80% throttle
+      - "0x620C1100"  # 0% throttle
+    description: "Read throttle position"
+    
+  Engine_Diagnostic_Codes:
+    request: "0x1902"
+    responses:
+      - "0x5902"  # No DTCs
+      - "0x5902P0000"  # P0000 - No fault
+    description: "Read engine diagnostic trouble codes"
+
+# Transmission-specific UDS Services
+transmission_services:
+  Transmission_Gear_Read:
+    request: "0x220C0A"
+    responses:
+      - "0x620C0A01"  # 1st gear
+      - "0x620C0A02"  # 2nd gear
+      - "0x620C0A03"  # 3rd gear
+    description: "Read current gear"
+    
+  Transmission_Temperature_Read:
+    request: "0x220C0C"
+    responses:
+      - "0x620C0C70"  # 70°C
+      - "0x620C0C80"  # 80°C
+    description: "Read transmission temperature"
+    
+  Transmission_Fluid_Level_Read:
+    request: "0x220C0D"
+    responses:
+      - "0x620C0D80"  # 80% fluid level
+      - "0x620C0D90"  # 90% fluid level
+    description: "Read transmission fluid level"
+    
+  Transmission_Shift_Control:
+    request: "0x31020001"
+    responses:
+      - "0x71020001"
+    description: "Transmission shift control"
+    
+  Transmission_Diagnostic_Codes:
+    request: "0x1902"
+    responses:
+      - "0x5902"  # No DTCs
+      - "0x5902P0700"  # P0700 - Transmission control system
+    description: "Read transmission diagnostic trouble codes"
+    
+  Transmission_Adaptation_Reset:
+    request: "0x31030001"
+    responses:
+      - "0x71030001"
+    description: "Reset transmission adaptations"
+
+# ABS-specific UDS Services
+abs_services:
+  ABS_Wheel_Speed_Read:
+    request: "0x220C0B"
+    responses:
+      - "0x620C0B0000"  # 0 km/h
+      - "0x620C0B0032"  # 50 km/h
+    description: "Read wheel speed"
+    
+  ABS_System_Status_Read:
+    request: "0x220C0E"
+    responses:
+      - "0x620C0E00"  # System OK
+      - "0x620C0E01"  # System warning
+    description: "Read ABS system status"
+    
+  ABS_Valve_Test:
+    request: "0x31040001"
+    responses:
+      - "0x71040001"
+    description: "ABS valve test"
+    
+  ABS_Pump_Test:
+    request: "0x31050001"
+    responses:
+      - "0x71050001"
+    description: "ABS pump test"
+    
+  ABS_Diagnostic_Codes:
+    request: "0x1902"
+    responses:
+      - "0x5902"  # No DTCs
+      - "0x5902C0000"  # C0000 - No fault
+    description: "Read ABS diagnostic trouble codes"
+    
+  ABS_Calibration_Reset:
+    request: "0x31060001"
+    responses:
+      - "0x71060001"
+    description: "Reset ABS calibration"

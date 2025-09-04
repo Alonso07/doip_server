@@ -70,38 +70,33 @@ class TestDoIPConfigurationManager:
         config_manager = DoIPConfigManager()
         routine_config = config_manager.get_routine_activation_config()
         
-        assert 'supported_routines' in routine_config
-        supported_routines = routine_config['supported_routines']
+        assert 'active_type' in routine_config
+        assert 'reserved_by_iso' in routine_config
+        assert 'reserved_by_manufacturer' in routine_config
         
-        # Check that we have at least one supported routine
-        assert len(supported_routines) > 0
-        
-        # Check that routine 0x0202 exists and has required fields
-        if 0x0202 in supported_routines:
-            routine_0202 = supported_routines[0x0202]
-            assert 'name' in routine_0202
-            assert 'response_code' in routine_0202
+        # Check that we have valid values
+        assert routine_config['active_type'] == 0x00
+        assert routine_config['reserved_by_iso'] == 0x00000000
+        assert routine_config['reserved_by_manufacturer'] == 0x00000000
     
     def test_uds_services_config_loading(self):
         """Test UDS services configuration loading"""
         config_manager = DoIPConfigManager()
         uds_config = config_manager.get_uds_services_config()
         
-        # Check that service 0x22 exists
-        assert 0x22 in uds_config
+        # Check that we have at least one UDS service
+        assert len(uds_config) > 0
         
-        service_22 = uds_config[0x22]
-        assert 'name' in service_22
-        assert 'supported_data_identifiers' in service_22
+        # Check that Read_VIN service exists
+        assert 'Read_VIN' in uds_config
         
-        data_ids = service_22['supported_data_identifiers']
-        assert len(data_ids) > 0
+        read_vin_service = uds_config['Read_VIN']
+        assert 'request' in read_vin_service
+        assert 'responses' in read_vin_service
         
-        # Check that data identifier 0xF187 exists
-        if 0xF187 in data_ids:
-            data_187 = data_ids[0xF187]
-            assert 'name' in data_187
-            assert 'response_data' in data_187
+        # Check that we have valid request and responses
+        assert read_vin_service['request'] == '0x22F190'
+        assert len(read_vin_service['responses']) > 0
     
     def test_source_address_validation(self):
         """Test source address validation"""
@@ -123,33 +118,44 @@ class TestDoIPConfigurationManager:
         # Test invalid target address
         assert config_manager.is_target_address_valid(0x9999) is False
     
-    def test_supported_routine_lookup(self):
-        """Test supported routine lookup"""
+    def test_routine_activation_methods(self):
+        """Test routine activation methods"""
         config_manager = DoIPConfigManager()
         
-        # Test existing routine
-        routine = config_manager.get_supported_routine(0x0202)
-        if routine:
-            assert 'name' in routine
-            assert 'response_code' in routine
+        # Test routine activation type
+        active_type = config_manager.get_routine_activation_type()
+        assert active_type == 0x00
         
-        # Test non-existing routine
-        routine = config_manager.get_supported_routine(0x9999)
-        assert routine is None
+        # Test reserved values
+        reserved_iso = config_manager.get_routine_reserved_by_iso()
+        assert reserved_iso == 0x00000000
+        
+        reserved_manufacturer = config_manager.get_routine_reserved_by_manufacturer()
+        assert reserved_manufacturer == 0x00000000
     
-    def test_supported_data_identifier_lookup(self):
-        """Test supported data identifier lookup"""
+    def test_uds_service_lookup(self):
+        """Test UDS service lookup"""
         config_manager = DoIPConfigManager()
         
-        # Test existing data identifier
-        data_id = config_manager.get_supported_data_identifier(0x22, 0xF187)
-        if data_id:
-            assert 'name' in data_id
-            assert 'response_data' in data_id
+        # Test existing service by name
+        service = config_manager.get_uds_service_by_name('Read_VIN')
+        assert service is not None
+        assert service['name'] == 'Read_VIN'
+        assert service['request'] == '0x22F190'
+        assert len(service['responses']) > 0
         
-        # Test non-existing data identifier
-        data_id = config_manager.get_supported_data_identifier(0x22, 0x9999)
-        assert data_id is None
+        # Test existing service by request
+        service = config_manager.get_uds_service_by_request('22F190')
+        assert service is not None
+        assert service['name'] == 'Read_VIN'
+        
+        # Test non-existing service
+        service = config_manager.get_uds_service_by_name('NonExistentService')
+        assert service is None
+        
+        # Test non-existing request
+        service = config_manager.get_uds_service_by_request('999999')
+        assert service is None
     
     def test_response_code_descriptions(self):
         """Test response code description loading"""

@@ -12,14 +12,6 @@ server:
 protocol:
   version: 0x02
   inverse_version: 0xFD
-  supported_payload_types:
-    - 0x0001  # Alive Check Request
-    - 0x0002  # Alive Check Response
-    - 0x0005  # Routine Activation Request
-    - 0x0006  # Routine Activation Response
-    - 0x8001  # Diagnostic Message
-    - 0x8002  # Diagnostic Message ACK
-    - 0x8003  # Diagnostic Message NACK
 
 # Address Configuration
 addresses:
@@ -40,80 +32,36 @@ addresses:
 
 # Routine Activation Configuration
 routine_activation:
-  # Supported routine identifiers and their configurations
-  supported_routines:
-    0x0202:
-      name: "Example Routine 1"
-      description: "Basic test routine"
-      type: 0x0001
-      response_code: 0x10  # Success
-      conditions:
-        - "Engine off"
-        - "Ignition on"
-    
-    0x0203:
-      name: "Example Routine 2"
-      description: "Advanced test routine"
-      type: 0x0002
-      response_code: 0x10  # Success
-      conditions:
-        - "Engine running"
-        - "Vehicle stationary"
-    
-    0x0204:
-      name: "Example Routine 3"
-      description: "Maintenance routine"
-      type: 0x0003
-      response_code: 0x10  # Success
-      conditions:
-        - "Service mode active"
-  
-  # Default response for unsupported routines
-  default_response:
-    code: 0x31  # Incorrect Routine Identifier
-    message: "Routine not supported"
+  active_type: 0x00 #default
+  reserved_by_iso: 0x00000000
+  reserved_by_manufacturer: 0x00000000
 
 # UDS Services Configuration
 uds_services:
-  # Service 0x22 - Read Data by Identifier
-  0x22:
-    name: "Read Data by Identifier"
-    description: "Read data by identifier service"
-    
-    # Supported data identifiers and their responses
-    supported_data_identifiers:
-      0xF187:
-        name: "Vehicle Identification Number"
-        description: "VIN data"
-        response_data: [0x01, 0x02, 0x03, 0x04]
-        response_format: "raw"
-        access_control: "public"
-      
-      0xF188:
-        name: "Vehicle Type"
-        description: "Vehicle type information"
-        response_data: [0xAA, 0xBB, 0xCC, 0xDD]
-        response_format: "raw"
-        access_control: "public"
-      
-      0xF189:
-        name: "System Information"
-        description: "System configuration data"
-        response_data: [0x11, 0x22, 0x33, 0x44, 0x55, 0x66]
-        response_format: "raw"
-        access_control: "public"
-      
-      0xF190:
-        name: "Calibration Data"
-        description: "ECU calibration information"
-        response_data: [0x99, 0x88, 0x77, 0x66]
-        response_format: "raw"
-        access_control: "restricted"
-    
-    # Default negative response for unsupported data identifiers
-    default_negative_response:
-      code: 0x31  # RequestOutOfRange
-      message: "Data identifier not supported"
+  
+  Read_VIN:
+    request: "0x22F190"
+    responses:  
+      - "0x62F1901020011223344556677889AABB"
+      - "0x62F1901020011223344556677889BBCC"
+  Read_Vehicle_Type:
+    request: "0x22F191"
+    responses:  
+      - "0x62F1911020011223344556677889AABB"
+      - "0x62F1911020011223344556677889BBCC"
+  Routine_calibration_start:
+    request: "0x31010202"
+    responses:  
+      - "0x71010202"
+  Routine_calibration_stop:
+    request: "0x31020202"
+    responses:  
+      - "0x71020202"
+  Routine_calibration_status:
+    request: "0x31030202"
+    responses:  
+      - "0x7103020210"
+      - "0x7103020212"
 
 # Response Codes
 response_codes:

@@ -1,0 +1,77 @@
+# Gateway Configuration - TCP/IP Network Settings
+# This file contains the network configuration for a DoIP gateway
+
+gateway:
+  name: "Gateway1"
+  description: "Primary DoIP Gateway"
+  
+  # TCP/IP Network Configuration
+  network:
+    host: "0.0.0.0"  # Listen on all interfaces
+    port: 13400
+    max_connections: 10
+    timeout: 60
+    keep_alive: true
+    tcp_nodelay: true
+    
+  # Protocol Configuration
+  protocol:
+    version: 0x02
+    inverse_version: 0xFD
+    
+  # Gateway-specific settings
+  settings:
+    enable_logging: true
+    log_level: "INFO"
+    enable_security: false
+    allow_multiple_sessions: true
+    
+  # ECU References - List of ECU configuration files
+  ecus:
+    - "ecu_engine.yaml"
+    - "ecu_transmission.yaml" 
+    - "ecu_abs.yaml"
+    
+  # Response Codes Configuration
+  response_codes:
+    routine_activation:
+      0x10: "Routine started successfully"
+      0x22: "Conditions not correct"
+      0x31: "Incorrect routine identifier"
+      0x33: "Security access denied"
+    
+    uds:
+      0x10: "General reject"
+      0x12: "Sub-function not supported"
+      0x13: "Incorrect message length or invalid format"
+      0x22: "Conditions not correct"
+      0x24: "Request sequence error"
+      0x31: "Request out of range"
+      0x33: "Security access denied"
+      0x35: "Invalid key"
+      0x36: "Exceeded number of attempts"
+      0x37: "Required time delay not expired"
+      0x70: "Upload download not accepted"
+      0x71: "Transfer data suspended"
+      0x72: "General programming failure"
+      0x73: "Wrong block sequence counter"
+      0x78: "Request correctly received - response pending"
+      0x7E: "Sub-function not supported in active session"
+      0x7F: "Service not supported in active session"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "doip_server.log"
+  console: true
+  max_file_size: "10MB"
+  backup_count: 5
+
+# Security Configuration
+security:
+  enabled: false
+  allowed_sources_strict: false
+  require_auth_for:
+    - "routine_activation"
+    - "uds_write_operations"
