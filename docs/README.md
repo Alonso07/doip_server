@@ -124,7 +124,7 @@ from doip_server.doip_server import DoIPServer
 server = DoIPServer()
 
 # Override specific settings
-server = DoIPServer(host='127.0.0.1', port=13401)
+server = DoIPServer(host='127.0.0.1', port=13400)
 
 # Use custom configuration file
 server = DoIPServer(config_path='config/custom_config.yaml')

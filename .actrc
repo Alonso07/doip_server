@@ -1,0 +1,16 @@
+# Act configuration for local GitHub Actions testing
+# This file configures act to use appropriate runners for different platforms
+
+# Use specific runners for different operating systems
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P macos-latest=catthehacker/ubuntu:act-latest
+-P windows-latest=catthehacker/ubuntu:act-latest
+
+# Alternative Windows runners (if available)
+# -P windows-latest=nektos/act-environments-ubuntu:18.04
+
+# Enable verbose output
+-v
+
+# Set working directory
+-W .github/workflows/

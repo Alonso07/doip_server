@@ -112,14 +112,30 @@ class TestDoIPIntegrationHierarchical:
     def server(self):
         """Create and start a DoIP server for testing with hierarchical config"""
         server = DoIPServer(
-            "127.0.0.1", 13401, gateway_config_path="config/gateway1.yaml"
+            "127.0.0.1", 13400, gateway_config_path="config/gateway1.yaml"
         )
         server_thread = threading.Thread(target=server.start)
         server_thread.daemon = True
         server_thread.start()
 
         # Wait for server to start
-        time.sleep(2)
+        time.sleep(5)
+
+        # Verify server is actually running
+        assert server.running is True
+        assert server.server_socket is not None
+
+        # Test basic socket connection to ensure server is ready
+        import socket
+
+        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            test_socket.connect(("127.0.0.1", 13400))
+            test_socket.close()
+            print("✅ Basic socket connection test passed")
+        except Exception as e:
+            print(f"❌ Basic socket connection test failed: {e}")
+            raise
 
         yield server
 
@@ -137,7 +153,25 @@ class TestDoIPIntegrationHierarchical:
 
     def test_client_connection(self, server):
         """Test that client can connect to server"""
-        client = DoIPClient("127.0.0.1", 13401)
+        # Longer delay to ensure server is fully ready
+        time.sleep(2.0)
+
+        # Try multiple connection attempts with delays
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                print(
+                    f"Attempting DoIPClient connection (attempt {attempt + 1}/{max_attempts})"
+                )
+                client = DoIPClient("127.0.0.1", 13400)
+                print("✅ DoIPClient connection successful!")
+                break
+            except Exception as e:
+                print(f"❌ DoIPClient connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_attempts - 1:
+                    time.sleep(1.0)
+                else:
+                    raise
 
         # If we get here without an exception, the connection was successful
         assert client is not None
@@ -146,7 +180,8 @@ class TestDoIPIntegrationHierarchical:
 
     def test_routine_activation(self, server):
         """Test routine activation functionality"""
-        client = DoIPClient("127.0.0.1", 13401)
+        time.sleep(0.5)
+        client = DoIPClient("127.0.0.1", 13400)
 
         try:
             # If we get here without an exception, the routing activation was successful
@@ -157,7 +192,8 @@ class TestDoIPIntegrationHierarchical:
 
     def test_uds_read_data_by_identifier_engine_ecu(self, server):
         """Test UDS Read Data by Identifier service for Engine ECU"""
-        client = DoIPClient("127.0.0.1", 13401)
+        time.sleep(0.5)
+        client = DoIPClient("127.0.0.1", 13400)
 
         try:
             # Test VIN reading for Engine ECU (0x1000)
@@ -174,7 +210,8 @@ class TestDoIPIntegrationHierarchical:
 
     def test_uds_read_data_by_identifier_transmission_ecu(self, server):
         """Test UDS Read Data by Identifier service for Transmission ECU"""
-        client = DoIPClient("127.0.0.1", 13401)
+        time.sleep(0.5)
+        client = DoIPClient("127.0.0.1", 13400)
 
         try:
             # Test VIN reading for Transmission ECU (0x1001)
@@ -191,7 +228,8 @@ class TestDoIPIntegrationHierarchical:
 
     def test_uds_read_data_by_identifier_abs_ecu(self, server):
         """Test UDS Read Data by Identifier service for ABS ECU"""
-        client = DoIPClient("127.0.0.1", 13401)
+        time.sleep(0.5)
+        client = DoIPClient("127.0.0.1", 13400)
 
         try:
             # Test VIN reading for ABS ECU (0x1002)
@@ -208,7 +246,8 @@ class TestDoIPIntegrationHierarchical:
 
     def test_ecu_specific_services(self, server):
         """Test ECU-specific UDS services"""
-        client = DoIPClient("127.0.0.1", 13401)
+        time.sleep(0.5)
+        client = DoIPClient("127.0.0.1", 13400)
 
         try:
             # Test Engine-specific service (RPM read) for Engine ECU
@@ -237,7 +276,8 @@ class TestDoIPIntegrationHierarchical:
 
     def test_alive_check(self, server):
         """Test alive check functionality"""
-        client = DoIPClient("127.0.0.1", 13401)
+        time.sleep(0.5)
+        client = DoIPClient("127.0.0.1", 13400)
 
         try:
             response = client.request_alive_check()

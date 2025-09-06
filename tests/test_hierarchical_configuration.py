@@ -313,7 +313,7 @@ class TestHierarchicalConfigurationIntegration:
     def server(self):
         """Create and start a DoIP server with hierarchical configuration for testing"""
         server = DoIPServer(
-            "127.0.0.1", 13401, gateway_config_path="config/gateway1.yaml"
+            "127.0.0.1", 13400, gateway_config_path="config/gateway1.yaml"
         )
         server_thread = threading.Thread(target=server.start)
         server_thread.daemon = True

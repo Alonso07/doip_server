@@ -177,6 +177,7 @@ class DoIPServer:
 
         self.logger = logging.getLogger(__name__)
         self.logger.info("Logging configured")
+        self.logger.info(f"Server will bind to {self.host}:{self.port}")
 
     def start(self):
         """Start the DoIP server"""

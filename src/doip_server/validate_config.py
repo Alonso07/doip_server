@@ -37,18 +37,31 @@ def validate_configuration(config_path=None):
 
         # Test routine activation
         routines = config_manager.get_routine_activation_config()
-        supported_routines = routines.get("supported_routines", {})
-        print(f"✅ Found {len(supported_routines)} supported routines")
+        active_type = routines.get("active_type", 0x00)
+        print(f"✅ Routine activation active type: 0x{active_type:02X}")
 
-        for routine_id, routine_config in supported_routines.items():
-            print(f"  - 0x{routine_id:04X}: {routine_config.get('name', 'Unknown')}")
+        # Check if there are any supported routines defined
+        supported_routines = routines.get("supported_routines", {})
+        if supported_routines:
+            print(f"✅ Found {len(supported_routines)} supported routines")
+            for routine_id, routine_config in supported_routines.items():
+                if isinstance(routine_id, int):
+                    print(
+                        f"  - 0x{routine_id:04X}: {routine_config.get('name', 'Unknown')}"
+                    )
+                else:
+                    print(f"  - {routine_id}: {routine_config.get('name', 'Unknown')}")
+        else:
+            print(
+                "✅ No specific supported routines defined (using default configuration)"
+            )
 
         # Test UDS services
         uds_services = config_manager.get_uds_services_config()
         print(f"✅ Found {len(uds_services)} UDS services")
 
         for service_id, service_config in uds_services.items():
-            print(f"  - 0x{service_id:02X}: {service_config.get('name', 'Unknown')}")
+            print(f"  - {service_id}: {service_config.get('name', 'Unknown')}")
             data_ids = service_config.get("supported_data_identifiers", {})
             print(f"    Supports {len(data_ids)} data identifiers")
 

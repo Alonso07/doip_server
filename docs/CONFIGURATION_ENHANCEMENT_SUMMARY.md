@@ -47,7 +47,7 @@ The server now implements a clear priority system for configuration:
 server = DoIPServer()
 
 # Override specific settings
-server = DoIPServer(host='127.0.0.1', port=13401)
+server = DoIPServer(host='127.0.0.1', port=13400)
 
 # Use custom configuration file
 server = DoIPServer(config_path='config/custom_config.yaml')
@@ -139,7 +139,7 @@ print(f"Server will bind to {host}:{port}")
 #### **Configuration Override**
 ```python
 # Override specific settings
-server = DoIPServer(host='127.0.0.1', port=13401)
+server = DoIPServer(host='127.0.0.1', port=13400)
 
 # Server information
 info = server.get_server_info()
