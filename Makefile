@@ -37,8 +37,6 @@ run:
 run-hierarchical:
 	poetry run python src/doip_server/main.py --gateway-config config/gateway1.yaml
 
-run-legacy:
-	poetry run python src/doip_server/main.py --legacy-config config/example_config.yaml
 
 # Testing
 test:
@@ -157,9 +155,6 @@ security:
 
 # Configuration validation
 validate:
-	@echo "Validating configuration files..."
-	poetry run python -m src.doip_server.validate_config config/example_config.yaml
-	poetry run python -m src.doip_server.validate_config config/doip_config.yaml
 	@echo "Validating hierarchical configuration..."
 	poetry run python -c "from src.doip_server.hierarchical_config_manager import HierarchicalConfigManager; HierarchicalConfigManager('config/gateway1.yaml')"
 

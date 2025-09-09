@@ -246,6 +246,19 @@ gateway:
         """Get response codes configuration"""
         return self.get_gateway_config().get("response_codes", {})
 
+    def get_vehicle_info(self) -> Dict[str, Any]:
+        """Get vehicle information from gateway configuration"""
+        return self.get_gateway_config().get("vehicle", {})
+
+    def get_gateway_info(self) -> Dict[str, Any]:
+        """Get gateway information including logical address"""
+        gateway_config = self.get_gateway_config()
+        return {
+            "logical_address": gateway_config.get("logical_address", 0x1000),
+            "name": gateway_config.get("name", "Unknown"),
+            "description": gateway_config.get("description", "")
+        }
+
     # ECU configuration methods
     def get_all_ecu_addresses(self) -> List[int]:
         """Get all configured ECU target addresses"""
@@ -262,6 +275,23 @@ gateway:
             ecu_info = ecu_config.get("ecu", {})
             return ecu_info.get("tester_addresses", [])
         return []
+
+    def get_ecu_functional_address(self, target_address: int) -> Optional[int]:
+        """Get functional address for a specific ECU"""
+        ecu_config = self.get_ecu_config(target_address)
+        if ecu_config:
+            ecu_info = ecu_config.get("ecu", {})
+            return ecu_info.get("functional_address")
+        return None
+
+    def get_ecus_by_functional_address(self, functional_address: int) -> List[int]:
+        """Get all ECU target addresses that use the specified functional address"""
+        matching_ecus = []
+        for ecu_addr in self.get_all_ecu_addresses():
+            ecu_functional_addr = self.get_ecu_functional_address(ecu_addr)
+            if ecu_functional_addr == functional_address:
+                matching_ecus.append(ecu_addr)
+        return matching_ecus
 
     def is_source_address_allowed(
         self, source_addr: int, target_addr: int = None
@@ -326,6 +356,7 @@ gateway:
                         "responses": service_config.get("responses", []),
                         "description": service_config.get("description", ""),
                         "ecu_address": target_address,
+                        "supports_functional": service_config.get("supports_functional", False),
                     }
         else:
             # Search in all services
@@ -338,8 +369,18 @@ gateway:
                         "responses": service_config.get("responses", []),
                         "description": service_config.get("description", ""),
                         "ecu_address": None,
+                        "supports_functional": service_config.get("supports_functional", False),
                     }
         return None
+
+    def get_uds_services_supporting_functional(self, target_address: int) -> List[str]:
+        """Get list of service names that support functional addressing for a specific ECU"""
+        ecu_services = self.get_ecu_uds_services(target_address)
+        functional_services = []
+        for service_name, service_config in ecu_services.items():
+            if service_config.get("supports_functional", False):
+                functional_services.append(service_name)
+        return functional_services
 
     def _match_request(self, config_request: str, request: str) -> bool:
         """Check if a request matches a configured request"""
@@ -435,7 +476,16 @@ gateway:
 
         # Protocol config
         protocol = self.get_protocol_config()
-        summary.append(f"Protocol Version: 0x{protocol.get('version', 'N/A'):02X}")
+        version = protocol.get('version', 'N/A')
+        if version == 'N/A':
+            summary.append(f"Protocol Version: {version}")
+        else:
+            # Convert string hex to int if needed
+            if isinstance(version, str):
+                version_int = int(version, 16) if version.startswith('0x') else int(version)
+            else:
+                version_int = version
+            summary.append(f"Protocol Version: 0x{version_int:02X}")
 
         # ECU configs
         summary.append(f"Configured ECUs: {len(self.ecu_configs)}")

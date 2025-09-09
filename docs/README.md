@@ -18,7 +18,7 @@ A Python implementation of DoIP (Diagnostics over Internet Protocol) server and 
 - **Comprehensive Logging**: Configurable logging with file and console output
 - **Configuration Validation**: Built-in validation and error checking
 - **Extensible Design**: Easy to add new UDS services and routine types
-- **Comprehensive Testing**: 29 tests (17 unit + 12 integration) with 100% pass rate
+- **Comprehensive Testing**: 186 tests with 99.5% pass rate (185 passing, 1 skipped)
 - **Multiple DoIP Message Types**: Supports alive checks, power mode requests, and diagnostic messages
 
 ## Installation

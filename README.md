@@ -11,8 +11,11 @@ poetry install
 # Run with hierarchical configuration
 poetry run python src/doip_server/main.py --gateway-config config/gateway1.yaml
 
-# Run with legacy configuration
-poetry run python src/doip_server/main.py --legacy-config config/example_config.yaml
+# Test UDP Vehicle Identification
+python run_udp_client.py --verbose
+
+# Test Functional Diagnostics (NEW!)
+python test_functional_diagnostics.py
 ```
 
 ## 📚 Documentation
@@ -22,6 +25,7 @@ All documentation has been moved to the `docs/` directory for better organizatio
 - **[📖 Documentation Index](docs/INDEX.md)** - Complete documentation index
 - **[🚀 Getting Started](docs/README.md)** - Detailed project overview and setup
 - **[⚙️ Configuration Guide](docs/HIERARCHICAL_CONFIGURATION_GUIDE.md)** - Hierarchical configuration system
+- **[🔧 Functional Diagnostics](docs/FUNCTIONAL_DIAGNOSTICS_GUIDE.md)** - Functional addressing and broadcast diagnostics
 - **[🧪 Test Results](docs/COMPREHENSIVE_TEST_RESULTS.md)** - Complete test results and analysis
 
 ## ✨ Key Features
@@ -29,8 +33,9 @@ All documentation has been moved to the `docs/` directory for better organizatio
 - **Hierarchical Configuration**: Multi-file configuration system with dynamic ECU loading
 - **Response Cycling**: Automatic cycling through multiple responses per UDS service
 - **Per-ECU Services**: ECU-specific UDS service definitions
-- **Backward Compatibility**: Support for legacy single-file configuration
-- **Comprehensive Testing**: 91% test pass rate with full core functionality
+- **Functional Diagnostics**: Broadcast requests to multiple ECUs using functional addressing (NEW!)
+- **UDP Vehicle Identification**: Network discovery via UDP broadcasts
+- **Comprehensive Testing**: 99.5% test pass rate with full core functionality
 
 ## 🏗️ Architecture
 
@@ -49,7 +54,12 @@ config/
 - **Hierarchical Config Tests**: 21/21 ✅ (100%)
 - **Response Cycling Tests**: 9/9 ✅ (100%)
 - **Legacy Integration Tests**: 13/13 ✅ (100%)
-- **Overall**: 73/80 tests passing (91% success rate)
+- **Client Extended Tests**: 25/25 ✅ (100%)
+- **Main Module Tests**: 12/12 ✅ (100%)
+- **Validate Config Tests**: 15/15 ✅ (100%)
+- **Debug Client Tests**: 30/30 ✅ (100%)
+- **Demo Tests**: 5/6 ✅ (83% - 1 skipped)
+- **Overall**: 185/186 tests passing (99.5% success rate)
 
 ## 🔧 Development
 

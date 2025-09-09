@@ -4,6 +4,13 @@
 gateway:
   name: "Gateway1"
   description: "Primary DoIP Gateway"
+  logical_address: 0x1000  # Gateway logical address
+  
+  # Vehicle Information
+  vehicle:
+    vin: "1HGBH41JXMN109186"  # Vehicle Identification Number
+    eid: "123456789ABC"  # Entity ID (6 bytes hex)
+    gid: "DEF012345678"  # Group ID (6 bytes hex)
   
   # TCP/IP Network Configuration
   network:

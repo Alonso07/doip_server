@@ -5,6 +5,7 @@ ecu:
   name: "ABS_ECU"
   description: "Anti-lock Braking System Control Unit"
   target_address: 0x1002
+  functional_address: 0x1FFF  # Functional address for broadcast diagnostics
   tester_addresses:
     - 0x0E00  # Primary tester
     - 0x0E01  # Backup tester
@@ -32,6 +33,9 @@ ecu:
       - "Routine_calibration_start"
       - "Routine_calibration_stop"
       - "Routine_calibration_status"
+      - "Diagnostic_Session_Control"
+      - "Tester_Present"
+      - "Security_Access"
     
     # ECU-specific services (only available for this ECU)
     specific_services:

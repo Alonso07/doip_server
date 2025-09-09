@@ -9,6 +9,7 @@ common_services:
       - "0x62F1901020011223344556677889AABB"
       - "0x62F1901020011223344556677889BBCC"
     description: "Read Vehicle Identification Number"
+    supports_functional: true  # Supports both physical and functional addressing
     
   Read_Vehicle_Type:
     request: "0x22F191"
@@ -16,6 +17,7 @@ common_services:
       - "0x62F1911020011223344556677889AABB"
       - "0x62F1911020011223344556677889BBCC"
     description: "Read Vehicle Type Information"
+    supports_functional: true  # Supports both physical and functional addressing
     
   Routine_calibration_start:
     request: "0x31010202"
@@ -35,6 +37,27 @@ common_services:
       - "0x7103020210"
       - "0x7103020212"
     description: "Get calibration routine status"
+    
+  Diagnostic_Session_Control:
+    request: "0x1003"
+    responses:
+      - "0x50030000"  # Positive response for extended session
+      - "0x50030001"  # Positive response for default session
+    description: "Diagnostic Session Control"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Tester_Present:
+    request: "0x3E00"
+    responses:
+      - "0x7E00"  # Positive response
+    description: "Tester Present"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Security_Access:
+    request: "0x2701"
+    responses:
+      - "0x6701"  # Positive response
+    description: "Security Access"
 
 # Engine-specific UDS Services
 engine_services:
@@ -78,6 +101,7 @@ engine_services:
       - "0x5902"  # No DTCs
       - "0x5902P0000"  # P0000 - No fault
     description: "Read engine diagnostic trouble codes"
+    supports_functional: true  # Supports both physical and functional addressing
 
 # Transmission-specific UDS Services
 transmission_services:
@@ -115,6 +139,7 @@ transmission_services:
       - "0x5902"  # No DTCs
       - "0x5902P0700"  # P0700 - Transmission control system
     description: "Read transmission diagnostic trouble codes"
+    supports_functional: true  # Supports both physical and functional addressing
     
   Transmission_Adaptation_Reset:
     request: "0x31030001"
@@ -156,6 +181,7 @@ abs_services:
       - "0x5902"  # No DTCs
       - "0x5902C0000"  # C0000 - No fault
     description: "Read ABS diagnostic trouble codes"
+    supports_functional: true  # Supports both physical and functional addressing
     
   ABS_Calibration_Reset:
     request: "0x31060001"

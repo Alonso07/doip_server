@@ -216,31 +216,31 @@ class TestResponseCycling:
         cycling_state = server.get_response_cycling_state()
         assert len(cycling_state) == 0
 
-    def test_response_cycling_legacy_config(self):
-        """Test response cycling with legacy configuration"""
-        server = DoIPServer(gateway_config_path=None)  # Use legacy config
+    def test_response_cycling_hierarchical_config(self):
+        """Test response cycling with hierarchical configuration"""
+        server = DoIPServer(gateway_config_path="config/gateway1.yaml")  # Use hierarchical config
 
-        # Test Read_VIN service (legacy mode uses target_address=None)
+        # Test Read_VIN service for Engine ECU (0x1000)
         request_bytes = bytes.fromhex("22F190")
 
         # First call - should return first response
-        response1 = server.process_uds_message(request_bytes, None)
+        response1 = server.process_uds_message(request_bytes, 0x1000)
         assert response1 is not None
         assert response1.hex().upper() == "62F1901020011223344556677889AABB"
 
         # Second call - should return second response
-        response2 = server.process_uds_message(request_bytes, None)
+        response2 = server.process_uds_message(request_bytes, 0x1000)
         assert response2 is not None
         assert response2.hex().upper() == "62F1901020011223344556677889BBCC"
 
         # Third call - should cycle back to first response
-        response3 = server.process_uds_message(request_bytes, None)
+        response3 = server.process_uds_message(request_bytes, 0x1000)
         assert response3 is not None
         assert response3.hex().upper() == "62F1901020011223344556677889AABB"
 
-        # Check cycling state (legacy uses ECU address 0)
+        # Check cycling state (hierarchical uses actual ECU address)
         cycling_state = server.get_response_cycling_state()
-        key = "ECU_0x0000_Read_VIN"
+        key = "ECU_0x1000_Read_VIN"
         assert key in cycling_state
         assert cycling_state[key] == 1  # Next response should be index 1
 
