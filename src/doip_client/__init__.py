@@ -9,7 +9,14 @@ from .udp_doip_client import UDPDoIPClient
 try:
     from .doip_client import DoIPClientWrapper, start_doip_client, create_doip_request
     from .debug_client import DebugDoIPClient
-    __all__ = ["DoIPClientWrapper", "start_doip_client", "create_doip_request", "DebugDoIPClient", "UDPDoIPClient"]
+
+    __all__ = [
+        "DoIPClientWrapper",
+        "start_doip_client",
+        "create_doip_request",
+        "DebugDoIPClient",
+        "UDPDoIPClient",
+    ]
 except ImportError:
     # Fallback if external dependencies are not available
     __all__ = ["UDPDoIPClient"]

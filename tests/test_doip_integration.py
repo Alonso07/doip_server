@@ -24,7 +24,9 @@ class TestDoIPIntegration:
     @pytest.fixture(scope="class")
     def server(self):
         """Create and start a DoIP server for testing"""
-        server = DoIPServer("127.0.0.1", 13400, gateway_config_path="config/gateway1.yaml")
+        server = DoIPServer(
+            "127.0.0.1", 13400, gateway_config_path="config/gateway1.yaml"
+        )
         server_thread = threading.Thread(target=server.start)
         server_thread.daemon = True
         server_thread.start()
@@ -46,7 +48,7 @@ class TestDoIPIntegration:
     def test_client_connection(self, server):
         """Test that client can connect to server"""
         client = DoIPClientWrapper("127.0.0.1", 13400)
-        
+
         try:
             client.connect()
             # If we get here without an exception, the connection was successful
@@ -59,7 +61,7 @@ class TestDoIPIntegration:
         # Test that the client can connect successfully
         # The DoIPClientWrapper connects automatically and performs routing activation
         client = DoIPClientWrapper("127.0.0.1", 13400)
-        
+
         try:
             client.connect()
             # Test routine activation
@@ -135,7 +137,7 @@ class TestDoIPMessageFormats:
 
         assert len(uds_payload) == 3
         assert uds_payload[0] == 0x22  # UDS service ID
-        assert uds_payload[1:3] == b"\xF1\x87"  # Data identifier
+        assert uds_payload[1:3] == b"\xf1\x87"  # Data identifier
 
     def test_doip_header_format(self):
         """Test DoIP header construction"""

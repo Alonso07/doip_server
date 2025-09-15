@@ -256,7 +256,7 @@ gateway:
         return {
             "logical_address": gateway_config.get("logical_address", 0x1000),
             "name": gateway_config.get("name", "Unknown"),
-            "description": gateway_config.get("description", "")
+            "description": gateway_config.get("description", ""),
         }
 
     # ECU configuration methods
@@ -356,7 +356,9 @@ gateway:
                         "responses": service_config.get("responses", []),
                         "description": service_config.get("description", ""),
                         "ecu_address": target_address,
-                        "supports_functional": service_config.get("supports_functional", False),
+                        "supports_functional": service_config.get(
+                            "supports_functional", False
+                        ),
                     }
         else:
             # Search in all services
@@ -369,7 +371,9 @@ gateway:
                         "responses": service_config.get("responses", []),
                         "description": service_config.get("description", ""),
                         "ecu_address": None,
-                        "supports_functional": service_config.get("supports_functional", False),
+                        "supports_functional": service_config.get(
+                            "supports_functional", False
+                        ),
                     }
         return None
 
@@ -476,13 +480,15 @@ gateway:
 
         # Protocol config
         protocol = self.get_protocol_config()
-        version = protocol.get('version', 'N/A')
-        if version == 'N/A':
+        version = protocol.get("version", "N/A")
+        if version == "N/A":
             summary.append(f"Protocol Version: {version}")
         else:
             # Convert string hex to int if needed
             if isinstance(version, str):
-                version_int = int(version, 16) if version.startswith('0x') else int(version)
+                version_int = (
+                    int(version, 16) if version.startswith("0x") else int(version)
+                )
             else:
                 version_int = version
             summary.append(f"Protocol Version: 0x{version_int:02X}")

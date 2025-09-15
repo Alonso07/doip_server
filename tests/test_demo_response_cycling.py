@@ -27,7 +27,7 @@ def test_response_cycling():
     for target_addr in config_manager.get_all_ecu_addresses():
         ecu_config = config_manager.get_ecu_config(target_addr)
         ecu_info = ecu_config.get("ecu", {}) if ecu_config else {}
-        
+
         uds_services = config_manager.get_ecu_uds_services(target_addr)
         for service_name, service_config in uds_services.items():
             responses = service_config.get("responses", [])
@@ -65,7 +65,7 @@ def test_response_cycling():
             for call_num in range(1, 4):  # Test 3 calls
                 # Simulate UDS message processing
                 uds_response = server.process_uds_message(request_bytes, target_addr)
-                
+
                 # Response may or may not exist depending on configuration
                 # We just verify the method doesn't crash
                 assert uds_response is None or isinstance(uds_response, bytes)
@@ -121,7 +121,7 @@ def test_hierarchical_response_cycling():
         for call_num in range(1, 4):  # Test 3 calls
             # Simulate UDS message processing for Engine ECU (0x1000)
             uds_response = server.process_uds_message(request_bytes, 0x1000)
-            
+
             # Response may or may not exist depending on configuration
             assert uds_response is None or isinstance(uds_response, bytes)
 

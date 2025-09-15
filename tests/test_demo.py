@@ -60,10 +60,12 @@ def test_routine_activation():
     assert len(message) == 12  # 8 bytes header + 4 bytes payload
     assert message[0] == DOIP_PROTOCOL_VERSION
     assert message[1] == DOIP_INVERSE_PROTOCOL_VERSION
-    assert struct.unpack('>H', message[2:4])[0] == PAYLOAD_TYPE_ROUTINE_ACTIVATION_REQUEST
-    assert struct.unpack('>I', message[4:8])[0] == len(payload)
-    assert struct.unpack('>H', message[8:10])[0] == routine_identifier
-    assert struct.unpack('>H', message[10:12])[0] == routine_type
+    assert (
+        struct.unpack(">H", message[2:4])[0] == PAYLOAD_TYPE_ROUTINE_ACTIVATION_REQUEST
+    )
+    assert struct.unpack(">I", message[4:8])[0] == len(payload)
+    assert struct.unpack(">H", message[8:10])[0] == routine_identifier
+    assert struct.unpack(">H", message[10:12])[0] == routine_type
 
 
 def test_uds_message():
@@ -87,12 +89,12 @@ def test_uds_message():
     assert len(message) == 15  # 8 bytes header + 7 bytes payload
     assert message[0] == DOIP_PROTOCOL_VERSION
     assert message[1] == DOIP_INVERSE_PROTOCOL_VERSION
-    assert struct.unpack('>H', message[2:4])[0] == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE
-    assert struct.unpack('>I', message[4:8])[0] == len(payload)
-    assert struct.unpack('>H', message[8:10])[0] == source_address
-    assert struct.unpack('>H', message[10:12])[0] == target_address
+    assert struct.unpack(">H", message[2:4])[0] == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE
+    assert struct.unpack(">I", message[4:8])[0] == len(payload)
+    assert struct.unpack(">H", message[8:10])[0] == source_address
+    assert struct.unpack(">H", message[10:12])[0] == target_address
     assert message[12] == UDS_READ_DATA_BY_IDENTIFIER
-    assert struct.unpack('>H', message[13:15])[0] == data_identifier
+    assert struct.unpack(">H", message[13:15])[0] == data_identifier
 
 
 def test_alive_check():
@@ -108,8 +110,8 @@ def test_alive_check():
     assert len(message) == 8  # 8 bytes header + 0 bytes payload
     assert message[0] == DOIP_PROTOCOL_VERSION
     assert message[1] == DOIP_INVERSE_PROTOCOL_VERSION
-    assert struct.unpack('>H', message[2:4])[0] == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST
-    assert struct.unpack('>I', message[4:8])[0] == 0
+    assert struct.unpack(">H", message[2:4])[0] == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST
+    assert struct.unpack(">I", message[4:8])[0] == 0
 
 
 def test_response_creation():
@@ -126,10 +128,13 @@ def test_response_creation():
     assert len(response) == 12  # 8 bytes header + 4 bytes payload
     assert response[0] == DOIP_PROTOCOL_VERSION
     assert response[1] == DOIP_INVERSE_PROTOCOL_VERSION
-    assert struct.unpack('>H', response[2:4])[0] == PAYLOAD_TYPE_ROUTINE_ACTIVATION_RESPONSE
-    assert struct.unpack('>I', response[4:8])[0] == len(payload)
-    assert struct.unpack('>H', response[8:10])[0] == response_code
-    assert struct.unpack('>H', response[10:12])[0] == routine_type
+    assert (
+        struct.unpack(">H", response[2:4])[0]
+        == PAYLOAD_TYPE_ROUTINE_ACTIVATION_RESPONSE
+    )
+    assert struct.unpack(">I", response[4:8])[0] == len(payload)
+    assert struct.unpack(">H", response[8:10])[0] == response_code
+    assert struct.unpack(">H", response[10:12])[0] == routine_type
 
     # UDS response for Read Data by Identifier
     data_identifier = 0xF187
@@ -146,12 +151,12 @@ def test_response_creation():
     assert len(response) == 19  # 8 bytes header + 11 bytes payload
     assert response[0] == DOIP_PROTOCOL_VERSION
     assert response[1] == DOIP_INVERSE_PROTOCOL_VERSION
-    assert struct.unpack('>H', response[2:4])[0] == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE
-    assert struct.unpack('>I', response[4:8])[0] == len(payload)
-    assert struct.unpack('>H', response[8:10])[0] == source_addr
-    assert struct.unpack('>H', response[10:12])[0] == target_addr
+    assert struct.unpack(">H", response[2:4])[0] == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE
+    assert struct.unpack(">I", response[4:8])[0] == len(payload)
+    assert struct.unpack(">H", response[8:10])[0] == source_addr
+    assert struct.unpack(">H", response[10:12])[0] == target_addr
     assert response[12] == 0x62  # UDS positive response for 0x22
-    assert struct.unpack('>H', response[13:15])[0] == data_identifier
+    assert struct.unpack(">H", response[13:15])[0] == data_identifier
 
 
 @pytest.mark.integration
@@ -202,7 +207,7 @@ def test_doipclient_wrapper_creation():
         logical_address=0x0E00,
         target_address=0x1000,
     )
-    
+
     assert client.server_host == "127.0.0.1"
     assert client.server_port == 13400
     assert client.logical_address == 0x0E00

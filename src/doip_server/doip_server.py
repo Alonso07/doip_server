@@ -167,15 +167,17 @@ class DoIPServer:
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(self.max_connections)
-        
+
         # Start UDP server for vehicle identification
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.udp_socket.bind((self.host, self.port))
-        
+
         self.running = True
 
-        self.logger.info(f"DoIP server listening on {self.host}:{self.port} (TCP and UDP)")
+        self.logger.info(
+            f"DoIP server listening on {self.host}:{self.port} (TCP and UDP)"
+        )
         self.logger.info(self.config_manager.get_config_summary())
 
         print(f"DoIP server listening on {self.host}:{self.port} (TCP and UDP)")
@@ -191,7 +193,7 @@ class DoIPServer:
                     pass  # No UDP message, continue to TCP
                 except Exception as e:
                     self.logger.error(f"Error handling UDP message: {e}")
-                
+
                 # Check for TCP connections
                 try:
                     self.server_socket.settimeout(0.1)  # Short timeout for TCP check
@@ -202,7 +204,7 @@ class DoIPServer:
                     pass  # No TCP connection, continue loop
                 except Exception as e:
                     self.logger.error(f"Error handling TCP connection: {e}")
-                    
+
         except KeyboardInterrupt:
             print("\nShutting down server...")
         finally:
@@ -297,9 +299,7 @@ class DoIPServer:
         self.logger.info(f"Reserved: 0x{reserved:08X}")
 
         # Check if source address is allowed
-        if not self.config_manager.is_source_address_allowed(
-            client_logical_address
-        ):
+        if not self.config_manager.is_source_address_allowed(client_logical_address):
             self.logger.warning(
                 f"Source address 0x{client_logical_address:04X} not allowed"
             )
@@ -335,10 +335,16 @@ class DoIPServer:
         self.logger.info(f"UDS Payload: {uds_payload.hex()}")
 
         # Check if this is a functional address request
-        functional_ecus = self.config_manager.get_ecus_by_functional_address(target_address)
+        functional_ecus = self.config_manager.get_ecus_by_functional_address(
+            target_address
+        )
         if functional_ecus:
-            self.logger.info(f"Functional address request to 0x{target_address:04X}, targeting {len(functional_ecus)} ECUs")
-            return self.handle_functional_diagnostic_message(source_address, target_address, uds_payload, functional_ecus)
+            self.logger.info(
+                f"Functional address request to 0x{target_address:04X}, targeting {len(functional_ecus)} ECUs"
+            )
+            return self.handle_functional_diagnostic_message(
+                source_address, target_address, uds_payload, functional_ecus
+            )
 
         # Validate addresses for physical addressing
         if not self.config_manager.is_source_address_allowed(
@@ -363,33 +369,49 @@ class DoIPServer:
 
         return None
 
-    def handle_functional_diagnostic_message(self, source_address, functional_address, uds_payload, target_ecus):
+    def handle_functional_diagnostic_message(
+        self, source_address, functional_address, uds_payload, target_ecus
+    ):
         """Handle functional diagnostic message by broadcasting to multiple ECUs"""
-        self.logger.info(f"Handling functional diagnostic message to 0x{functional_address:04X}")
-        
+        self.logger.info(
+            f"Handling functional diagnostic message to 0x{functional_address:04X}"
+        )
+
         # Convert UDS payload to hex string for matching
         uds_hex = uds_payload.hex().upper()
-        
+
         # Find ECUs that support this UDS service with functional addressing
         responding_ecus = []
         for ecu_address in target_ecus:
             # Check if source address is allowed for this ECU
-            if not self.config_manager.is_source_address_allowed(source_address, ecu_address):
-                self.logger.warning(f"Source address 0x{source_address:04X} not allowed for ECU 0x{ecu_address:04X}")
+            if not self.config_manager.is_source_address_allowed(
+                source_address, ecu_address
+            ):
+                self.logger.warning(
+                    f"Source address 0x{source_address:04X} not allowed for ECU 0x{ecu_address:04X}"
+                )
                 continue
-                
+
             # Check if this ECU supports the UDS service with functional addressing
-            service_config = self.config_manager.get_uds_service_by_request(uds_hex, ecu_address)
+            service_config = self.config_manager.get_uds_service_by_request(
+                uds_hex, ecu_address
+            )
             if service_config and service_config.get("supports_functional", False):
                 responding_ecus.append(ecu_address)
-                self.logger.info(f"ECU 0x{ecu_address:04X} supports functional addressing for this service")
+                self.logger.info(
+                    f"ECU 0x{ecu_address:04X} supports functional addressing for this service"
+                )
             else:
-                self.logger.debug(f"ECU 0x{ecu_address:04X} does not support functional addressing for this service")
-        
+                self.logger.debug(
+                    f"ECU 0x{ecu_address:04X} does not support functional addressing for this service"
+                )
+
         if not responding_ecus:
-            self.logger.warning(f"No ECUs support functional addressing for UDS request: {uds_hex}")
+            self.logger.warning(
+                f"No ECUs support functional addressing for UDS request: {uds_hex}"
+            )
             return self.create_doip_nack(0x04)  # Unsupported target address
-        
+
         # Process the UDS message for each responding ECU and collect responses
         responses = []
         for ecu_address in responding_ecus:
@@ -399,20 +421,19 @@ class DoIPServer:
                 response = self.create_diagnostic_message_response(
                     functional_address, source_address, uds_response
                 )
-                responses.append({
-                    'ecu_address': ecu_address,
-                    'response': response
-                })
+                responses.append({"ecu_address": ecu_address, "response": response})
                 self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
-        
+
         if not responses:
             self.logger.warning("No valid responses generated from any ECU")
             return self.create_doip_nack(0x04)  # Unsupported target address
-        
+
         # For now, return the first response (in a real implementation, you might want to handle multiple responses differently)
         # In functional addressing, typically only one response is sent back, but the server logs all responses
-        self.logger.info(f"Functional addressing: {len(responses)} ECUs responded, returning first response")
-        return responses[0]['response']
+        self.logger.info(
+            f"Functional addressing: {len(responses)} ECUs responded, returning first response"
+        )
+        return responses[0]["response"]
 
     def process_uds_message(self, uds_payload, target_address):
         """Process UDS message and return response for specific ECU"""
@@ -566,7 +587,7 @@ class DoIPServer:
     def create_uds_negative_response(self, service_id: int, nrc: int) -> bytes:
         """Create UDS negative response"""
         # UDS negative response format: 0x7F + service_id + NRC
-        return b"\x7F" + bytes([service_id]) + bytes([nrc])
+        return b"\x7f" + bytes([service_id]) + bytes([nrc])
 
     def create_routing_activation_response(
         self, response_code, client_logical_address, logical_address
@@ -674,28 +695,34 @@ class DoIPServer:
         """Handle incoming UDP message (vehicle identification requests)"""
         try:
             self.logger.info(f"Received UDP message from {addr}: {data.hex()}")
-            
+
             if len(data) < 8:  # Minimum DoIP header size
                 self.logger.warning("UDP message too short for DoIP header")
                 return
-                
+
             # Parse DoIP header
             protocol_version = data[0]
             inverse_protocol_version = data[1]
             payload_type = struct.unpack(">H", data[2:4])[0]
             payload_length = struct.unpack(">I", data[4:8])[0]
-            
+
             self.logger.info(f"UDP Protocol Version: 0x{protocol_version:02X}")
-            self.logger.info(f"UDP Inverse Protocol Version: 0x{inverse_protocol_version:02X}")
+            self.logger.info(
+                f"UDP Inverse Protocol Version: 0x{inverse_protocol_version:02X}"
+            )
             self.logger.info(f"UDP Payload Type: 0x{payload_type:04X}")
             self.logger.info(f"UDP Payload Length: {payload_length}")
-            
+
             # Validate protocol version
-            if (protocol_version != self.protocol_version or 
-                inverse_protocol_version != self.inverse_protocol_version):
-                self.logger.warning(f"Invalid UDP protocol version: 0x{protocol_version:02X}")
+            if (
+                protocol_version != self.protocol_version
+                or inverse_protocol_version != self.inverse_protocol_version
+            ):
+                self.logger.warning(
+                    f"Invalid UDP protocol version: 0x{protocol_version:02X}"
+                )
                 return
-                
+
             # Handle vehicle identification request
             if payload_type == PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST:
                 self.logger.info("Processing vehicle identification request")
@@ -704,8 +731,10 @@ class DoIPServer:
                     self.udp_socket.sendto(response, addr)
                     self.logger.info(f"Sent vehicle identification response to {addr}")
             else:
-                self.logger.warning(f"Unsupported UDP payload type: 0x{payload_type:04X}")
-                
+                self.logger.warning(
+                    f"Unsupported UDP payload type: 0x{payload_type:04X}"
+                )
+
         except Exception as e:
             self.logger.error(f"Error handling UDP message: {e}")
 
@@ -713,38 +742,40 @@ class DoIPServer:
         """Create DoIP Vehicle Identification Response message"""
         # Get VIN from configuration or use default
         vin = self._get_vehicle_vin()
-        
+
         # Get logical address from configuration (use first ECU address)
         logical_address = self._get_gateway_logical_address()
-        
+
         # Get EID and GID from configuration
         eid, gid = self._get_vehicle_eid_gid()
-        
+
         # Further action required (1 byte) - 0x00 = no further action required
         further_action_required = 0x00
-        
+
         # VIN/GID synchronization status (1 byte) - 0x00 = synchronized
         vin_gid_sync_status = 0x00
-        
+
         # Create payload: VIN (17) + Logical Address (2) + EID (6) + GID (6) + Further Action (1) + Sync Status (1)
-        payload = vin.encode('ascii').ljust(17, b'\x00')  # VIN, pad to 17 bytes
+        payload = vin.encode("ascii").ljust(17, b"\x00")  # VIN, pad to 17 bytes
         payload += struct.pack(">H", logical_address)  # Logical address
         payload += eid  # EID
         payload += gid  # GID
         payload += struct.pack(">B", further_action_required)  # Further action required
         payload += struct.pack(">B", vin_gid_sync_status)  # VIN/GID sync status
-        
+
         # Create DoIP header
         header = struct.pack(
             ">BBHI",
             self.protocol_version,
             self.inverse_protocol_version,
             PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE,
-            len(payload)
+            len(payload),
         )
-        
-        self.logger.info(f"Vehicle identification response: VIN={vin}, Address=0x{logical_address:04X}")
-        
+
+        self.logger.info(
+            f"Vehicle identification response: VIN={vin}, Address=0x{logical_address:04X}"
+        )
+
         return header + payload
 
     def _get_vehicle_vin(self):
@@ -752,19 +783,21 @@ class DoIPServer:
         try:
             # Try to get VIN from configuration
             vehicle_info = self.config_manager.get_vehicle_info()
-            return vehicle_info.get('vin', '1HGBH41JXMN109186')
+            return vehicle_info.get("vin", "1HGBH41JXMN109186")
         except Exception as e:
             self.logger.warning(f"Could not get VIN from configuration: {e}")
-            return '1HGBH41JXMN109186'
+            return "1HGBH41JXMN109186"
 
     def _get_gateway_logical_address(self):
         """Get gateway logical address from configuration"""
         try:
             # Try to get gateway address from configuration
             gateway_info = self.config_manager.get_gateway_info()
-            return gateway_info.get('logical_address', 0x1000)
+            return gateway_info.get("logical_address", 0x1000)
         except Exception as e:
-            self.logger.warning(f"Could not get gateway address from configuration: {e}")
+            self.logger.warning(
+                f"Could not get gateway address from configuration: {e}"
+            )
             return 0x1000
 
     def _get_vehicle_eid_gid(self):
@@ -772,17 +805,17 @@ class DoIPServer:
         try:
             # Try to get EID and GID from configuration
             vehicle_info = self.config_manager.get_vehicle_info()
-            eid_hex = vehicle_info.get('eid', '123456789ABC')
-            gid_hex = vehicle_info.get('gid', 'DEF012345678')
-            
+            eid_hex = vehicle_info.get("eid", "123456789ABC")
+            gid_hex = vehicle_info.get("gid", "DEF012345678")
+
             # Convert hex strings to bytes
             eid = bytes.fromhex(eid_hex)
             gid = bytes.fromhex(gid_hex)
-            
+
             return eid, gid
         except Exception as e:
             self.logger.warning(f"Could not get EID/GID from configuration: {e}")
-            return b'\x12\x34\x56\x78\x9A\xBC', b'\xDE\xF0\x12\x34\x56\x78'
+            return b"\x12\x34\x56\x78\x9a\xbc", b"\xde\xf0\x12\x34\x56\x78"
 
 
 def start_doip_server(host=None, port=None, gateway_config_path=None):

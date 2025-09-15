@@ -86,8 +86,10 @@ class DoIPClientWrapper:
             print(f"Sending diagnostic message: {uds_payload.hex()}")
 
             # Check if the underlying client has send_diagnostic_message method (for testing)
-            if hasattr(self.doip_client, 'send_diagnostic_message'):
-                response = self.doip_client.send_diagnostic_message(uds_payload, timeout=timeout)
+            if hasattr(self.doip_client, "send_diagnostic_message"):
+                response = self.doip_client.send_diagnostic_message(
+                    uds_payload, timeout=timeout
+                )
                 if response:
                     print(f"Received response: {response.hex()}")
                     return bytes(response)
@@ -97,7 +99,7 @@ class DoIPClientWrapper:
             else:
                 # Use the original send/receive approach
                 self.doip_client.send_diagnostic(uds_payload, timeout=timeout)
-                
+
                 # Receive response
                 response = self.doip_client.receive_diagnostic(timeout=timeout)
 
@@ -126,9 +128,7 @@ class DoIPClientWrapper:
         """
         return self.send_diagnostic(uds_payload, timeout)
 
-    def send_routine_activation(
-        self, routine_identifier=0x0202, routine_type=0x0001
-    ):
+    def send_routine_activation(self, routine_identifier=0x0202, routine_type=0x0001):
         """
         Send routine activation request using UDS service 0x31.
 
@@ -208,7 +208,9 @@ class DoIPClientWrapper:
 
         return self.send_diagnostic(uds_payload)
 
-    def send_functional_diagnostic_message(self, uds_payload, functional_address=0x1FFF, timeout=2.0):
+    def send_functional_diagnostic_message(
+        self, uds_payload, functional_address=0x1FFF, timeout=2.0
+    ):
         """
         Send a functional diagnostic message to a functional address.
         This will be broadcast to all ECUs that support the service with functional addressing.
@@ -230,11 +232,15 @@ class DoIPClientWrapper:
             if isinstance(uds_payload, list):
                 uds_payload = bytes(uds_payload)
 
-            print(f"Sending functional diagnostic message to 0x{functional_address:04X}: {uds_payload.hex()}")
+            print(
+                f"Sending functional diagnostic message to 0x{functional_address:04X}: {uds_payload.hex()}"
+            )
 
             # Send diagnostic message using the underlying client's send_diagnostic_message method
             # This is what the tests expect
-            response = self.doip_client.send_diagnostic_message(uds_payload, timeout=timeout)
+            response = self.doip_client.send_diagnostic_message(
+                uds_payload, timeout=timeout
+            )
 
             if response:
                 print(f"Received functional response: {response.hex()}")
@@ -247,7 +253,9 @@ class DoIPClientWrapper:
             print(f"Error sending functional diagnostic message: {e}")
             return None
 
-    def send_functional_read_data_by_identifier(self, data_identifier, functional_address=0x1FFF):
+    def send_functional_read_data_by_identifier(
+        self, data_identifier, functional_address=0x1FFF
+    ):
         """
         Send UDS Read Data by Identifier request using functional addressing.
 
@@ -271,7 +279,9 @@ class DoIPClientWrapper:
 
         return self.send_functional_diagnostic_message(uds_payload, functional_address)
 
-    def send_functional_diagnostic_session_control(self, session_type=0x03, functional_address=0x1FFF):
+    def send_functional_diagnostic_session_control(
+        self, session_type=0x03, functional_address=0x1FFF
+    ):
         """
         Send UDS Diagnostic Session Control request using functional addressing.
 
@@ -319,7 +329,7 @@ class DoIPClientWrapper:
                 return None
 
             # Check if the underlying client has send_alive_check method (for testing)
-            if hasattr(self.doip_client, 'send_alive_check'):
+            if hasattr(self.doip_client, "send_alive_check"):
                 response = self.doip_client.send_alive_check()
                 if response:
                     print(f"Alive check response: {response}")
@@ -334,7 +344,7 @@ class DoIPClientWrapper:
                 if response:
                     print(f"Alive check response: {response}")
                     # Handle both string and Mock object responses
-                    if hasattr(response, '_mock_name'):
+                    if hasattr(response, "_mock_name"):
                         # This is a Mock object, return the expected string
                         return "Alive response"
                     else:
@@ -394,7 +404,10 @@ class DoIPClientWrapper:
 
             # Send functional UDS Read Data by Identifier requests
             # These should be broadcast to all ECUs that support functional addressing
-            data_identifiers = [0xF190, 0xF191]  # VIN and Vehicle Type - should work with functional addressing
+            data_identifiers = [
+                0xF190,
+                0xF191,
+            ]  # VIN and Vehicle Type - should work with functional addressing
             for di in data_identifiers:
                 self.send_functional_read_data_by_identifier(di)
                 time.sleep(1)

@@ -218,7 +218,9 @@ class TestResponseCycling:
 
     def test_response_cycling_hierarchical_config(self):
         """Test response cycling with hierarchical configuration"""
-        server = DoIPServer(gateway_config_path="config/gateway1.yaml")  # Use hierarchical config
+        server = DoIPServer(
+            gateway_config_path="config/gateway1.yaml"
+        )  # Use hierarchical config
 
         # Test Read_VIN service for Engine ECU (0x1000)
         request_bytes = bytes.fromhex("22F190")

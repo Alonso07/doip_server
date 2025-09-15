@@ -60,4 +60,4 @@ class TestDoIPMessageFormats:
 
         assert len(payload) == 3
         assert payload[0] == 0x22
-        assert payload[1:3] == b"\xF1\x87"
+        assert payload[1:3] == b"\xf1\x87"

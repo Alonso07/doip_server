@@ -80,7 +80,9 @@ class TestDoIPIntegrationHierarchical:
                 print("✅ DoIPClientWrapper connection successful!")
                 break
             except Exception as e:
-                print(f"❌ DoIPClientWrapper connection attempt {attempt + 1} failed: {e}")
+                print(
+                    f"❌ DoIPClientWrapper connection attempt {attempt + 1} failed: {e}"
+                )
                 if attempt < max_attempts - 1:
                     time.sleep(1.0)
                 else:
@@ -223,7 +225,7 @@ class TestDoIPMessageFormats:
 
         assert len(uds_payload) == 3
         assert uds_payload[0] == 0x22  # UDS service ID
-        assert uds_payload[1:3] == b"\xF1\x87"  # Data identifier
+        assert uds_payload[1:3] == b"\xf1\x87"  # Data identifier
 
     def test_doip_header_format(self):
         """Test DoIP header construction"""
@@ -250,7 +252,6 @@ class TestDoIPMessageFormats:
 
 class TestDoIPConfiguration:
     """Test DoIP configuration loading and validation"""
-
 
     def test_hierarchical_configuration_loading(self):
         """Test that server can load hierarchical configuration"""

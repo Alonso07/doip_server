@@ -32,23 +32,41 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Change to the script directory
+cd "$SCRIPT_DIR"
+
 # Check if we're in the right directory
 if [ ! -f "pyproject.toml" ]; then
     print_error "pyproject.toml not found. Please run this script from the project root directory."
+    print_error "Current directory: $(pwd)"
+    print_error "Script directory: $SCRIPT_DIR"
     exit 1
 fi
 
 # Check if poetry is installed
 if ! command -v poetry &> /dev/null; then
     print_error "Poetry is not installed. Please install Poetry first."
+    print_status "You can install Poetry with: curl -sSL https://install.python-poetry.org | python3 -"
     exit 1
 fi
 
-# Check if build and twine are installed
+# Check if we're in a poetry project
+if [ ! -f "pyproject.toml" ] || ! grep -q "tool.poetry" pyproject.toml; then
+    print_error "This doesn't appear to be a Poetry project. Please run from a Poetry project directory."
+    exit 1
+fi
+
+# Check if build and twine are installed in poetry environment
 if ! poetry run python -c "import build, twine" &> /dev/null; then
-    print_status "Installing build and twine..."
+    print_status "Installing build and twine in Poetry environment..."
     poetry add --group dev build twine
 fi
+
+# Verify poetry environment is activated
+print_status "Using Poetry environment: $(poetry env info --path)"
 
 # Clean previous builds
 print_status "Cleaning previous builds..."

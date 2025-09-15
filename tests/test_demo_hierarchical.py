@@ -28,14 +28,14 @@ def test_configuration_loading():
     # Test gateway information
     gateway_config = config_manager.get_gateway_config()
     assert gateway_config is not None
-    assert 'name' in gateway_config
-    assert 'description' in gateway_config
+    assert "name" in gateway_config
+    assert "description" in gateway_config
 
     network_config = config_manager.get_network_config()
     assert network_config is not None
-    assert 'host' in network_config
-    assert 'port' in network_config
-    assert 'max_connections' in network_config
+    assert "host" in network_config
+    assert "port" in network_config
+    assert "max_connections" in network_config
 
     # Test ECU information
     ecu_addresses = config_manager.get_all_ecu_addresses()
@@ -45,8 +45,8 @@ def test_configuration_loading():
         ecu_config = config_manager.get_ecu_config(target_addr)
         assert ecu_config is not None
         ecu_info = ecu_config.get("ecu", {})
-        assert 'name' in ecu_info
-        assert 'description' in ecu_info
+        assert "name" in ecu_info
+        assert "description" in ecu_info
 
         # Test tester addresses
         tester_addresses = config_manager.get_ecu_tester_addresses(target_addr)
@@ -76,10 +76,10 @@ def test_uds_service_lookup():
             )
             # Service may or may not be available, but if it is, it should have proper structure
             if service_config:
-                assert 'name' in service_config
-                assert 'description' in service_config
-                assert 'responses' in service_config
-                assert isinstance(service_config['responses'], list)
+                assert "name" in service_config
+                assert "description" in service_config
+                assert "responses" in service_config
+                assert isinstance(service_config["responses"], list)
 
     # Test ECU-specific services
     ecu_specific_requests = [
@@ -95,7 +95,7 @@ def test_uds_service_lookup():
             )
             # Service may or may not be available, but if it is, it should have proper structure
             if service_config:
-                assert 'name' in service_config
+                assert "name" in service_config
 
 
 def test_address_validation():
@@ -115,7 +115,7 @@ def test_address_validation():
             source_addr, target_addr
         )
         target_valid = config_manager.is_target_address_valid(target_addr)
-        
+
         # These should return boolean values
         assert isinstance(source_valid, bool)
         assert isinstance(target_valid, bool)
@@ -133,16 +133,16 @@ def test_runtime_ecu_loading():
         ecu_config = config_manager.get_ecu_config(target_addr)
         assert ecu_config is not None
         ecu_info = ecu_config.get("ecu", {})
-        assert 'name' in ecu_info
+        assert "name" in ecu_info
 
     # Test UDS services per ECU
     for target_addr in ecu_addresses:
         ecu_config = config_manager.get_ecu_config(target_addr)
         ecu_info = ecu_config.get("ecu", {})
-        
+
         uds_services = config_manager.get_ecu_uds_services(target_addr)
         assert isinstance(uds_services, dict)
-        
+
         # Test common services categorization
         common_services = [
             name
