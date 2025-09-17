@@ -114,6 +114,73 @@ class DoIPClientWrapper:
             print(f"Error sending diagnostic message: {e}")
             return None
 
+
+    def send_diagnostic_to_address(self, uds_payload, address, timeout=2.0):
+        """
+        Send a diagnostic message to a specific address and receive response.
+
+        Args:
+            uds_payload: UDS service payload (list of bytes or bytes)
+            address: Target address to send the message to
+            timeout: Request timeout in seconds
+
+        Returns:
+            Response payload or None if failed
+        """
+        if not self.doip_client:
+            print("Not connected to server")
+            return None
+
+        try:
+            # Convert payload to bytes if it's a list
+            if isinstance(uds_payload, list):
+                uds_payload = bytes(uds_payload)
+
+            print(f"Sending diagnostic message: {uds_payload.hex()}, to address: 0x{address:04X}")
+
+            # Store original target address
+            original_target = self.target_address
+            
+            # Temporarily set target address for this request
+            self.target_address = address
+            if hasattr(self.doip_client, 'target_address'):
+                self.doip_client.target_address = address
+
+            # Check if the underlying client has send_diagnostic_message_to_address method
+            if hasattr(self.doip_client, "send_diagnostic_message_to_address"):
+                response = self.doip_client.send_diagnostic_message_to_address(
+                    address, uds_payload, timeout=timeout
+                )
+            else:
+                # Use the standard send_diagnostic method with the set target address
+                response = self.doip_client.send_diagnostic_message(
+                    uds_payload, timeout=timeout
+                )
+
+            # Restore original target address
+            self.target_address = original_target
+            if hasattr(self.doip_client, 'target_address'):
+                self.doip_client.target_address = original_target
+
+            if response:
+                print(f"Received response: {response.hex()}")
+                return bytes(response)
+            else:
+                print("No response received")
+                return None
+
+        except Exception as e:
+            print(f"Error sending diagnostic message: {e}")
+            # Restore original target address even on error
+            self.target_address = original_target
+            if hasattr(self.doip_client, 'target_address'):
+                self.doip_client.target_address = original_target
+            return None
+
+
+
+
+
     def send_diagnostic_message(self, uds_payload, timeout=2.0):
         """
         Send a diagnostic message and receive response.
@@ -236,11 +303,8 @@ class DoIPClientWrapper:
                 f"Sending functional diagnostic message to 0x{functional_address:04X}: {uds_payload.hex()}"
             )
 
-            # Send diagnostic message using the underlying client's send_diagnostic_message method
-            # This is what the tests expect
-            response = self.doip_client.send_diagnostic_message(
-                uds_payload, timeout=timeout
-            )
+            # Use send_diagnostic_to_address to properly send to the functional address
+            response = self.send_diagnostic_to_address(uds_payload, functional_address, timeout)
 
             if response:
                 print(f"Received functional response: {response.hex()}")
@@ -278,6 +342,86 @@ class DoIPClientWrapper:
         ]
 
         return self.send_functional_diagnostic_message(uds_payload, functional_address)
+
+    def send_functional_diagnostic_message_multiple_responses(
+        self, uds_payload, functional_address=0x1FFF, timeout=2.0, max_responses=10
+    ):
+        """
+        Send a functional diagnostic message and collect multiple responses from different ECUs.
+        This method waits for multiple responses and returns them all.
+
+        Args:
+            uds_payload: UDS service payload (list of bytes or bytes)
+            functional_address: Functional address to send to (default: 0x1FFF)
+            timeout: Request timeout in seconds
+            max_responses: Maximum number of responses to collect
+
+        Returns:
+            List of response payloads or empty list if failed
+        """
+        if not self.doip_client:
+            print("Not connected to server")
+            return []
+
+        try:
+            # Convert payload to bytes if it's a list
+            if isinstance(uds_payload, list):
+                uds_payload = bytes(uds_payload)
+
+            print(
+                f"Sending functional diagnostic message to 0x{functional_address:04X}: {uds_payload.hex()}"
+            )
+            print(f"Waiting for up to {max_responses} responses...")
+
+            # Store original target address
+            original_target = self.target_address
+            
+            # Temporarily set target address for this request
+            self.target_address = functional_address
+            if hasattr(self.doip_client, 'target_address'):
+                self.doip_client.target_address = functional_address
+
+            responses = []
+            start_time = time.time()
+            
+            # Send the initial request
+            if hasattr(self.doip_client, "send_diagnostic_message_to_address"):
+                self.doip_client.send_diagnostic_message_to_address(
+                    functional_address, uds_payload, timeout=timeout
+                )
+            else:
+                self.doip_client.send_diagnostic_message(uds_payload, timeout=timeout)
+
+            # Collect multiple responses
+            while len(responses) < max_responses and (time.time() - start_time) < timeout:
+                try:
+                    if hasattr(self.doip_client, "receive_diagnostic"):
+                        response = self.doip_client.receive_diagnostic(timeout=0.1)
+                        if response:
+                            responses.append(bytes(response))
+                            print(f"Received response {len(responses)}: {response.hex()}")
+                    else:
+                        # If no receive method, break after first response
+                        break
+                except:
+                    # Timeout or no more responses
+                    break
+
+            # Restore original target address
+            self.target_address = original_target
+            if hasattr(self.doip_client, 'target_address'):
+                self.doip_client.target_address = original_target
+
+            print(f"Collected {len(responses)} responses from functional addressing")
+            return responses
+
+        except Exception as e:
+            print(f"Error sending functional diagnostic message: {e}")
+            # Restore original target address even on error
+            self.target_address = original_target
+            if hasattr(self.doip_client, 'target_address'):
+                self.doip_client.target_address = original_target
+            return []
 
     def send_functional_diagnostic_session_control(
         self, session_type=0x03, functional_address=0x1FFF
@@ -371,7 +515,7 @@ class DoIPClientWrapper:
             time.sleep(1)
 
             # Send routine activation
-            self.send_routine_identification_message(0x0202, 0x0001)
+            self.send_routine_activation(0x0202, 0x0001)
             time.sleep(1)
 
             # Send UDS Read Data by Identifier requests
@@ -408,9 +552,31 @@ class DoIPClientWrapper:
                 0xF190,
                 0xF191,
             ]  # VIN and Vehicle Type - should work with functional addressing
+            
+            print("\n=== Testing Single Response Functional Addressing ===")
             for di in data_identifiers:
-                self.send_functional_read_data_by_identifier(di)
+                print(f"\n--- Testing Read Data by Identifier 0x{di:04X} ---")
+                response = self.send_functional_read_data_by_identifier(di)
+                if response:
+                    print(f"Single response received: {response.hex()}")
+                else:
+                    print("No response received")
                 time.sleep(1)
+
+            print("\n=== Testing Multiple Response Functional Addressing ===")
+            # Test multiple responses for VIN request
+            print("\n--- Testing Multiple Responses for VIN Request ---")
+            uds_payload = [0x22, 0xF1, 0x90]  # Read VIN
+            responses = self.send_functional_diagnostic_message_multiple_responses(
+                uds_payload, max_responses=5, timeout=3.0
+            )
+            
+            if responses:
+                print(f"Received {len(responses)} responses:")
+                for i, response in enumerate(responses, 1):
+                    print(f"  Response {i}: {response.hex()}")
+            else:
+                print("No multiple responses received")
 
             # Send functional tester present to keep session alive
             self.send_functional_tester_present()

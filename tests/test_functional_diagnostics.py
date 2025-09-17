@@ -32,12 +32,13 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         # Mock the doip_client to avoid actual network calls
         self.client.doip_client = Mock()
         self.client.doip_client.send_diagnostic_message = Mock()
+        self.client.doip_client.send_diagnostic_message_to_address = Mock()
         self.client.doip_client.close = Mock()
 
     def test_functional_diagnostic_message_basic(self):
         """Test basic functional diagnostic message sending"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message.return_value = (
+        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -46,7 +47,7 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         response = self.client.send_functional_diagnostic_message(uds_payload)
 
         # Verify the method was called
-        self.client.doip_client.send_diagnostic_message.assert_called_once()
+        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
 
         # Verify response
         self.assertIsNotNone(response)
@@ -57,7 +58,7 @@ class TestFunctionalDiagnostics(unittest.TestCase):
     def test_functional_read_data_by_identifier(self):
         """Test functional read data by identifier"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message.return_value = (
+        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -65,9 +66,9 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         response = self.client.send_functional_read_data_by_identifier(0xF190)
 
         # Verify the method was called with correct payload
-        self.client.doip_client.send_diagnostic_message.assert_called_once()
-        call_args = self.client.doip_client.send_diagnostic_message.call_args
-        self.assertEqual(call_args[0][0], b"\x22\xf1\x90")  # UDS payload
+        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
+        call_args = self.client.doip_client.send_diagnostic_message_to_address.call_args
+        self.assertEqual(call_args[0][1], b"\x22\xf1\x90")  # UDS payload (second argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -75,7 +76,7 @@ class TestFunctionalDiagnostics(unittest.TestCase):
     def test_functional_diagnostic_session_control(self):
         """Test functional diagnostic session control"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message.return_value = (
+        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
             b"\x50\x03\x00\x00"
         )
 
@@ -83,9 +84,9 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         response = self.client.send_functional_diagnostic_session_control(0x03)
 
         # Verify the method was called with correct payload
-        self.client.doip_client.send_diagnostic_message.assert_called_once()
-        call_args = self.client.doip_client.send_diagnostic_message.call_args
-        self.assertEqual(call_args[0][0], b"\x10\x03")  # UDS payload
+        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
+        call_args = self.client.doip_client.send_diagnostic_message_to_address.call_args
+        self.assertEqual(call_args[0][1], b"\x10\x03")  # UDS payload (second argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -93,15 +94,15 @@ class TestFunctionalDiagnostics(unittest.TestCase):
     def test_functional_tester_present(self):
         """Test functional tester present"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message.return_value = b"\x7e\x00"
+        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x7e\x00"
 
         # Test functional tester present
         response = self.client.send_functional_tester_present()
 
         # Verify the method was called with correct payload
-        self.client.doip_client.send_diagnostic_message.assert_called_once()
-        call_args = self.client.doip_client.send_diagnostic_message.call_args
-        self.assertEqual(call_args[0][0], b"\x3e\x00")  # UDS payload
+        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
+        call_args = self.client.doip_client.send_diagnostic_message_to_address.call_args
+        self.assertEqual(call_args[0][1], b"\x3e\x00")  # UDS payload (second argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -112,7 +113,7 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         self.client.doip_client.target_address = original_target
 
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message.return_value = (
+        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -130,7 +131,7 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         self.client.doip_client.target_address = original_target
 
         # Mock error
-        self.client.doip_client.send_diagnostic_message.side_effect = Exception(
+        self.client.doip_client.send_diagnostic_message_to_address.side_effect = Exception(
             "Network error"
         )
 
@@ -225,6 +226,9 @@ class TestFunctionalDiagnosticsIntegration(unittest.TestCase):
         client.doip_client.send_diagnostic_message = Mock(
             return_value=b"\x50\x03\x00\x00"
         )
+        client.doip_client.send_diagnostic_message_to_address = Mock(
+            return_value=b"\x50\x03\x00\x00"
+        )
         client.doip_client.close = Mock()
 
         # Test that functional demo runs without errors
@@ -239,3 +243,4 @@ class TestFunctionalDiagnosticsIntegration(unittest.TestCase):
 if __name__ == "__main__":
     # Run the tests
     unittest.main(verbosity=2)
+

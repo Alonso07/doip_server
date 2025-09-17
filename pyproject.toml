@@ -25,7 +25,8 @@ classifiers = [
 ]
 dependencies = [
     "PyYAML>=6.0,<7.0",
-    "doipclient>=1.1.7,<2.0.0"
+    "doipclient>=1.1.7,<2.0.0",
+    "psutil>=7.0.0,<8.0.0"
 ]
 
 [tool.poetry]

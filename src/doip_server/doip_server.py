@@ -428,12 +428,107 @@ class DoIPServer:
             self.logger.warning("No valid responses generated from any ECU")
             return self.create_doip_nack(0x04)  # Unsupported target address
 
-        # For now, return the first response (in a real implementation, you might want to handle multiple responses differently)
-        # In functional addressing, typically only one response is sent back, but the server logs all responses
+        # Enhanced functional addressing: return multiple responses
+        # Store all responses for potential multiple response handling
         self.logger.info(
-            f"Functional addressing: {len(responses)} ECUs responded, returning first response"
+            f"Functional addressing: {len(responses)} ECUs responded"
         )
+        
+        # For now, return the first response as the primary response
+        # In a real implementation, you might want to handle multiple responses differently
+        # This could involve:
+        # 1. Returning all responses sequentially
+        # 2. Aggregating responses into a single response
+        # 3. Using a different protocol for multiple responses
+        
+        # Log all responses for debugging
+        for i, resp in enumerate(responses):
+            self.logger.info(f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: {resp['response'].hex()}")
+        
+        # Return the first response as the primary response
+        # TODO: Implement proper multiple response handling
         return responses[0]["response"]
+
+    def handle_functional_diagnostic_message_multiple_responses(
+        self, source_address, functional_address, uds_payload, target_ecus
+    ):
+        """
+        Handle functional diagnostic message and return multiple responses from different ECUs.
+        This is an enhanced version that can return multiple responses.
+
+        Args:
+            source_address: Source logical address
+            functional_address: Functional address (e.g., 0x1FFF)
+            uds_payload: UDS service payload
+            target_ecus: List of ECU addresses that use this functional address
+
+        Returns:
+            List of response messages from different ECUs
+        """
+        self.logger.info(
+            f"Handling functional diagnostic message with multiple responses to 0x{functional_address:04X}"
+        )
+
+        # Convert UDS payload to hex string for matching
+        uds_hex = uds_payload.hex().upper()
+
+        # Find ECUs that support this UDS service with functional addressing
+        responding_ecus = []
+        for ecu_address in target_ecus:
+            # Check if source address is allowed for this ECU
+            if not self.config_manager.is_source_address_allowed(
+                source_address, ecu_address
+            ):
+                self.logger.warning(
+                    f"Source address 0x{source_address:04X} not allowed for ECU 0x{ecu_address:04X}"
+                )
+                continue
+
+            # Check if this ECU supports the UDS service with functional addressing
+            service_config = self.config_manager.get_uds_service_by_request(
+                uds_hex, ecu_address
+            )
+            if service_config and service_config.get("supports_functional", False):
+                responding_ecus.append(ecu_address)
+                self.logger.info(
+                    f"ECU 0x{ecu_address:04X} supports functional addressing for this service"
+                )
+            else:
+                self.logger.debug(
+                    f"ECU 0x{ecu_address:04X} does not support functional addressing for this service"
+                )
+
+        if not responding_ecus:
+            self.logger.warning(
+                f"No ECUs support functional addressing for UDS request: {uds_hex}"
+            )
+            return []
+
+        # Process the UDS message for each responding ECU and collect all responses
+        all_responses = []
+        for ecu_address in responding_ecus:
+            uds_response = self.process_uds_message(uds_payload, ecu_address)
+            if uds_response:
+                # Create individual response for this ECU
+                response = self.create_diagnostic_message_response(
+                    functional_address, source_address, uds_response
+                )
+                all_responses.append({
+                    "ecu_address": ecu_address, 
+                    "response": response,
+                    "uds_response": uds_response
+                })
+                self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
+
+        self.logger.info(
+            f"Functional addressing with multiple responses: {len(all_responses)} ECUs responded"
+        )
+        
+        # Log all responses for debugging
+        for i, resp in enumerate(all_responses):
+            self.logger.info(f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: {resp['response'].hex()}")
+        
+        return all_responses
 
     def process_uds_message(self, uds_payload, target_address):
         """Process UDS message and return response for specific ECU"""
