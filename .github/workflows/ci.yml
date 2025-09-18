@@ -39,16 +39,17 @@ jobs:
         version: 1.8.3
         virtualenvs-create: true
         virtualenvs-in-project: true
+        installer-parallel: true
 
-    - name: Add Poetry to PATH (Windows)
-      if: runner.os == 'Windows'
+    - name: Configure Poetry
       run: |
-        echo "$env:USERPROFILE\.poetry\bin" >> $env:GITHUB_PATH
-        echo "$env:APPDATA\Python\Scripts" >> $env:GITHUB_PATH
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
     - name: Verify Poetry installation
       run: |
         poetry --version
+        poetry config --list
 
     - name: Load cached venv
       id: cached-poetry-dependencies
@@ -59,11 +60,15 @@ jobs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry install --no-interaction --no-root
+        poetry check
 
     - name: Install dependencies (cached)
       if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry install --no-interaction --no-root
+        poetry check
 
     - name: Show environment info
       run: |
@@ -128,15 +133,17 @@ jobs:
         version: 1.8.3
         virtualenvs-create: true
         virtualenvs-in-project: true
+        installer-parallel: true
 
-    - name: Add Poetry to PATH (Windows)
-      if: runner.os == 'Windows'
+    - name: Configure Poetry
       run: |
-        echo "$env:USERPROFILE\.poetry\bin" >> $env:GITHUB_PATH
-        echo "$env:APPDATA\Python\Scripts" >> $env:GITHUB_PATH
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
     - name: Install dependencies
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry install --no-interaction --no-root
+        poetry check
 
     - name: Run flake8
       run: |
@@ -168,15 +175,17 @@ jobs:
         version: 1.8.3
         virtualenvs-create: true
         virtualenvs-in-project: true
+        installer-parallel: true
 
-    - name: Add Poetry to PATH (Windows)
-      if: runner.os == 'Windows'
+    - name: Configure Poetry
       run: |
-        echo "$env:USERPROFILE\.poetry\bin" >> $env:GITHUB_PATH
-        echo "$env:APPDATA\Python\Scripts" >> $env:GITHUB_PATH
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
     - name: Install dependencies
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry install --no-interaction --no-root
+        poetry check
 
     - name: Run security checks
       run: |
@@ -213,15 +222,17 @@ jobs:
         version: 1.8.3
         virtualenvs-create: true
         virtualenvs-in-project: true
+        installer-parallel: true
 
-    - name: Add Poetry to PATH (Windows)
-      if: runner.os == 'Windows'
+    - name: Configure Poetry
       run: |
-        echo "$env:USERPROFILE\.poetry\bin" >> $env:GITHUB_PATH
-        echo "$env:APPDATA\Python\Scripts" >> $env:GITHUB_PATH
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
     - name: Install dependencies
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry install --no-interaction --no-root
+        poetry check
 
     - name: Build package
       run: poetry build

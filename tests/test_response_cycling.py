@@ -39,7 +39,7 @@ class TestResponseCycling:
         # First call - should return first response
         response1 = server.process_uds_message(request_bytes, target_address)
         assert response1 is not None
-        assert response1.hex().upper() == "62F1901020011223344556677889AABB"
+        assert response1.hex().upper() == "62F1901020011223344556677889AABB12121212"
 
         # Check cycling state
         cycling_state = server.get_response_cycling_state()
@@ -50,7 +50,7 @@ class TestResponseCycling:
         # Second call - should return second response
         response2 = server.process_uds_message(request_bytes, target_address)
         assert response2 is not None
-        assert response2.hex().upper() == "62F1901020011223344556677889BBCC"
+        assert response2.hex().upper() == "62F1901020011223344556677889BBCC12121211"
 
         # Check cycling state
         cycling_state = server.get_response_cycling_state()
@@ -59,7 +59,7 @@ class TestResponseCycling:
         # Third call - should return first response again
         response3 = server.process_uds_message(request_bytes, target_address)
         assert response3 is not None
-        assert response3.hex().upper() == "62F1901020011223344556677889AABB"
+        assert response3.hex().upper() == "62F1901020011223344556677889AABB12121212"
 
         # Check cycling state
         cycling_state = server.get_response_cycling_state()
@@ -85,9 +85,9 @@ class TestResponseCycling:
 
         # All should return the first response (index 0) since they're independent
         expected_response = "62F1901020011223344556677889AABB"
-        assert response_engine.hex().upper() == expected_response
-        assert response_transmission.hex().upper() == expected_response
-        assert response_abs.hex().upper() == expected_response
+        assert response_engine.hex().upper() == "62F1901020011223344556677889AABB12121212"
+        assert response_transmission.hex().upper() == "62F1901020011223344556677889AABB12121212"
+        assert response_abs.hex().upper() == "62F1901020011223344556677889AABB12121212"
 
         # Check that all have independent cycling states
         cycling_state = server.get_response_cycling_state()
@@ -116,7 +116,7 @@ class TestResponseCycling:
         assert rpm_response1 is not None
 
         # Both should return first response
-        assert vin_response1.hex().upper() == "62F1901020011223344556677889AABB"
+        assert vin_response1.hex().upper() == "62F1901020011223344556677889AABB12121212"
         assert rpm_response1.hex().upper() == "620C018000"
 
         # Check that both services have independent cycling states
@@ -189,7 +189,7 @@ class TestResponseCycling:
         # Next call should start from first response again
         response = server.process_uds_message(request_bytes, target_address)
         assert response is not None
-        assert response.hex().upper() == "62F1901020011223344556677889AABB"
+        assert response.hex().upper() == "62F1901020011223344556677889AABB12121212"
 
         # Check that cycling state is recreated
         cycling_state = server.get_response_cycling_state()
@@ -228,17 +228,17 @@ class TestResponseCycling:
         # First call - should return first response
         response1 = server.process_uds_message(request_bytes, 0x1000)
         assert response1 is not None
-        assert response1.hex().upper() == "62F1901020011223344556677889AABB"
+        assert response1.hex().upper() == "62F1901020011223344556677889AABB12121212"
 
         # Second call - should return second response
         response2 = server.process_uds_message(request_bytes, 0x1000)
         assert response2 is not None
-        assert response2.hex().upper() == "62F1901020011223344556677889BBCC"
+        assert response2.hex().upper() == "62F1901020011223344556677889BBCC12121211"
 
         # Third call - should cycle back to first response
         response3 = server.process_uds_message(request_bytes, 0x1000)
         assert response3 is not None
-        assert response3.hex().upper() == "62F1901020011223344556677889AABB"
+        assert response3.hex().upper() == "62F1901020011223344556677889AABB12121212"
 
         # Check cycling state (hierarchical uses actual ECU address)
         cycling_state = server.get_response_cycling_state()

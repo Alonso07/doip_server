@@ -24,9 +24,14 @@ ecu:
     reserved_by_iso: 0x00000000
     reserved_by_manufacturer: 0x00000000
     
-  # UDS Services Reference - Points to services configuration
+  # UDS Services Configuration - References to service files
   uds_services:
-    # Common services shared across all ECUs
+    # Service files to load for this ECU
+    service_files:
+      - "config/generic_uds_messages.yaml"        # Common services
+      - "config/ecu_transmission_services.yaml"   # Transmission-specific services
+    
+    # Service categories (for backward compatibility)
     common_services:
       - "Read_VIN"
       - "Read_Vehicle_Type"
@@ -45,3 +50,10 @@ ecu:
       - "Transmission_Shift_Control"
       - "Transmission_Diagnostic_Codes"
       - "Transmission_Adaptation_Reset"
+      - "Transmission_Torque_Converter_Status"
+      - "Transmission_Shift_Pressure_Read"
+      - "Transmission_Clutch_Status"
+      - "Transmission_Learning_Status"
+      - "Transmission_Valve_Body_Test"
+      - "Transmission_Pump_Test"
+      - "Transmission_Calibration_Reset"

@@ -148,40 +148,82 @@ gateway:
         return None
 
     def _load_uds_services(self):
-        """Load UDS services configuration"""
+        """Load UDS services configuration from multiple files"""
         try:
-            uds_services_path = self._find_uds_services_path()
-            if uds_services_path and os.path.exists(uds_services_path):
-                with open(uds_services_path, "r") as f:
-                    uds_config = yaml.safe_load(f)
+            # Load services from each ECU configuration
+            for ecu_addr, ecu_config in self.ecu_configs.items():
+                ecu_info = ecu_config.get("ecu", {})
+                uds_config = ecu_info.get("uds_services", {})
+                
+                # Get service files for this ECU
+                service_files = uds_config.get("service_files", [])
+                
+                # Load services from each file
+                for service_file in service_files:
+                    self._load_services_from_file(service_file, ecu_addr)
+                
+                # Also load from the old single file for backward compatibility
+                uds_services_path = self._find_uds_services_path()
+                if uds_services_path and os.path.exists(uds_services_path):
+                    self._load_services_from_file(uds_services_path, ecu_addr)
 
-                # Load common services
-                common_services = uds_config.get("common_services", {})
-                for service_name, service_config in common_services.items():
-                    self.uds_services[service_name] = service_config
-
-                # Load engine services
-                engine_services = uds_config.get("engine_services", {})
-                for service_name, service_config in engine_services.items():
-                    self.uds_services[service_name] = service_config
-
-                # Load transmission services
-                transmission_services = uds_config.get("transmission_services", {})
-                for service_name, service_config in transmission_services.items():
-                    self.uds_services[service_name] = service_config
-
-                # Load ABS services
-                abs_services = uds_config.get("abs_services", {})
-                for service_name, service_config in abs_services.items():
-                    self.uds_services[service_name] = service_config
-
-                self.logger.info(
-                    f"UDS services loaded: {len(self.uds_services)} services"
-                )
-            else:
-                self.logger.warning("UDS services configuration file not found")
+            self.logger.info(
+                f"UDS services loaded: {len(self.uds_services)} services"
+            )
         except Exception as e:
             self.logger.error(f"Failed to load UDS services: {e}")
+
+    def _load_services_from_file(self, service_file_path: str, ecu_address: int = None):
+        """Load UDS services from a specific file"""
+        try:
+            # Find the actual file path
+            actual_path = self._find_service_file_path(service_file_path)
+            if not actual_path or not os.path.exists(actual_path):
+                self.logger.warning(f"Service file not found: {service_file_path}")
+                return
+
+            with open(actual_path, "r") as f:
+                service_config = yaml.safe_load(f)
+
+            # Load common services
+            common_services = service_config.get("common_services", {})
+            for service_name, service_config_data in common_services.items():
+                self.uds_services[service_name] = service_config_data
+
+            # Load ECU-specific services based on file name or content
+            if "engine_services" in service_config:
+                engine_services = service_config.get("engine_services", {})
+                for service_name, service_config_data in engine_services.items():
+                    self.uds_services[service_name] = service_config_data
+
+            if "transmission_services" in service_config:
+                transmission_services = service_config.get("transmission_services", {})
+                for service_name, service_config_data in transmission_services.items():
+                    self.uds_services[service_name] = service_config_data
+
+            if "abs_services" in service_config:
+                abs_services = service_config.get("abs_services", {})
+                for service_name, service_config_data in abs_services.items():
+                    self.uds_services[service_name] = service_config_data
+
+            self.logger.debug(f"Loaded services from: {actual_path}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to load services from {service_file_path}: {e}")
+
+    def _find_service_file_path(self, service_file: str) -> str:
+        """Find the actual path to a service file"""
+        possible_paths = [
+            service_file,  # Direct path
+            os.path.join("config", service_file),  # In config directory
+            os.path.join("..", "config", service_file),  # Relative to parent
+            os.path.join("src", "doip_server", "config", service_file),  # In src
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        return None
 
     def _find_uds_services_path(self) -> str:
         """Find the UDS services configuration file path"""
@@ -321,15 +363,23 @@ gateway:
         ecu_info = ecu_config.get("ecu", {})
         uds_config = ecu_info.get("uds_services", {})
 
-        # Get common services
+        # Get service files for this ECU
+        service_files = uds_config.get("service_files", [])
+        
+        # Load services from the specified files for this ECU
+        ecu_services = {}
+        
+        # Load from service files
+        for service_file in service_files:
+            file_services = self._get_services_from_file(service_file, target_address)
+            ecu_services.update(file_services)
+        
+        # Also load from the old method for backward compatibility
         common_services = uds_config.get("common_services", [])
         specific_services = uds_config.get("specific_services", [])
-
-        # Combine all service names
         all_service_names = common_services + specific_services
 
         # Get actual service configurations
-        ecu_services = {}
         for service_name in all_service_names:
             if service_name in self.uds_services:
                 ecu_services[service_name] = self.uds_services[service_name]
@@ -339,6 +389,39 @@ gateway:
                 )
 
         return ecu_services
+
+    def _get_services_from_file(self, service_file_path: str, ecu_address: int) -> Dict[str, Any]:
+        """Get services from a specific file for a specific ECU"""
+        try:
+            actual_path = self._find_service_file_path(service_file_path)
+            if not actual_path or not os.path.exists(actual_path):
+                return {}
+
+            with open(actual_path, "r") as f:
+                service_config = yaml.safe_load(f)
+
+            services = {}
+            
+            # Always load common services
+            common_services = service_config.get("common_services", {})
+            services.update(common_services)
+
+            # Load ECU-specific services based on ECU address
+            if ecu_address == 0x1000:  # Engine ECU
+                engine_services = service_config.get("engine_services", {})
+                services.update(engine_services)
+            elif ecu_address == 0x1001:  # Transmission ECU
+                transmission_services = service_config.get("transmission_services", {})
+                services.update(transmission_services)
+            elif ecu_address == 0x1002:  # ABS ECU
+                abs_services = service_config.get("abs_services", {})
+                services.update(abs_services)
+
+            return services
+
+        except Exception as e:
+            self.logger.error(f"Failed to get services from {service_file_path}: {e}")
+            return {}
 
     def get_uds_service_by_request(
         self, request: str, target_address: int = None

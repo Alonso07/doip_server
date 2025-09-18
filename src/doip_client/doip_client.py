@@ -146,16 +146,8 @@ class DoIPClientWrapper:
             if hasattr(self.doip_client, 'target_address'):
                 self.doip_client.target_address = address
 
-            # Check if the underlying client has send_diagnostic_message_to_address method
-            if hasattr(self.doip_client, "send_diagnostic_message_to_address"):
-                response = self.doip_client.send_diagnostic_message_to_address(
-                    address, uds_payload, timeout=timeout
-                )
-            else:
-                # Use the standard send_diagnostic method with the set target address
-                response = self.doip_client.send_diagnostic_message(
-                    uds_payload, timeout=timeout
-                )
+            # Use the standard send_diagnostic method with the set target address
+            response = self.send_diagnostic(uds_payload, timeout)
 
             # Restore original target address
             self.target_address = original_target

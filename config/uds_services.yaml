@@ -6,8 +6,8 @@ common_services:
   Read_VIN:
     request: "0x22F190"
     responses:  
-      - "0x62F1901020011223344556677889AABB"
-      - "0x62F1901020011223344556677889BBCC"
+      - "0x62F1901020011223344556677889AABB12121212"
+      - "0x62F1901020011223344556677889BBCC12121211"
     description: "Read Vehicle Identification Number"
     supports_functional: true  # Supports both physical and functional addressing
     
@@ -41,8 +41,8 @@ common_services:
   Diagnostic_Session_Control:
     request: "0x1003"
     responses:
-      - "0x50030000"  # Positive response for extended session
-      - "0x50030001"  # Positive response for default session
+      - "0x500300001212"  # Positive response for extended session
+      - "0x500300011212"  # Positive response for default session
     description: "Diagnostic Session Control"
     supports_functional: true  # Supports both physical and functional addressing
     

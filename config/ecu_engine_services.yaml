@@ -1,0 +1,118 @@
+# Engine ECU Specific UDS Services
+# This file contains UDS services specific to the Engine Control Unit
+
+engine_services:
+  Engine_RPM_Read:
+    request: "0x220C01"
+    responses:
+      - "0x620C018000"  # 8000 RPM
+      - "0x620C017500"  # 7500 RPM
+      - "0x620C016500"  # 6500 RPM
+    description: "Read engine RPM"
+    supports_functional: false  # Physical addressing only
+    
+  Engine_Temperature_Read:
+    request: "0x220C05"
+    responses:
+      - "0x620C0580"  # 80°C
+      - "0x620C0590"  # 90°C
+      - "0x620C0570"  # 70°C
+    description: "Read engine temperature"
+    supports_functional: false  # Physical addressing only
+    
+  Fuel_Level_Read:
+    request: "0x220C2F"
+    responses:
+      - "0x620C2F80"  # 80% fuel level
+      - "0x620C2F50"  # 50% fuel level
+      - "0x620C2F20"  # 20% fuel level
+    description: "Read fuel level"
+    supports_functional: false  # Physical addressing only
+    
+  Engine_Start_Stop:
+    request: "0x31010001"
+    responses:
+      - "0x71010001"  # Engine started
+      - "0x71010002"  # Engine stopped
+    description: "Engine start/stop control"
+    supports_functional: false  # Physical addressing only
+    
+  Throttle_Position_Read:
+    request: "0x220C11"
+    responses:
+      - "0x620C1180"  # 80% throttle
+      - "0x620C1100"  # 0% throttle
+      - "0x620C1150"  # 50% throttle
+    description: "Read throttle position"
+    supports_functional: false  # Physical addressing only
+    
+  Engine_Diagnostic_Codes:
+    request: "0x1902"
+    responses:
+      - "0x5902"  # No DTCs
+      - "0x5902P0000"  # P0000 - No fault
+      - "0x5902P0100"  # P0100 - Mass or Volume Air Flow Circuit Malfunction
+      - "0x5902P0200"  # P0200 - Injector Circuit Malfunction
+    description: "Read engine diagnostic trouble codes"
+    supports_functional: true  # Supports both physical and functional addressing
+
+  Engine_Load_Read:
+    request: "0x220C04"
+    responses:
+      - "0x620C0480"  # 80% engine load
+      - "0x620C0450"  # 50% engine load
+      - "0x620C0420"  # 20% engine load
+    description: "Read engine load percentage"
+    supports_functional: false  # Physical addressing only
+
+  Intake_Air_Temperature_Read:
+    request: "0x220C0F"
+    responses:
+      - "0x620C0F25"  # 25°C
+      - "0x620C0F30"  # 30°C
+      - "0x620C0F35"  # 35°C
+    description: "Read intake air temperature"
+    supports_functional: false  # Physical addressing only
+
+  Manifold_Absolute_Pressure_Read:
+    request: "0x220C0B"
+    responses:
+      - "0x620C0B80"  # 80 kPa
+      - "0x620C0B90"  # 90 kPa
+      - "0x620C0B70"  # 70 kPa
+    description: "Read manifold absolute pressure"
+    supports_functional: false  # Physical addressing only
+
+  Engine_Oil_Pressure_Read:
+    request: "0x220C0C"
+    responses:
+      - "0x620C0C80"  # 80 psi
+      - "0x620C0C90"  # 90 psi
+      - "0x620C0C70"  # 70 psi
+    description: "Read engine oil pressure"
+    supports_functional: false  # Physical addressing only
+
+  Engine_Coolant_Level_Read:
+    request: "0x220C2D"
+    responses:
+      - "0x620C2D80"  # 80% coolant level
+      - "0x620C2D90"  # 90% coolant level
+      - "0x620C2D70"  # 70% coolant level
+    description: "Read engine coolant level"
+    supports_functional: false  # Physical addressing only
+
+  Engine_Adaptation_Reset:
+    request: "0x31010002"
+    responses:
+      - "0x71010002"  # Adaptation reset successful
+    description: "Reset engine adaptations"
+    supports_functional: false  # Physical addressing only
+
+  Engine_Calibration_Status:
+    request: "0x220C2E"
+    responses:
+      - "0x620C2E00"  # Calibration complete
+      - "0x620C2E01"  # Calibration in progress
+      - "0x620C2E02"  # Calibration failed
+    description: "Read engine calibration status"
+    supports_functional: false  # Physical addressing only

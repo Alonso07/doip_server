@@ -1,0 +1,190 @@
+# Generic UDS Messages Configuration
+# This file contains common UDS services that are available to all ECUs
+# These services are typically standardized across the automotive industry
+
+# Common UDS Services (available to all ECUs)
+common_services:
+  Read_VIN:
+    request: "0x22F190"
+    responses:  
+      - "0x62F1901020011223344556677889AABB12121212"
+      - "0x62F1901020011223344556677889BBCC12121211"
+    description: "Read Vehicle Identification Number"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Read_Vehicle_Type:
+    request: "0x22F191"
+    responses:  
+      - "0x62F1911020011223344556677889AABB"
+      - "0x62F1911020011223344556677889BBCC"
+    description: "Read Vehicle Type Information"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Routine_calibration_start:
+    request: "0x31010202"
+    responses:  
+      - "0x71010202"
+    description: "Start calibration routine"
+    
+  Routine_calibration_stop:
+    request: "0x31020202"
+    responses:  
+      - "0x71020202"
+    description: "Stop calibration routine"
+    
+  Routine_calibration_status:
+    request: "0x31030202"
+    responses:  
+      - "0x7103020210"
+      - "0x7103020212"
+    description: "Get calibration routine status"
+    
+  Diagnostic_Session_Control:
+    request: "0x1003"
+    responses:
+      - "0x500300001212"  # Positive response for extended session
+      - "0x500300011212"  # Positive response for default session
+    description: "Diagnostic Session Control"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Tester_Present:
+    request: "0x3E00"
+    responses:
+      - "0x7E00"  # Positive response
+    description: "Tester Present"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Security_Access:
+    request: "0x2701"
+    responses:
+      - "0x6701"  # Positive response
+    description: "Security Access"
+
+  # Additional common services
+  Read_Data_By_Identifier:
+    request: "0x22"
+    responses:
+      - "0x62"  # Generic positive response
+    description: "Read Data By Identifier (generic)"
+    supports_functional: true
+
+  Write_Data_By_Identifier:
+    request: "0x2E"
+    responses:
+      - "0x6E"  # Generic positive response
+    description: "Write Data By Identifier (generic)"
+
+  Clear_DTC_Information:
+    request: "0x14"
+    responses:
+      - "0x54"  # Generic positive response
+    description: "Clear DTC Information"
+
+  Read_DTC_Information:
+    request: "0x19"
+    responses:
+      - "0x59"  # Generic positive response
+    description: "Read DTC Information"
+    supports_functional: true
+
+  Input_Output_Control_By_Identifier:
+    request: "0x2F"
+    responses:
+      - "0x6F"  # Generic positive response
+    description: "Input Output Control By Identifier"
+
+  Request_Download:
+    request: "0x34"
+    responses:
+      - "0x74"  # Generic positive response
+    description: "Request Download"
+
+  Request_Upload:
+    request: "0x35"
+    responses:
+      - "0x75"  # Generic positive response
+    description: "Request Upload"
+
+  Transfer_Data:
+    request: "0x36"
+    responses:
+      - "0x76"  # Generic positive response
+    description: "Transfer Data"
+
+  Request_Transfer_Exit:
+    request: "0x37"
+    responses:
+      - "0x77"  # Generic positive response
+    description: "Request Transfer Exit"
+
+  Request_File_Transfer:
+    request: "0x38"
+    responses:
+      - "0x78"  # Generic positive response
+    description: "Request File Transfer"
+
+  Write_Memory_By_Address:
+    request: "0x3D"
+    responses:
+      - "0x7D"  # Generic positive response
+    description: "Write Memory By Address"
+
+  Read_Memory_By_Address:
+    request: "0x23"
+    responses:
+      - "0x63"  # Generic positive response
+    description: "Read Memory By Address"
+
+  Set_DTC_Filter:
+    request: "0x2A"
+    responses:
+      - "0x6A"  # Generic positive response
+    description: "Set DTC Filter"
+
+  Read_Scaling_Data_By_Identifier:
+    request: "0x24"
+    responses:
+      - "0x64"  # Generic positive response
+    description: "Read Scaling Data By Identifier"
+
+  Security_Access_Seed_Key:
+    request: "0x27"
+    responses:
+      - "0x67"  # Generic positive response
+    description: "Security Access (Seed/Key)"
+
+  Communication_Control:
+    request: "0x28"
+    responses:
+      - "0x68"  # Generic positive response
+    description: "Communication Control"
+
+  Access_Timing_Parameter:
+    request: "0x83"
+    responses:
+      - "0xC3"  # Generic positive response
+    description: "Access Timing Parameter"
+
+  Secured_Data_Transmission:
+    request: "0x84"
+    responses:
+      - "0xC4"  # Generic positive response
+    description: "Secured Data Transmission"
+
+  Control_DTC_Setting:
+    request: "0x85"
+    responses:
+      - "0xC5"  # Generic positive response
+    description: "Control DTC Setting"
+
+  Response_On_Event:
+    request: "0x86"
+    responses:
+      - "0xC6"  # Generic positive response
+    description: "Response On Event"
+
+  Link_Control:
+    request: "0x87"
+    responses:
+      - "0xC7"  # Generic positive response
+    description: "Link Control"

@@ -24,9 +24,14 @@ ecu:
     reserved_by_iso: 0x00000000
     reserved_by_manufacturer: 0x00000000
     
-  # UDS Services Reference - Points to services configuration
+  # UDS Services Configuration - References to service files
   uds_services:
-    # Common services shared across all ECUs
+    # Service files to load for this ECU
+    service_files:
+      - "config/generic_uds_messages.yaml"  # Common services
+      - "config/ecu_abs_services.yaml"      # ABS-specific services
+    
+    # Service categories (for backward compatibility)
     common_services:
       - "Read_VIN"
       - "Read_Vehicle_Type"
@@ -45,3 +50,11 @@ ecu:
       - "ABS_Pump_Test"
       - "ABS_Diagnostic_Codes"
       - "ABS_Calibration_Reset"
+      - "ABS_Wheel_Speed_Sensor_Test"
+      - "ABS_Hydraulic_Unit_Test"
+      - "ABS_ECU_Temperature_Read"
+      - "ABS_Brake_Pressure_Read"
+      - "ABS_System_Voltage_Read"
+      - "ABS_Learning_Procedure"
+      - "ABS_Valve_Calibration"
+      - "ABS_System_Reset"

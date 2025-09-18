@@ -34,6 +34,9 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         self.client.doip_client.send_diagnostic_message = Mock()
         self.client.doip_client.send_diagnostic_message_to_address = Mock()
         self.client.doip_client.close = Mock()
+        
+        # Configure the mock to return proper responses
+        self.client.doip_client.send_diagnostic_message.return_value = bytes.fromhex("62f1901020011223344556677889aabb")
 
     def test_functional_diagnostic_message_basic(self):
         """Test basic functional diagnostic message sending"""
@@ -47,12 +50,12 @@ class TestFunctionalDiagnostics(unittest.TestCase):
         response = self.client.send_functional_diagnostic_message(uds_payload)
 
         # Verify the method was called
-        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
+        self.client.doip_client.send_diagnostic_message.assert_called_once()
 
         # Verify response
         self.assertIsNotNone(response)
         self.assertEqual(
-            response, b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
+            response, bytes.fromhex("62f1901020011223344556677889aabb")
         )
 
     def test_functional_read_data_by_identifier(self):
