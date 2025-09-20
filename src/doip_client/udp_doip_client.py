@@ -8,7 +8,7 @@ import socket
 import struct
 import time
 import logging
-from typing import Optional, Tuple
+from typing import Optional
 
 
 class UDPDoIPClient:
@@ -258,7 +258,7 @@ class UDPDoIPClient:
         finally:
             self.stop()
 
-        self.logger.info(f"\n=== Test Complete ===")
+        self.logger.info("\n=== Test Complete ===")
         self.logger.info(f"Successful responses: {len(responses)}/{num_requests}")
 
         return responses
@@ -301,7 +301,7 @@ def main():
 
     # Print summary
     if responses:
-        print(f"\n=== Summary ===")
+        print("\n=== Summary ===")
         for i, response in enumerate(responses):
             print(
                 f"Response {i+1}: VIN={response['vin']}, Address=0x{response['logical_address']:04X}"

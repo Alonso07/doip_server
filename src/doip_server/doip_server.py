@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+DoIP Server implementation for automotive diagnostics.
+
+This module provides the main DoIP (Diagnostics over IP) server functionality
+for handling automotive diagnostic communication protocols.
+"""
 import socket
 import struct
 import logging
@@ -30,6 +36,12 @@ ROUTING_ACTIVATION_RESPONSE_CODE_ALREADY_ACTIVATED = 0x05
 
 
 class DoIPServer:
+    """
+    DoIP Server class for handling automotive diagnostic communication.
+    
+    This class implements the DoIP (Diagnostics over IP) server functionality,
+    including vehicle identification, routing activation, and diagnostic message handling.
+    """
     def __init__(self, host=None, port=None, gateway_config_path=None):
         # Initialize hierarchical configuration manager
         self.config_manager = HierarchicalConfigManager(gateway_config_path)
@@ -258,7 +270,8 @@ class DoIPServer:
             or inverse_protocol_version != self.inverse_protocol_version
         ):
             self.logger.warning(
-                f"Invalid protocol version: 0x{protocol_version:02X}, expected 0x{self.protocol_version:02X}"
+                f"Invalid protocol version: 0x{protocol_version:02X}, "
+                f"expected 0x{self.protocol_version:02X}"
             )
             return self.create_doip_nack(0x02)  # Invalid protocol version
 
@@ -273,7 +286,7 @@ class DoIPServer:
             return self.handle_alive_check_0007()
         if payload_type == 0x0008:
             return self.handle_power_mode_request(data[8:])
-        
+
         print(f"Unsupported payload type: 0x{payload_type:04X}")
         return None
 
@@ -340,7 +353,8 @@ class DoIPServer:
         )
         if functional_ecus:
             self.logger.info(
-                f"Functional address request to 0x{target_address:04X}, targeting {len(functional_ecus)} ECUs"
+                f"Functional address request to 0x{target_address:04X}, "
+                f"targeting {len(functional_ecus)} ECUs"
             )
             return self.handle_functional_diagnostic_message(
                 source_address, target_address, uds_payload, functional_ecus
@@ -348,7 +362,7 @@ class DoIPServer:
 
         # Validate addresses for physical addressing
         if not self.config_manager.is_source_address_allowed(
-            source_address, target_address
+                source_address, target_address
         ):
             self.logger.warning(
                 f"Source address 0x{source_address:04X} not allowed for target 0x{target_address:04X}"
@@ -403,7 +417,7 @@ class DoIPServer:
                 )
             else:
                 self.logger.debug(
-                    f"ECU 0x{ecu_address:04X} does not support functional addressing for this service"
+                    f"ECU 0x{ecu_address:04X} does not support functional  addressing for this service"
                 )
 
         if not responding_ecus:
@@ -495,7 +509,7 @@ class DoIPServer:
                 )
             else:
                 self.logger.debug(
-                    f"ECU 0x{ecu_address:04X} does not support functional addressing for this service"
+                    f"ECU 0x{ecu_address:04X} does not support functional  addressing for this service"
                 )
 
         if not responding_ecus:

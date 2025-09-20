@@ -343,7 +343,7 @@ gateway:
             # Check specific ECU
             allowed_sources = self.get_ecu_tester_addresses(target_addr)
             return source_addr in allowed_sources
-        
+
         # Check all ECUs
         for ecu_addr in self.get_all_ecu_addresses():
             if source_addr in self.get_ecu_tester_addresses(ecu_addr):

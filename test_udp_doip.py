@@ -6,16 +6,14 @@ This script demonstrates the UDP DoIP client and server working together.
 
 import time
 import threading
-import subprocess
 import sys
-import os
 from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from doip_client.udp_doip_client import UDPDoIPClient
-from doip_server.doip_server import start_doip_server
+from doip_client.udp_doip_client import UDPDoIPClient  # pylint: disable=wrong-import-position
+from doip_server.doip_server import start_doip_server  # pylint: disable=wrong-import-position
 
 
 def run_server():
@@ -30,17 +28,17 @@ def run_server():
 def run_client_test():
     """Run the UDP DoIP client test"""
     print("Starting UDP DoIP client test...")
-    
+
     # Wait a moment for server to start
     time.sleep(2)
-    
+
     # Create and run client
     client = UDPDoIPClient(server_port=13400, timeout=5.0)
     responses = client.run_test(num_requests=3, delay=1.0)
-    
+
     # Print results
     if responses:
-        print(f"\n=== Test Results ===")
+        print("\n=== Test Results ===")
         print(f"Received {len(responses)} responses:")
         for i, response in enumerate(responses):
             print(f"  {i+1}. VIN: {response['vin']}")
@@ -52,7 +50,7 @@ def run_client_test():
             print()
     else:
         print("No responses received - test failed")
-    
+
     return len(responses) > 0
 
 
@@ -64,25 +62,25 @@ def main():
     print("2. Run the UDP DoIP client to send vehicle identification requests")
     print("3. Display the responses received")
     print()
-    
+
     # Start server in background thread
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
-    
+
     try:
         # Run client test
         success = run_client_test()
-        
+
         if success:
             print("✅ Test completed successfully!")
         else:
             print("❌ Test failed - no responses received")
-            
+
     except KeyboardInterrupt:
         print("\nTest interrupted by user")
     except Exception as e:
         print(f"Test failed with error: {e}")
-    
+
     print("\nTest completed. Server will continue running until interrupted.")
 
 

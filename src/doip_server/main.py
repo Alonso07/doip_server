@@ -5,8 +5,6 @@ Uses hierarchical configuration system
 """
 
 import argparse
-import sys
-import os
 from .doip_server import start_doip_server
 
 

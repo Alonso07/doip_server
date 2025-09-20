@@ -96,10 +96,10 @@ class DoIPClientWrapper:
                     else:
                         print(f"Received response: {response}")
                     return bytes(response)
-                
+
                 print("No response received")
                 return None
-            
+
                 # Use the original send/receive approach
                 self.doip_client.send_diagnostic(uds_payload, timeout=timeout)
 
@@ -332,7 +332,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending Functional UDS Read Data by Identifier Request ===")
+        print("\n=== Sending Functional UDS Read Data by Identifier Request ===")
         print(f"Data Identifier: 0x{data_identifier:04X}")
         print(f"Functional Address: 0x{functional_address:04X}")
 
@@ -439,7 +439,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending Functional Diagnostic Session Control Request ===")
+        print("\n=== Sending Functional Diagnostic Session Control Request ===")
         print(f"Session Type: 0x{session_type:02X}")
         print(f"Functional Address: 0x{functional_address:04X}")
 
@@ -458,7 +458,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending Functional Tester Present Request ===")
+        print("\n=== Sending Functional Tester Present Request ===")
         print(f"Functional Address: 0x{functional_address:04X}")
 
         # UDS Tester Present service (0x3E) with suppress positive response (0x00)
