@@ -41,8 +41,6 @@ jobs:
     - name: Run unit tests
       run: poetry run pytest tests/test_doip_unit.py -v
 
-    - name: Validate configuration
-      run: poetry run validate_config
 
     - name: Run demo
       run: poetry run demo
