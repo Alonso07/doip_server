@@ -32,8 +32,6 @@ dependencies = [
 [project.scripts]
 main = 'doip_server.main:main'
 doip_server = 'doip_server.doip_server:start_doip_server'
-doip_client = 'doip_client.doip_client:start_doip_client'
-validate_config = 'doip_server.validate_config:main'
 debug_client = 'doip_client.debug_client:main'
 
 [tool.poetry]
