@@ -3,16 +3,13 @@
 Tests for UDP DoIP Vehicle Identification functionality
 """
 
-import pytest
-import socket
 import struct
-import time
-import threading
-from unittest.mock import patch, MagicMock
-
-# Add src to path for imports
 import sys
+import threading
 from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

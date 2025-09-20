@@ -4,18 +4,18 @@ Updated integration tests for DoIP server and client functionality.
 Tests routine activation and UDS message handling with both legacy and hierarchical configurations.
 """
 
-import pytest
-import time
-import threading
 import sys
-import os
+import threading
+import time
 from pathlib import Path
+
+import pytest
 
 # Add the src directory to the path so we can import the modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from doip_server.doip_server import DoIPServer
 from doip_client.doip_client import DoIPClientWrapper
+from doip_server.doip_server import DoIPServer
 
 
 class TestDoIPIntegrationHierarchical:

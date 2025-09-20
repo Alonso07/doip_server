@@ -1,0 +1,40 @@
+[MASTER]
+# Disable specific warnings that are not critical for our use case
+disable=
+    too-many-public-methods,
+    too-many-instance-attributes,
+    too-many-return-statements,
+    too-many-branches,
+    too-many-statements,
+    too-few-public-methods,
+    duplicate-code,
+    broad-exception-caught,
+    logging-fstring-interpolation,
+    unspecified-encoding,
+    redefined-outer-name,
+    no-member,
+    bare-except,
+    consider-using-sys-exit,
+    consider-iterating-dictionary,
+    unnecessary-lambda,
+    fixme
+
+[MESSAGES CONTROL]
+# Enable only the most important warnings
+enable=
+    unused-import,
+    unused-variable,
+    unused-argument,
+    line-too-long,
+    trailing-whitespace,
+    missing-module-docstring,
+    missing-class-docstring,
+    wrong-import-order,
+    wrong-import-position,
+    import-outside-toplevel,
+    no-else-return,
+    f-string-without-interpolation,
+    trailing-newlines
+
+[FORMAT]
+max-line-length=100

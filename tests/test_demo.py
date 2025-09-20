@@ -4,11 +4,11 @@ Test module for DoIP message construction and parsing using the doipclient libra
 This module contains pytest tests for both message format analysis and actual network communication.
 """
 
-import struct
-import time
-import pytest
-import sys
 import os
+import struct
+import sys
+
+import pytest
 
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))

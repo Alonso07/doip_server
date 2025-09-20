@@ -130,7 +130,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_diagnostic_message_basic(self):
         """Test basic functional diagnostic message sending"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -139,7 +139,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
         response = self.client.send_functional_diagnostic_message(uds_payload)
 
         # Verify the method was called
-        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
+        self.client.doip_client.send_diagnostic_message.assert_called_once()
         
         # Verify response
         self.assertIsNotNone(response)
@@ -150,7 +150,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_diagnostic_message_with_custom_address(self):
         """Test functional diagnostic message with custom functional address"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -165,7 +165,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_diagnostic_message_timeout(self):
         """Test functional diagnostic message with timeout"""
         # Mock timeout response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = None
+        self.client.doip_client.send_diagnostic_message.return_value = None
 
         # Test with timeout
         uds_payload = [0x22, 0xF1, 0x90]
@@ -177,7 +177,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_read_data_by_identifier(self):
         """Test functional read data by identifier"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -185,9 +185,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
         response = self.client.send_functional_read_data_by_identifier(0xF190)
 
         # Verify the method was called with correct payload
-        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
-        call_args = self.client.doip_client.send_diagnostic_message_to_address.call_args
-        self.assertEqual(call_args[0][1], b"\x22\xf1\x90")  # UDS payload (second argument)
+        self.client.doip_client.send_diagnostic_message.assert_called_once()
+        call_args = self.client.doip_client.send_diagnostic_message.call_args
+        self.assertEqual(call_args[0][0], b"\x22\xf1\x90")  # UDS payload (first argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -195,7 +195,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_diagnostic_session_control(self):
         """Test functional diagnostic session control"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x50\x03\x00\x00"
         )
 
@@ -203,9 +203,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
         response = self.client.send_functional_diagnostic_session_control(0x03)
 
         # Verify the method was called with correct payload
-        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
-        call_args = self.client.doip_client.send_diagnostic_message_to_address.call_args
-        self.assertEqual(call_args[0][1], b"\x10\x03")  # UDS payload (second argument)
+        self.client.doip_client.send_diagnostic_message.assert_called_once()
+        call_args = self.client.doip_client.send_diagnostic_message.call_args
+        self.assertEqual(call_args[0][0], b"\x10\x03")  # UDS payload (first argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -213,15 +213,15 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_tester_present(self):
         """Test functional tester present"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x7e\x00"
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x7e\x00"
 
         # Test functional tester present
         response = self.client.send_functional_tester_present()
 
         # Verify the method was called with correct payload
-        self.client.doip_client.send_diagnostic_message_to_address.assert_called_once()
-        call_args = self.client.doip_client.send_diagnostic_message_to_address.call_args
-        self.assertEqual(call_args[0][1], b"\x3e\x00")  # UDS payload (second argument)
+        self.client.doip_client.send_diagnostic_message.assert_called_once()
+        call_args = self.client.doip_client.send_diagnostic_message.call_args
+        self.assertEqual(call_args[0][0], b"\x3e\x00")  # UDS payload (first argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -232,7 +232,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
         self.client.doip_client.target_address = original_target
 
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -283,7 +283,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_demo_execution(self):
         """Test that functional demo can be executed without errors"""
         # Mock successful responses
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x50\x03\x00\x00"
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x50\x03\x00\x00"
 
         # Test that functional demo runs without errors
         try:
@@ -465,7 +465,7 @@ class TestFunctionalAddressIntegration(unittest.TestCase):
         self.client.doip_client.close = Mock()
 
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -507,7 +507,7 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
         invalid_address = 0x0000  # Invalid functional address
         
         # Mock no response for invalid address
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = None
+        self.client.doip_client.send_diagnostic_message.return_value = None
         
         response = self.client.send_functional_diagnostic_message(uds_payload, invalid_address)
         
@@ -520,7 +520,7 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
         empty_payload = []
         
         # Mock no response for empty payload
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = None
+        self.client.doip_client.send_diagnostic_message.return_value = None
         
         response = self.client.send_functional_diagnostic_message(empty_payload)
         
@@ -533,7 +533,7 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
         large_payload = [0x22] + [0x00] * 1000  # Large payload
         
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x62\x00"
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x62\x00"
         
         response = self.client.send_functional_diagnostic_message(large_payload)
         
@@ -565,7 +565,7 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
     def test_malformed_response(self):
         """Test handling of malformed response"""
         # Mock malformed response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x00"  # Malformed
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x00"  # Malformed
         
         uds_payload = [0x22, 0xF1, 0x90]
         response = self.client.send_functional_diagnostic_message(uds_payload)
@@ -576,7 +576,7 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
     def test_negative_response_code(self):
         """Test handling of negative response codes"""
         # Mock negative response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x7f\x22\x11"  # Negative response
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x7f\x22\x11"  # Negative response
         
         uds_payload = [0x22, 0xF1, 0x90]
         response = self.client.send_functional_diagnostic_message(uds_payload)
@@ -589,7 +589,7 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
         functional_addresses = [0x1FFF, 0x2FFF, 0x3FFF]
         
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
         
@@ -620,7 +620,7 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
     def test_functional_request_performance(self):
         """Test performance of functional requests"""
         # Mock fast response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
         
@@ -644,7 +644,7 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
     def test_concurrent_functional_requests_performance(self):
         """Test performance of concurrent functional requests"""
         # Mock fast response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
         
@@ -682,7 +682,7 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
         initial_memory = process.memory_info().rss
         
         # Mock response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
         

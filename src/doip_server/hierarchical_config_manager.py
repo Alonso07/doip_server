@@ -4,11 +4,11 @@ Hierarchical Configuration Manager for DoIP Server
 Handles loading and parsing of multiple YAML configuration files with ECU hierarchy
 """
 
-import yaml
-import os
 import logging
-from typing import Dict, List, Any, Optional, Set
-from pathlib import Path
+import os
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 
 class HierarchicalConfigManager:
@@ -72,7 +72,7 @@ gateway:
         with open(config_path, "w") as f:
             f.write(default_config_content)
 
-        self.logger.info(f"Created default gateway configuration file: {config_path}")
+        self.logger.info("Created default gateway configuration file: %s", config_path)
         return config_path
 
     def _load_all_configs(self):
@@ -89,7 +89,7 @@ gateway:
 
             self.logger.info("All configurations loaded successfully")
         except Exception as e:
-            self.logger.error(f"Failed to load configurations: {e}")
+            self.logger.error("Failed to load configurations: %s", e)
             self._load_fallback_configs()
 
     def _load_gateway_config(self):
@@ -98,10 +98,10 @@ gateway:
             with open(self.gateway_config_path, "r") as f:
                 self.gateway_config = yaml.safe_load(f)
             self.logger.info(
-                f"Gateway configuration loaded from: {self.gateway_config_path}"
+                "Gateway configuration loaded from: %s", self.gateway_config_path
             )
         except Exception as e:
-            self.logger.error(f"Failed to load gateway configuration: {e}")
+            self.logger.error("Failed to load gateway configuration: %s", e)
             self.gateway_config = self._get_fallback_gateway_config()
 
     def _load_ecu_configs(self):
@@ -154,14 +154,14 @@ gateway:
             for ecu_addr, ecu_config in self.ecu_configs.items():
                 ecu_info = ecu_config.get("ecu", {})
                 uds_config = ecu_info.get("uds_services", {})
-                
+
                 # Get service files for this ECU
                 service_files = uds_config.get("service_files", [])
-                
+
                 # Load services from each file
                 for service_file in service_files:
                     self._load_services_from_file(service_file, ecu_addr)
-                
+
                 # Also load from the old single file for backward compatibility
                 uds_services_path = self._find_uds_services_path()
                 if uds_services_path and os.path.exists(uds_services_path):
@@ -173,7 +173,7 @@ gateway:
         except Exception as e:
             self.logger.error(f"Failed to load UDS services: {e}")
 
-    def _load_services_from_file(self, service_file_path: str, ecu_address: int = None):
+    def _load_services_from_file(self, service_file_path: str, _ecu_address: int = None):
         """Load UDS services from a specific file"""
         try:
             # Find the actual file path
@@ -343,12 +343,12 @@ gateway:
             # Check specific ECU
             allowed_sources = self.get_ecu_tester_addresses(target_addr)
             return source_addr in allowed_sources
-        else:
-            # Check all ECUs
-            for ecu_addr in self.get_all_ecu_addresses():
-                if source_addr in self.get_ecu_tester_addresses(ecu_addr):
-                    return True
-            return False
+        
+        # Check all ECUs
+        for ecu_addr in self.get_all_ecu_addresses():
+            if source_addr in self.get_ecu_tester_addresses(ecu_addr):
+                return True
+        return False
 
     def is_target_address_valid(self, target_addr: int) -> bool:
         """Check if target address is valid (has ECU configuration)"""
@@ -365,15 +365,15 @@ gateway:
 
         # Get service files for this ECU
         service_files = uds_config.get("service_files", [])
-        
+
         # Load services from the specified files for this ECU
         ecu_services = {}
-        
+
         # Load from service files
         for service_file in service_files:
             file_services = self._get_services_from_file(service_file, target_address)
             ecu_services.update(file_services)
-        
+
         # Also load from the old method for backward compatibility
         common_services = uds_config.get("common_services", [])
         specific_services = uds_config.get("specific_services", [])
@@ -385,7 +385,8 @@ gateway:
                 ecu_services[service_name] = self.uds_services[service_name]
             else:
                 self.logger.warning(
-                    f"Service {service_name} not found in UDS services for ECU 0x{target_address:04X}"
+                    f"Service {service_name} not found in UDS services "
+                    f"for ECU 0x{target_address:04X}"
                 )
 
         return ecu_services
@@ -401,7 +402,7 @@ gateway:
                 service_config = yaml.safe_load(f)
 
             services = {}
-            
+
             # Always load common services
             common_services = service_config.get("common_services", {})
             services.update(common_services)

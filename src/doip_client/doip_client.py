@@ -91,12 +91,15 @@ class DoIPClientWrapper:
                     uds_payload, timeout=timeout
                 )
                 if response:
-                    print(f"Received response: {response.hex()}")
+                    if hasattr(response, 'hex'):
+                        print(f"Received response: {response.hex()}")
+                    else:
+                        print(f"Received response: {response}")
                     return bytes(response)
-                else:
-                    print("No response received")
-                    return None
-            else:
+                
+                print("No response received")
+                return None
+            
                 # Use the original send/receive approach
                 self.doip_client.send_diagnostic(uds_payload, timeout=timeout)
 
@@ -140,7 +143,7 @@ class DoIPClientWrapper:
 
             # Store original target address
             original_target = self.target_address
-            
+
             # Temporarily set target address for this request
             self.target_address = address
             if hasattr(self.doip_client, 'target_address'):
@@ -155,7 +158,10 @@ class DoIPClientWrapper:
                 self.doip_client.target_address = original_target
 
             if response:
-                print(f"Received response: {response.hex()}")
+                if hasattr(response, 'hex'):
+                    print(f"Received response: {response.hex()}")
+                else:
+                    print(f"Received response: {response}")
                 return bytes(response)
             else:
                 print("No response received")
@@ -198,7 +204,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending Routine Activation Request ===")
+        print("\n=== Sending Routine Activation Request ===")
         print(f"Routine Identifier: 0x{routine_identifier:04X}")
         print(f"Routine Type: 0x{routine_type:04X}")
 
@@ -223,7 +229,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending UDS Read Data by Identifier Request ===")
+        print("\n=== Sending UDS Read Data by Identifier Request ===")
         print(f"Data Identifier: 0x{data_identifier:04X}")
 
         # UDS Read Data by Identifier service (0x22)
@@ -242,7 +248,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending Tester Present Request ===")
+        print("\n=== Sending Tester Present Request ===")
 
         # UDS Tester Present service (0x3E) with suppress positive response (0x00)
         uds_payload = [0x3E, 0x00]
@@ -259,7 +265,7 @@ class DoIPClientWrapper:
         Returns:
             Response payload or None if failed
         """
-        print(f"\n=== Sending Diagnostic Session Control Request ===")
+        print("\n=== Sending Diagnostic Session Control Request ===")
         print(f"Session Type: 0x{session_type:02X}")
 
         # UDS Diagnostic Session Control service (0x10)
@@ -292,14 +298,18 @@ class DoIPClientWrapper:
                 uds_payload = bytes(uds_payload)
 
             print(
-                f"Sending functional diagnostic message to 0x{functional_address:04X}: {uds_payload.hex()}"
+                f"Sending functional diagnostic message to "
+                f"0x{functional_address:04X}: {uds_payload.hex()}"
             )
 
             # Use send_diagnostic_to_address to properly send to the functional address
             response = self.send_diagnostic_to_address(uds_payload, functional_address, timeout)
 
             if response:
-                print(f"Received functional response: {response.hex()}")
+                if hasattr(response, 'hex'):
+                    print(f"Received functional response: {response.hex()}")
+                else:
+                    print(f"Received functional response: {response}")
                 return bytes(response)
             else:
                 print("No functional response received")
@@ -361,13 +371,14 @@ class DoIPClientWrapper:
                 uds_payload = bytes(uds_payload)
 
             print(
-                f"Sending functional diagnostic message to 0x{functional_address:04X}: {uds_payload.hex()}"
+                f"Sending functional diagnostic message to "
+                f"0x{functional_address:04X}: {uds_payload.hex()}"
             )
             print(f"Waiting for up to {max_responses} responses...")
 
             # Store original target address
             original_target = self.target_address
-            
+
             # Temporarily set target address for this request
             self.target_address = functional_address
             if hasattr(self.doip_client, 'target_address'):
@@ -375,7 +386,7 @@ class DoIPClientWrapper:
 
             responses = []
             start_time = time.time()
-            
+
             # Send the initial request
             if hasattr(self.doip_client, "send_diagnostic_message_to_address"):
                 self.doip_client.send_diagnostic_message_to_address(
@@ -457,7 +468,7 @@ class DoIPClientWrapper:
 
     def send_alive_check(self):
         """Send alive check request"""
-        print(f"\n=== Sending Alive Check Request ===")
+        print("\n=== Sending Alive Check Request ===")
 
         try:
             if not self.doip_client:
@@ -544,7 +555,7 @@ class DoIPClientWrapper:
                 0xF190,
                 0xF191,
             ]  # VIN and Vehicle Type - should work with functional addressing
-            
+
             print("\n=== Testing Single Response Functional Addressing ===")
             for di in data_identifiers:
                 print(f"\n--- Testing Read Data by Identifier 0x{di:04X} ---")
@@ -562,7 +573,7 @@ class DoIPClientWrapper:
             responses = self.send_functional_diagnostic_message_multiple_responses(
                 uds_payload, max_responses=5, timeout=3.0
             )
-            
+
             if responses:
                 print(f"Received {len(responses)} responses:")
                 for i, response in enumerate(responses, 1):

@@ -4,12 +4,12 @@ Test module for DebugDoIPClient
 """
 
 import json
-import pytest
-import tempfile
 import os
 import sys
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+import tempfile
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
@@ -109,7 +109,7 @@ class TestDebugDoIPClient:
         with pytest.raises(FileNotFoundError):
             DebugDoIPClient("non_existent_config.json")
 
-    def test_load_config(self, temp_config_file, sample_config):
+    def test_load_config(self, _temp_config_file, sample_config):
         """Test _load_config method"""
         with patch("doip_client.debug_client.DoIPClient"):
             client = DebugDoIPClient(temp_config_file)
@@ -339,7 +339,7 @@ class TestDebugDoIPClient:
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_run_test_scenario_routine_control(
-        self, mock_doip_client, temp_config_file, sample_config
+        self, mock_doip_client, __temp_config_file, sample_config
     ):
         """Test running test scenario with routine control step"""
         # Add routine control to test scenario
@@ -367,7 +367,7 @@ class TestDebugDoIPClient:
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_run_test_scenario_tester_present(
-        self, mock_doip_client, temp_config_file, sample_config
+        self, mock_doip_client, _temp_config_file, sample_config
     ):
         """Test running test scenario with tester present step"""
         # Add tester present to test scenario
@@ -393,7 +393,7 @@ class TestDebugDoIPClient:
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_run_test_scenario_invalid_uds_request(
-        self, mock_doip_client, temp_config_file, sample_config
+        self, mock_doip_client, _temp_config_file, sample_config
     ):
         """Test running test scenario with invalid UDS request step"""
         # Add invalid UDS request to test scenario
@@ -419,7 +419,7 @@ class TestDebugDoIPClient:
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_run_test_scenario_reconnect(
-        self, mock_doip_client, temp_config_file, sample_config
+        self, mock_doip_client, _temp_config_file, sample_config
     ):
         """Test running test scenario with reconnect step"""
         # Add reconnect to test scenario
@@ -443,7 +443,7 @@ class TestDebugDoIPClient:
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_run_test_scenario_valid_uds_request(
-        self, mock_doip_client, temp_config_file, sample_config
+        self, mock_doip_client, _temp_config_file, sample_config
     ):
         """Test running test scenario with valid UDS request step"""
         # Add valid UDS request to test scenario
@@ -475,7 +475,7 @@ class TestDebugDoIPClient:
             result = client.run_test_scenario("non_existent_scenario")
             assert result is False
 
-    def test_run_test_scenario_unknown_step(self, temp_config_file, sample_config):
+    def test_run_test_scenario_unknown_step(self, _temp_config_file, sample_config):
         """Test running test scenario with unknown step"""
         # Add unknown step to test scenario
         config = sample_config.copy()

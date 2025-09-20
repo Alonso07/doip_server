@@ -89,21 +89,21 @@ class DoIPServer:
 
         # Validate max_connections
         if not isinstance(self.max_connections, int) or self.max_connections < 1:
-            self.logger.error(
-                f"Invalid max_connections configuration: must be positive integer, got {self.max_connections}"
+            error_msg = (
+                f"Invalid max_connections configuration: must be positive integer, "
+                f"got {self.max_connections}"
             )
-            raise ValueError(
-                f"Invalid max_connections configuration: must be positive integer, got {self.max_connections}"
-            )
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
 
         # Validate timeout
         if not isinstance(self.timeout, (int, float)) or self.timeout <= 0:
-            self.logger.error(
-                f"Invalid timeout configuration: must be positive number, got {self.timeout}"
+            error_msg = (
+                f"Invalid timeout configuration: must be positive number, "
+                f"got {self.timeout}"
             )
-            raise ValueError(
-                f"Invalid timeout configuration: must be positive number, got {self.timeout}"
-            )
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
 
         self.logger.info(f"Binding configuration validated: {self.host}:{self.port}")
         self.logger.info(
@@ -265,17 +265,17 @@ class DoIPServer:
         # Process based on payload type
         if payload_type == PAYLOAD_TYPE_ROUTING_ACTIVATION_REQUEST:
             return self.handle_routing_activation(data[8:])
-        elif payload_type == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE:
+        if payload_type == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE:
             return self.handle_diagnostic_message(data[8:])
-        elif payload_type == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST:
+        if payload_type == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST:
             return self.handle_alive_check()
-        elif payload_type == 0x0007:
+        if payload_type == 0x0007:
             return self.handle_alive_check_0007()
-        elif payload_type == 0x0008:
+        if payload_type == 0x0008:
             return self.handle_power_mode_request(data[8:])
-        else:
-            print(f"Unsupported payload type: 0x{payload_type:04X}")
-            return None
+        
+        print(f"Unsupported payload type: 0x{payload_type:04X}")
+        return None
 
     def handle_routing_activation(self, payload):
         """Handle routing activation request"""
@@ -433,18 +433,18 @@ class DoIPServer:
         self.logger.info(
             f"Functional addressing: {len(responses)} ECUs responded"
         )
-        
+
         # For now, return the first response as the primary response
         # In a real implementation, you might want to handle multiple responses differently
         # This could involve:
         # 1. Returning all responses sequentially
         # 2. Aggregating responses into a single response
         # 3. Using a different protocol for multiple responses
-        
+
         # Log all responses for debugging
         for i, resp in enumerate(responses):
             self.logger.info(f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: {resp['response'].hex()}")
-        
+
         # Return the first response as the primary response
         # TODO: Implement proper multiple response handling
         return responses[0]["response"]
@@ -514,7 +514,7 @@ class DoIPServer:
                     functional_address, source_address, uds_response
                 )
                 all_responses.append({
-                    "ecu_address": ecu_address, 
+                    "ecu_address": ecu_address,
                     "response": response,
                     "uds_response": uds_response
                 })
@@ -523,11 +523,11 @@ class DoIPServer:
         self.logger.info(
             f"Functional addressing with multiple responses: {len(all_responses)} ECUs responded"
         )
-        
+
         # Log all responses for debugging
         for i, resp in enumerate(all_responses):
             self.logger.info(f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: {resp['response'].hex()}")
-        
+
         return all_responses
 
     def process_uds_message(self, uds_payload, target_address):
@@ -674,7 +674,7 @@ class DoIPServer:
         self.logger.info("Processing alive check request (0x0007)")
         return self.create_alive_check_response_0007()
 
-    def handle_power_mode_request(self, payload):
+    def handle_power_mode_request(self, _payload):
         """Handle power mode request (payload type 0x0008)"""
         self.logger.info("Processing power mode request")
         return self.create_power_mode_response()

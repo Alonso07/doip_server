@@ -54,10 +54,10 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
             b"\x3e\x00": b"\x7e\x00",
         }
 
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
             return service_responses.get(payload, None)
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
 
         # Test complete workflow
         print("\n=== Complete Functional Diagnostics Workflow Test ===")
@@ -116,7 +116,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         ]
 
         response_index = 0
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
             nonlocal response_index
             if payload == b"\x22\xf1\x90":  # Read VIN
                 response = ecu_responses[response_index % len(ecu_responses)]
@@ -124,7 +124,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
                 return response
             return None
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
 
         print("\n=== Multiple ECU Functional Addressing Test ===")
         
@@ -158,7 +158,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         ]
 
         call_count = 0
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
             nonlocal call_count
             call_count += 1
             
@@ -176,7 +176,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
             # For physical addressing
             return physical_response
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
         self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic
 
         print("\n=== Functional vs Physical Addressing Comparison ===")
@@ -212,29 +212,29 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         
         # Test 1: No response from any ECU
         print("Test 1: No response from any ECU...")
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = None
+        self.client.doip_client.send_diagnostic_message.return_value = None
         response = self.client.send_functional_read_data_by_identifier(0xF190)
         self.assertIsNone(response)
         print("✓ Handled no response correctly")
         
         # Test 2: Network error
         print("Test 2: Network error...")
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = ConnectionError("Network error")
+        self.client.doip_client.send_diagnostic_message.side_effect = ConnectionError("Network error")
         response = self.client.send_functional_read_data_by_identifier(0xF190)
         self.assertIsNone(response)
         print("✓ Handled network error correctly")
         
         # Test 3: Timeout
         print("Test 3: Timeout...")
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = socket.timeout("Timeout")
+        self.client.doip_client.send_diagnostic_message.side_effect = socket.timeout("Timeout")
         response = self.client.send_functional_read_data_by_identifier(0xF190)
         self.assertIsNone(response)
         print("✓ Handled timeout correctly")
         
         # Test 4: Malformed response
         print("Test 4: Malformed response...")
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = None
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x00"  # Malformed
+        self.client.doip_client.send_diagnostic_message.side_effect = None
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x00"  # Malformed
         response = self.client.send_functional_read_data_by_identifier(0xF190)
         self.assertEqual(response, b"\x00")  # Should return malformed response as-is
         print("✓ Handled malformed response correctly")
@@ -248,7 +248,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         self.client.doip_client.close = Mock()
 
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -291,10 +291,10 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
             b"\x19\x02": b"\x59\x02",  # Read DTCs
         }
 
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
             return service_responses.get(payload, None)
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
 
         print("\n=== Functional Addressing with Different Services Test ===")
         
@@ -324,7 +324,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         self.client.doip_client.close = Mock()
 
         # Mock fast response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -360,7 +360,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         self.client.doip_client.close = Mock()
 
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
@@ -409,10 +409,10 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
             b"\x3e\x00": b"\x7e\x00",  # Tester Present
         }
 
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
             return responses.get(payload, None)
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
 
         print("\n=== Diagnostic Tool Simulation Test ===")
         
@@ -461,7 +461,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
         }
 
         response_count = 0
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
             nonlocal response_count
             if payload == b"\x22\xf1\x90":  # Read VIN
                 response_count += 1
@@ -471,7 +471,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
                 return ecu_responses[ecu_name]
             return None
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
 
         print("\n=== ECU Network Scan Test ===")
         
@@ -517,7 +517,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
                 return None
             return b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_intermittent_failure
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_intermittent_failure
         
         success_count = 0
         for i in range(10):
@@ -531,8 +531,8 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
         
         # Test 2: Recovery after failure
         print("Test 2: Recovery after failure...")
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = None
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
+        self.client.doip_client.send_diagnostic_message.side_effect = None
+        self.client.doip_client.send_diagnostic_message.return_value = b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         
         response = self.client.send_functional_read_data_by_identifier(0xF190)
         self.assertIsNotNone(response)
@@ -547,7 +547,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
         self.client.doip_client.close = Mock()
 
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+        self.client.doip_client.send_diagnostic_message.return_value = (
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
         )
 
