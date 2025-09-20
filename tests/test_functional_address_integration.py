@@ -54,7 +54,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
             b"\x3e\x00": b"\x7e\x00",
         }
 
-        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             return service_responses.get(payload, None)
 
         self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
@@ -116,7 +116,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         ]
 
         response_index = 0
-        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             nonlocal response_index
             if payload == b"\x22\xf1\x90":  # Read VIN
                 response = ecu_responses[response_index % len(ecu_responses)]
@@ -158,7 +158,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
         ]
 
         call_count = 0
-        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             nonlocal call_count
             call_count += 1
             
@@ -291,7 +291,7 @@ class TestFunctionalAddressEndToEnd(unittest.TestCase):
             b"\x19\x02": b"\x59\x02",  # Read DTCs
         }
 
-        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             return service_responses.get(payload, None)
 
         self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
@@ -409,7 +409,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
             b"\x3e\x00": b"\x7e\x00",  # Tester Present
         }
 
-        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             return responses.get(payload, None)
 
         self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
@@ -461,7 +461,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
         }
 
         response_count = 0
-        def mock_send_diagnostic_message(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             nonlocal response_count
             if payload == b"\x22\xf1\x90":  # Read VIN
                 response_count += 1
@@ -569,8 +569,7 @@ class TestFunctionalAddressRealWorldScenarios(unittest.TestCase):
             test_client.doip_client = Mock()
             test_client.doip_client.send_diagnostic_message = Mock()
             test_client.doip_client.close = Mock()
-            test_client.doip_client.send_diagnostic_message_to_address = Mock()
-            test_client.doip_client.send_diagnostic_message_to_address.return_value = (
+            test_client.doip_client.send_diagnostic_message.return_value = (
                 b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
             )
             

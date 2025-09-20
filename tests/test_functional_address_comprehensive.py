@@ -400,10 +400,10 @@ class TestFunctionalAddressIntegration(unittest.TestCase):
             b"\x3e\x00": b"\x7e\x00",  # Tester Present
         }
 
-        def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
+        def mock_send_diagnostic_message(payload, *args, **kwargs):
             return responses.get(payload, None)
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
+        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
 
         # Test multiple functional services
         test_cases = [
