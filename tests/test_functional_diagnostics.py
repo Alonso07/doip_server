@@ -54,9 +54,7 @@ class TestFunctionalDiagnostics(unittest.TestCase):
 
         # Verify response
         self.assertIsNotNone(response)
-        self.assertEqual(
-            response, bytes.fromhex("62f1901020011223344556677889aabb")
-        )
+        self.assertEqual(response, bytes.fromhex("62f1901020011223344556677889aabb"))
 
     def test_functional_read_data_by_identifier(self):
         """Test functional read data by identifier"""
@@ -98,7 +96,9 @@ class TestFunctionalDiagnostics(unittest.TestCase):
     def test_functional_tester_present(self):
         """Test functional tester present"""
         # Mock successful response
-        self.client.doip_client.send_diagnostic_message_to_address.return_value = b"\x7e\x00"
+        self.client.doip_client.send_diagnostic_message_to_address.return_value = (
+            b"\x7e\x00"
+        )
 
         # Test functional tester present
         response = self.client.send_functional_tester_present()

@@ -41,13 +41,19 @@ class TestFunctionalAddressUnit(unittest.TestCase):
     def test_functional_address_detection(self):
         """Test that functional addresses are correctly detected"""
         # Mock ECUs with functional address 0x1FFF
-        self.config_manager.get_ecus_by_functional_address.return_value = [0x1000, 0x1001, 0x1002]
+        self.config_manager.get_ecus_by_functional_address.return_value = [
+            0x1000,
+            0x1001,
+            0x1002,
+        ]
 
         # Test functional address detection
         ecus = self.config_manager.get_ecus_by_functional_address(0x1FFF)
 
         self.assertEqual(ecus, [0x1000, 0x1001, 0x1002])
-        self.config_manager.get_ecus_by_functional_address.assert_called_once_with(0x1FFF)
+        self.config_manager.get_ecus_by_functional_address.assert_called_once_with(
+            0x1FFF
+        )
 
     def test_no_functional_address_ecus(self):
         """Test handling when no ECUs use a functional address"""
@@ -56,7 +62,9 @@ class TestFunctionalAddressUnit(unittest.TestCase):
         ecus = self.config_manager.get_ecus_by_functional_address(0x9999)
 
         self.assertEqual(ecus, [])
-        self.config_manager.get_ecus_by_functional_address.assert_called_once_with(0x9999)
+        self.config_manager.get_ecus_by_functional_address.assert_called_once_with(
+            0x9999
+        )
 
     def test_uds_service_functional_support(self):
         """Test UDS service functional support detection"""
@@ -64,7 +72,7 @@ class TestFunctionalAddressUnit(unittest.TestCase):
         service_config = {
             "name": "Read_VIN",
             "request": "0x22F190",
-            "supports_functional": True
+            "supports_functional": True,
         }
         self.config_manager.get_uds_service_by_request.return_value = service_config
 
@@ -79,7 +87,7 @@ class TestFunctionalAddressUnit(unittest.TestCase):
         service_config = {
             "name": "Engine_RPM_Read",
             "request": "0x220C01",
-            "supports_functional": False
+            "supports_functional": False,
         }
         self.config_manager.get_uds_service_by_request.return_value = service_config
 
@@ -96,7 +104,9 @@ class TestFunctionalAddressUnit(unittest.TestCase):
         result = self.config_manager.is_source_address_allowed(0x0E00, 0x1000)
 
         self.assertTrue(result)
-        self.config_manager.is_source_address_allowed.assert_called_once_with(0x0E00, 0x1000)
+        self.config_manager.is_source_address_allowed.assert_called_once_with(
+            0x0E00, 0x1000
+        )
 
     def test_source_address_rejection(self):
         """Test source address rejection for functional addressing"""
@@ -106,7 +116,9 @@ class TestFunctionalAddressUnit(unittest.TestCase):
         result = self.config_manager.is_source_address_allowed(0x9999, 0x1000)
 
         self.assertFalse(result)
-        self.config_manager.is_source_address_allowed.assert_called_once_with(0x9999, 0x1000)
+        self.config_manager.is_source_address_allowed.assert_called_once_with(
+            0x9999, 0x1000
+        )
 
 
 class TestFunctionalAddressClient(unittest.TestCase):
@@ -157,7 +169,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
         # Test with custom functional address
         uds_payload = [0x22, 0xF1, 0x90]
         custom_address = 0x2FFF
-        response = self.client.send_functional_diagnostic_message(uds_payload, custom_address)
+        response = self.client.send_functional_diagnostic_message(
+            uds_payload, custom_address
+        )
 
         # Verify response
         self.assertIsNotNone(response)
@@ -169,7 +183,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
 
         # Test with timeout
         uds_payload = [0x22, 0xF1, 0x90]
-        response = self.client.send_functional_diagnostic_message(uds_payload, timeout=0.1)
+        response = self.client.send_functional_diagnostic_message(
+            uds_payload, timeout=0.1
+        )
 
         # Verify no response
         self.assertIsNone(response)
@@ -187,7 +203,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
         # Verify the method was called with correct payload
         self.client.doip_client.send_diagnostic_message.assert_called_once()
         call_args = self.client.doip_client.send_diagnostic_message.call_args
-        self.assertEqual(call_args[0][0], b"\x22\xf1\x90")  # UDS payload (first argument)
+        self.assertEqual(
+            call_args[0][0], b"\x22\xf1\x90"
+        )  # UDS payload (first argument)
 
         # Verify response
         self.assertIsNotNone(response)
@@ -250,7 +268,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
         self.client.doip_client.target_address = original_target
 
         # Mock error
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = Exception("Network error")
+        self.client.doip_client.send_diagnostic_message_to_address.side_effect = (
+            Exception("Network error")
+        )
 
         # Test functional diagnostic message
         uds_payload = [0x22, 0xF1, 0x90]
@@ -266,7 +286,7 @@ class TestFunctionalAddressClient(unittest.TestCase):
         # Mock multiple responses
         responses = [
             b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb",
-            b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xcc\xdd"
+            b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xcc\xdd",
         ]
 
         # Mock the send_diagnostic_to_address method to return multiple responses
@@ -275,7 +295,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
 
         # Test multiple functional responses
         uds_payload = [0x22, 0xF1, 0x90]
-        response = self.client.send_functional_diagnostic_message_multiple_responses(uds_payload)
+        response = self.client.send_functional_diagnostic_message_multiple_responses(
+            uds_payload
+        )
 
         # Verify response
         self.assertIsNotNone(response)
@@ -283,7 +305,9 @@ class TestFunctionalAddressClient(unittest.TestCase):
     def test_functional_demo_execution(self):
         """Test that functional demo can be executed without errors"""
         # Mock successful responses
-        self.client.doip_client.send_diagnostic_message.return_value = b"\x50\x03\x00\x00"
+        self.client.doip_client.send_diagnostic_message.return_value = (
+            b"\x50\x03\x00\x00"
+        )
 
         # Test that functional demo runs without errors
         try:
@@ -304,7 +328,10 @@ class TestFunctionalAddressServer(unittest.TestCase):
     def test_handle_functional_diagnostic_message_success(self):
         """Test successful functional diagnostic message handling"""
         # Mock configuration
-        self.server.config_manager.get_ecus_by_functional_address.return_value = [0x1000, 0x1001]
+        self.server.config_manager.get_ecus_by_functional_address.return_value = [
+            0x1000,
+            0x1001,
+        ]
         self.server.config_manager.is_source_address_allowed.return_value = True
         self.server.config_manager.get_uds_service_by_request.return_value = {
             "supports_functional": True
@@ -322,18 +349,27 @@ class TestFunctionalAddressServer(unittest.TestCase):
 
         # Simulate the calls that would be made by the actual server
         self.server.config_manager.get_ecus_by_functional_address(functional_address)
-        self.server.config_manager.is_source_address_allowed(source_address, target_ecus[0])
-        self.server.config_manager.get_uds_service_by_request(uds_payload.hex().upper(), target_ecus[0])
+        self.server.config_manager.is_source_address_allowed(
+            source_address, target_ecus[0]
+        )
+        self.server.config_manager.get_uds_service_by_request(
+            uds_payload.hex().upper(), target_ecus[0]
+        )
 
         # Verify configuration calls
-        self.server.config_manager.get_ecus_by_functional_address.assert_called_once_with(functional_address)
+        self.server.config_manager.get_ecus_by_functional_address.assert_called_once_with(
+            functional_address
+        )
         self.server.config_manager.is_source_address_allowed.assert_called()
         self.server.config_manager.get_uds_service_by_request.assert_called()
 
     def test_handle_functional_diagnostic_message_no_responding_ecus(self):
         """Test functional diagnostic message handling when no ECUs respond"""
         # Mock configuration with no responding ECUs
-        self.server.config_manager.get_ecus_by_functional_address.return_value = [0x1000, 0x1001]
+        self.server.config_manager.get_ecus_by_functional_address.return_value = [
+            0x1000,
+            0x1001,
+        ]
         self.server.config_manager.is_source_address_allowed.return_value = True
         self.server.config_manager.get_uds_service_by_request.return_value = {
             "supports_functional": False
@@ -355,7 +391,10 @@ class TestFunctionalAddressServer(unittest.TestCase):
     def test_handle_functional_diagnostic_message_source_not_allowed(self):
         """Test functional diagnostic message handling when source address not allowed"""
         # Mock configuration with source address not allowed
-        self.server.config_manager.get_ecus_by_functional_address.return_value = [0x1000, 0x1001]
+        self.server.config_manager.get_ecus_by_functional_address.return_value = [
+            0x1000,
+            0x1001,
+        ]
         self.server.config_manager.is_source_address_allowed.return_value = False
 
         # Test functional diagnostic message handling
@@ -403,20 +442,33 @@ class TestFunctionalAddressIntegration(unittest.TestCase):
         def mock_send_diagnostic_message(payload, *args, **kwargs):
             return responses.get(payload, None)
 
-        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic_message
+        self.client.doip_client.send_diagnostic_message.side_effect = (
+            mock_send_diagnostic_message
+        )
 
         # Test multiple functional services
         test_cases = [
-            ("Read VIN", lambda: self.client.send_functional_read_data_by_identifier(0xF190)),
-            ("Read Vehicle Type", lambda: self.client.send_functional_read_data_by_identifier(0xF191)),
-            ("Diagnostic Session Control", lambda: self.client.send_functional_diagnostic_session_control(0x03)),
+            (
+                "Read VIN",
+                lambda: self.client.send_functional_read_data_by_identifier(0xF190),
+            ),
+            (
+                "Read Vehicle Type",
+                lambda: self.client.send_functional_read_data_by_identifier(0xF191),
+            ),
+            (
+                "Diagnostic Session Control",
+                lambda: self.client.send_functional_diagnostic_session_control(0x03),
+            ),
             ("Tester Present", lambda: self.client.send_functional_tester_present()),
         ]
 
         for service_name, test_func in test_cases:
             with self.subTest(service=service_name):
                 response = test_func()
-                self.assertIsNotNone(response, f"{service_name} should return a response")
+                self.assertIsNotNone(
+                    response, f"{service_name} should return a response"
+                )
 
     def test_physical_vs_functional_comparison(self):
         """Test comparison between physical and functional addressing"""
@@ -427,12 +479,19 @@ class TestFunctionalAddressIntegration(unittest.TestCase):
         self.client.doip_client.close = Mock()
 
         # Mock different responses for physical vs functional
-        physical_response = b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
-        functional_response = b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xcc\xdd"
+        physical_response = (
+            b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xaa\xbb"
+        )
+        functional_response = (
+            b"\x62\xf1\x90\x10\x20\x01\x12\x23\x34\x45\x67\x78\x89\xcc\xdd"
+        )
 
         def mock_send_diagnostic_to_address(address, payload, *args, **kwargs):
             # Simulate different responses based on target address
-            if hasattr(self.client, '_is_functional_call') and self.client._is_functional_call:
+            if (
+                hasattr(self.client, "_is_functional_call")
+                and self.client._is_functional_call
+            ):
                 return functional_response
             else:
                 return physical_response
@@ -441,8 +500,12 @@ class TestFunctionalAddressIntegration(unittest.TestCase):
             # For physical addressing
             return physical_response
 
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = mock_send_diagnostic_to_address
-        self.client.doip_client.send_diagnostic_message.side_effect = mock_send_diagnostic
+        self.client.doip_client.send_diagnostic_message_to_address.side_effect = (
+            mock_send_diagnostic_to_address
+        )
+        self.client.doip_client.send_diagnostic_message.side_effect = (
+            mock_send_diagnostic
+        )
 
         # Test physical addressing
         self.client._is_functional_call = False
@@ -509,7 +572,9 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
         # Mock no response for invalid address
         self.client.doip_client.send_diagnostic_message.return_value = None
 
-        response = self.client.send_functional_diagnostic_message(uds_payload, invalid_address)
+        response = self.client.send_functional_diagnostic_message(
+            uds_payload, invalid_address
+        )
 
         # Should return None for invalid address
         self.assertIsNone(response)
@@ -543,18 +608,24 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
     def test_network_timeout(self):
         """Test handling of network timeout"""
         # Mock timeout
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = socket.timeout("Timeout")
+        self.client.doip_client.send_diagnostic_message_to_address.side_effect = (
+            socket.timeout("Timeout")
+        )
 
         uds_payload = [0x22, 0xF1, 0x90]
 
         # The implementation catches exceptions and returns None
-        response = self.client.send_functional_diagnostic_message(uds_payload, timeout=0.1)
+        response = self.client.send_functional_diagnostic_message(
+            uds_payload, timeout=0.1
+        )
         self.assertIsNone(response)
 
     def test_connection_lost_during_functional_call(self):
         """Test handling of connection loss during functional call"""
         # Mock connection loss
-        self.client.doip_client.send_diagnostic_message_to_address.side_effect = ConnectionError("Connection lost")
+        self.client.doip_client.send_diagnostic_message_to_address.side_effect = (
+            ConnectionError("Connection lost")
+        )
 
         uds_payload = [0x22, 0xF1, 0x90]
 
@@ -565,7 +636,9 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
     def test_malformed_response(self):
         """Test handling of malformed response"""
         # Mock malformed response
-        self.client.doip_client.send_diagnostic_message.return_value = b"\x00"  # Malformed
+        self.client.doip_client.send_diagnostic_message.return_value = (
+            b"\x00"  # Malformed
+        )
 
         uds_payload = [0x22, 0xF1, 0x90]
         response = self.client.send_functional_diagnostic_message(uds_payload)
@@ -576,7 +649,9 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
     def test_negative_response_code(self):
         """Test handling of negative response codes"""
         # Mock negative response
-        self.client.doip_client.send_diagnostic_message.return_value = b"\x7f\x22\x11"  # Negative response
+        self.client.doip_client.send_diagnostic_message.return_value = (
+            b"\x7f\x22\x11"  # Negative response
+        )
 
         uds_payload = [0x22, 0xF1, 0x90]
         response = self.client.send_functional_diagnostic_message(uds_payload)
@@ -597,7 +672,9 @@ class TestFunctionalAddressEdgeCases(unittest.TestCase):
 
         for func_addr in functional_addresses:
             with self.subTest(functional_address=func_addr):
-                response = self.client.send_functional_diagnostic_message(uds_payload, func_addr)
+                response = self.client.send_functional_diagnostic_message(
+                    uds_payload, func_addr
+                )
                 self.assertIsNotNone(response)
 
 
@@ -639,7 +716,9 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
 
         # Should complete 100 requests in reasonable time
         self.assertLess(total_time, 5.0)  # Less than 5 seconds for 100 requests
-        print(f"Completed {num_requests} functional requests in {total_time:.2f} seconds")
+        print(
+            f"Completed {num_requests} functional requests in {total_time:.2f} seconds"
+        )
 
     def test_concurrent_functional_requests_performance(self):
         """Test performance of concurrent functional requests"""
@@ -657,7 +736,9 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
         start_time = time.time()
 
         with ThreadPoolExecutor(max_workers=num_concurrent) as executor:
-            futures = [executor.submit(send_functional_request) for _ in range(num_concurrent)]
+            futures = [
+                executor.submit(send_functional_request) for _ in range(num_concurrent)
+            ]
             results = [future.result() for future in as_completed(futures)]
 
         end_time = time.time()
@@ -669,8 +750,12 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
             self.assertIsNotNone(result)
 
         # Should complete concurrent requests in reasonable time
-        self.assertLess(total_time, 3.0)  # Less than 3 seconds for 20 concurrent requests
-        print(f"Completed {num_concurrent} concurrent functional requests in {total_time:.2f} seconds")
+        self.assertLess(
+            total_time, 3.0
+        )  # Less than 3 seconds for 20 concurrent requests
+        print(
+            f"Completed {num_concurrent} concurrent functional requests in {total_time:.2f} seconds"
+        )
 
     def test_memory_usage_functional_requests(self):
         """Test memory usage during functional requests"""
@@ -700,7 +785,9 @@ class TestFunctionalAddressPerformance(unittest.TestCase):
 
         # Memory increase should be reasonable (less than 10MB)
         self.assertLess(memory_increase, 10 * 1024 * 1024)
-        print(f"Memory increase after {num_requests} requests: {memory_increase / 1024 / 1024:.2f} MB")
+        print(
+            f"Memory increase after {num_requests} requests: {memory_increase / 1024 / 1024:.2f} MB"
+        )
 
 
 class TestFunctionalAddressConfiguration(unittest.TestCase):
@@ -712,6 +799,7 @@ class TestFunctionalAddressConfiguration(unittest.TestCase):
 
     def test_functional_address_configuration_validation(self):
         """Test validation of functional address configuration"""
+
         # Mock different responses for different functional addresses
         def mock_get_ecus_by_functional_address(functional_address):
             if functional_address == 0x1FFF:
@@ -719,7 +807,9 @@ class TestFunctionalAddressConfiguration(unittest.TestCase):
             else:
                 return []
 
-        self.config_manager.get_ecus_by_functional_address.side_effect = mock_get_ecus_by_functional_address
+        self.config_manager.get_ecus_by_functional_address.side_effect = (
+            mock_get_ecus_by_functional_address
+        )
 
         # Test valid functional address
         ecus = self.config_manager.get_ecus_by_functional_address(0x1FFF)
@@ -758,8 +848,16 @@ class TestFunctionalAddressConfiguration(unittest.TestCase):
         """Test ECU functional address assignment"""
         # Mock ECU configurations with functional addresses
         ecu_configs = [
-            {"name": "Engine_ECU", "target_address": 0x1000, "functional_address": 0x1FFF},
-            {"name": "Transmission_ECU", "target_address": 0x1001, "functional_address": 0x1FFF},
+            {
+                "name": "Engine_ECU",
+                "target_address": 0x1000,
+                "functional_address": 0x1FFF,
+            },
+            {
+                "name": "Transmission_ECU",
+                "target_address": 0x1001,
+                "functional_address": 0x1FFF,
+            },
             {"name": "ABS_ECU", "target_address": 0x1002, "functional_address": 0x1FFF},
         ]
 
@@ -831,5 +929,7 @@ if __name__ == "__main__":
     print(f"Tests run: {result.testsRun}")
     print(f"Failures: {len(result.failures)}")
     print(f"Errors: {len(result.errors)}")
-    print(f"Success rate: {((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100):.1f}%")
+    print(
+        f"Success rate: {((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100):.1f}%"
+    )
     print(f"{'='*50}")

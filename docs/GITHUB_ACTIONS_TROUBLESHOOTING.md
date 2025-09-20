@@ -140,7 +140,7 @@ Test workflows locally before pushing:
 # Test the exact commands that will run in CI
 poetry run pytest tests/test_doip_unit.py -v
 poetry run validate_config
-poetry run demo
+make demo
 ```
 
 ## 🔄 **Workflow Selection Strategy**

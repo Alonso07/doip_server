@@ -167,13 +167,13 @@ gateway:
                 if uds_services_path and os.path.exists(uds_services_path):
                     self._load_services_from_file(uds_services_path, ecu_addr)
 
-            self.logger.info(
-                f"UDS services loaded: {len(self.uds_services)} services"
-            )
+            self.logger.info(f"UDS services loaded: {len(self.uds_services)} services")
         except Exception as e:
             self.logger.error(f"Failed to load UDS services: {e}")
 
-    def _load_services_from_file(self, service_file_path: str, _ecu_address: int = None):
+    def _load_services_from_file(
+        self, service_file_path: str, _ecu_address: int = None
+    ):
         """Load UDS services from a specific file"""
         try:
             # Find the actual file path
@@ -391,7 +391,9 @@ gateway:
 
         return ecu_services
 
-    def _get_services_from_file(self, service_file_path: str, ecu_address: int) -> Dict[str, Any]:
+    def _get_services_from_file(
+        self, service_file_path: str, ecu_address: int
+    ) -> Dict[str, Any]:
         """Get services from a specific file for a specific ECU"""
         try:
             actual_path = self._find_service_file_path(service_file_path)

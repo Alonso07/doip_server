@@ -5,12 +5,12 @@
 
 set -e
 
-echo "🚀 Quick CI Check"
+echo " Quick CI Check"
 echo "================="
 
 # Check if we're in the right directory
 if [ ! -f "pyproject.toml" ]; then
-    echo "❌ Not in the project root directory"
+    echo " Not in the project root directory"
     exit 1
 fi
 
@@ -43,7 +43,7 @@ fi
 
 # Run tests if they exist
 if [ -d "tests" ] && [ -f "tests/conftest.py" ]; then
-    echo "🧪 Running tests..."
+    echo " Running tests..."
     poetry run pytest tests/ -v --tb=short
     echo "✅ Tests passed"
 fi

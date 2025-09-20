@@ -161,9 +161,8 @@ validate:
 # Demo scripts
 demo:
 	@echo "Running demo scripts..."
-	poetry run python src/doip_server/demo.py
-	poetry run python src/doip_server/demo_hierarchical.py
-	poetry run python src/doip_server/demo_response_cycling.py
+	poetry run python test_udp_doip.py
+	poetry run python test_functional_diagnostics.py
 
 # Building
 build:

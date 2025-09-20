@@ -182,7 +182,8 @@ class UDPDoIPClient:
             request = self.create_vehicle_identification_request()
 
             self.logger.info(
-                f"Sending vehicle identification request to {self.broadcast_address}:{self.server_port}"
+                f"Sending vehicle identification request to "
+                f"{self.broadcast_address}:{self.server_port}"
             )
             self.logger.debug(f"Request: {request.hex()}")
 
@@ -266,7 +267,7 @@ class UDPDoIPClient:
 
 def main():
     """Main entry point for testing the UDP DoIP client."""
-    import argparse
+    import argparse  # pylint: disable=import-outside-toplevel
 
     parser = argparse.ArgumentParser(
         description="UDP DoIP Client for Vehicle Identification Testing"
@@ -304,7 +305,8 @@ def main():
         print("\n=== Summary ===")
         for i, response in enumerate(responses):
             print(
-                f"Response {i+1}: VIN={response['vin']}, Address=0x{response['logical_address']:04X}"
+                f"Response {i+1}: VIN={response['vin']}, "
+                f"Address=0x{response['logical_address']:04X}"
             )
     else:
         print("No responses received")

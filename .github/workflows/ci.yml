@@ -26,7 +26,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
@@ -41,36 +41,60 @@ jobs:
         virtualenvs-in-project: true
         installer-parallel: true
 
-    - name: Configure Poetry
+    - name: Configure Poetry (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry config virtualenvs.create true
         poetry config virtualenvs.in-project true
 
-    - name: Verify Poetry installation
+    - name: Setup Poetry (Windows)
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/setup-poetry-windows
+
+    - name: Verify Poetry installation (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry --version
         poetry config --list
 
     - name: Load cached venv
       id: cached-poetry-dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: .venv
         key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
-    - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+    - name: Install dependencies (Unix)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
         poetry install --no-interaction --no-root
         poetry check
 
-    - name: Install dependencies (cached)
-      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
+    - name: Install dependencies (Windows)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      uses: ./.github/actions/run-poetry-windows
+      with:
+        command: 'install --no-interaction --no-root'
+
+    - name: Install dependencies (cached) (Unix)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
         poetry install --no-interaction --no-root
         poetry check
 
-    - name: Show environment info
+    - name: Install dependencies (cached) (Windows)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true' && runner.os == 'Windows'
+      uses: ./.github/actions/run-poetry-windows
+      with:
+        command: 'install --no-interaction --no-root'
+
+    - name: Show environment info (Unix)
+      if: matrix.os != 'windows-latest'
+      shell: bash
       run: |
         echo "Python version: $(python --version)"
         echo "Poetry version: $(poetry --version)"
@@ -78,19 +102,55 @@ jobs:
         echo "Installed packages:"
         poetry show
 
-    - name: Run unit tests
+    - name: Show environment info (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        Write-Host "Python version: $(python --version)"
+        Write-Host "Poetry version: $(python -m poetry --version)"
+        Write-Host "Working directory: $(Get-Location)"
+        Write-Host "Installed packages:"
+        python -m poetry show
+
+    - name: Run unit tests (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Unit tests failed but continuing..."
 
-    - name: Run integration tests
+    - name: Run unit tests (Windows)
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/run-poetry-windows
+      with:
+        command: 'run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing'
+
+    - name: Run integration tests (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Integration tests failed but continuing..."
 
-    - name: Run all tests with coverage
+    - name: Run integration tests (Windows)
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/run-poetry-windows
+      with:
+        command: 'run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing'
+
+    - name: Run all tests with coverage (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "All tests failed but continuing..."
 
-    - name: Check if coverage file exists
+    - name: Run all tests with coverage (Windows)
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/run-poetry-windows
+      with:
+        command: 'run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing'
+
+    - name: Check if coverage file exists (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ -f "coverage.xml" ]; then
           echo "Coverage file found, size: $(wc -c < coverage.xml) bytes"
@@ -99,8 +159,20 @@ jobs:
           echo '<?xml version="1.0" ?><coverage></coverage>' > coverage.xml
         fi
 
+    - name: Check if coverage file exists (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        if (Test-Path "coverage.xml") {
+          $size = (Get-Item "coverage.xml").Length
+          Write-Host "Coverage file found, size: $size bytes"
+        } else {
+          Write-Host "Coverage file not found, creating empty one"
+          '<?xml version="1.0" ?><coverage></coverage>' | Out-File -FilePath "coverage.xml" -Encoding UTF8
+        }
+
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       if: always()
       with:
         file: ./coverage.xml
@@ -189,7 +261,7 @@ jobs:
         poetry run safety check --json --output safety-report.json || true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports-${{ matrix.python-version }}
         path: |
@@ -234,7 +306,7 @@ jobs:
       run: poetry build
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist-files
         path: dist/

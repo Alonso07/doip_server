@@ -90,7 +90,8 @@ class DebugDoIPClient:
         try:
             self.logger.info("Attempting to connect to DoIP server...")
             self.logger.debug(
-                f"Connection parameters: host={self.server_host}, target=0x{self.target_address:04X}"
+                f"Connection parameters: host={self.server_host}, "
+                f"target=0x{self.target_address:04X}"
             )
 
             # Create DoIP client instance
@@ -126,6 +127,19 @@ class DebugDoIPClient:
                 self.doip_client = None
         else:
             self.logger.warning("No active connection to disconnect")
+
+    def cleanup(self):
+        """Clean up resources including closing file handlers."""
+        # Close all logger handlers to release file handles
+        for handler in self.logger.handlers:
+            try:
+                handler.close()
+            except Exception as e:
+                self.logger.debug(f"Error closing handler: {e}")
+        self.logger.handlers.clear()
+
+        # Disconnect if still connected
+        self.disconnect()
 
     def send_diagnostic_message(
         self, uds_payload: List[int], timeout: Optional[float] = None
@@ -167,9 +181,9 @@ class DebugDoIPClient:
                 self.logger.info(f"Received response: {response.hex()}")
                 self.logger.debug(f"Response details: {[hex(b) for b in response]}")
                 return response
-            else:
-                self.logger.warning("No response received")
-                return None
+
+            self.logger.warning("No response received")
+            return None
 
         except Exception as e:
             self.logger.error(f"Error sending diagnostic message: {e}")
@@ -191,9 +205,9 @@ class DebugDoIPClient:
             if response:
                 self.logger.info(f"Alive check response: {response}")
                 return response
-            else:
-                self.logger.warning("No alive check response received")
-                return None
+
+            self.logger.warning("No alive check response received")
+            return None
 
         except Exception as e:
             self.logger.error(f"Error sending alive check: {e}")

@@ -1,0 +1,55 @@
+name: 'Run Poetry Command on Windows'
+description: 'Execute Poetry commands on Windows with fallback methods'
+inputs:
+  command:
+    description: 'The Poetry command to run (without "poetry" prefix)'
+    required: true
+  working-directory:
+    description: 'Working directory for the command'
+    required: false
+    default: '.'
+runs:
+  using: 'composite'
+  steps:
+    - name: Execute Poetry Command
+      shell: powershell
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "=== Running Poetry Command: ${{ inputs.command }} ==="
+        
+        # Try multiple methods to run Poetry commands
+        $poetryMethods = @(
+          { poetry ${{ inputs.command }} },
+          { python -m poetry ${{ inputs.command }} }
+        )
+        
+        $commandSuccess = $false
+        foreach ($method in $poetryMethods) {
+          try {
+            echo "Trying method: $($method.ToString())"
+            & $method
+            echo "Command successful!"
+            $commandSuccess = $true
+            break
+          } catch {
+            echo "Method failed: $($method.ToString())"
+            echo "Error: $($_.Exception.Message)"
+            continue
+          }
+        }
+        
+        if (-not $commandSuccess) {
+          echo "All Poetry methods failed for command: ${{ inputs.command }}"
+          echo "Attempting direct execution..."
+          try {
+            # Try to run the command directly without Poetry
+            $directCommand = ${{ inputs.command }}.Replace('run ', '')
+            python -m $directCommand
+            echo "Direct execution successful!"
+          } catch {
+            echo "Direct execution also failed"
+            echo "Command: ${{ inputs.command }}"
+            echo "Error: $($_.Exception.Message)"
+            exit 1
+          }
+        }

@@ -72,7 +72,7 @@ python src/doip_server/doip_client.py
 
 ```bash
 # View message formats (no network required)
-poetry run demo
+make demo
 
 # Run unit tests (fast, no server required)
 poetry run pytest tests/test_doip_unit.py -v
@@ -416,7 +416,7 @@ The reorganized test structure provides several advantages:
 
 ```bash
 # View message construction (no network required)
-poetry run demo
+make demo
 
 # Test specific message types
 python src/doip_server/demo.py
@@ -592,7 +592,7 @@ poetry run doip_client          # Run DoIP client demo
 
 # Configuration and Testing
 poetry run validate_config      # Validate configuration
-poetry run demo                # View message formats
+make demo                # View message formats
 
 # Testing
 poetry run pytest tests/ -v    # Run all tests

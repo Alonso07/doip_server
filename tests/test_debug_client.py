@@ -135,10 +135,33 @@ class TestDebugDoIPClient:
                 client = DebugDoIPClient(temp_file)
                 assert client.logger is not None
                 assert len(client.logger.handlers) == 2  # Console + File handler
+
+                # Clean up resources to release file handles (Windows compatibility)
+                client.cleanup()
         finally:
             os.unlink(temp_file)
+            # Add retry logic for Windows file deletion
             if os.path.exists("test.log"):
-                os.unlink("test.log")
+                import time
+
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        os.unlink("test.log")
+                        break
+                    except (PermissionError, OSError) as e:
+                        if attempt < max_retries - 1:
+                            time.sleep(0.1)  # Wait 100ms before retry
+                        else:
+                            # If still failing, try to force close any remaining handles
+                            try:
+                                import gc
+
+                                gc.collect()  # Force garbage collection
+                                os.unlink("test.log")
+                            except (PermissionError, OSError):
+                                # Log the error but don't fail the test
+                                print(f"Warning: Could not delete test.log: {e}")
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_connect_success(self, mock_doip_client, temp_config_file):
@@ -182,6 +205,20 @@ class TestDebugDoIPClient:
             client = DebugDoIPClient(temp_config_file)
             client.doip_client = None
             client.disconnect()  # Should not raise exception
+
+    def test_cleanup(self, temp_config_file):
+        """Test cleanup method"""
+        with patch("doip_client.debug_client.DoIPClient"):
+            client = DebugDoIPClient(temp_config_file)
+            client.doip_client = Mock()
+
+            # Test cleanup
+            client.cleanup()
+
+            # Verify handlers are cleared
+            assert len(client.logger.handlers) == 0
+            # Verify disconnect was called
+            assert client.doip_client is None
 
     @patch("doip_client.debug_client.DoIPClient")
     def test_send_diagnostic_message_success(self, mock_doip_client, temp_config_file):

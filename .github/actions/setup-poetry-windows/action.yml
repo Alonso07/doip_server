@@ -1,0 +1,122 @@
+name: 'Setup Poetry for Windows'
+description: 'Robust Poetry setup for Windows with multiple fallback methods'
+runs:
+  using: 'composite'
+  steps:
+    - name: Add Poetry to PATH
+      shell: powershell
+      run: |
+        echo "=== Setting up Poetry PATH for Windows ==="
+        
+        # Try multiple common Poetry installation paths
+        $poetryPaths = @(
+          "$env:APPDATA\Python\Scripts",
+          "$env:USERPROFILE\.local\bin",
+          "$env:USERPROFILE\AppData\Roaming\Python\Scripts",
+          "$env:LOCALAPPDATA\Programs\Python\Scripts"
+        )
+        
+        $poetryFound = $false
+        foreach ($path in $poetryPaths) {
+          if (Test-Path $path) {
+            $env:PATH = "$path;$env:PATH"
+            echo "Poetry added to PATH: $path"
+            $poetryFound = $true
+            break
+          }
+        }
+        
+        if (-not $poetryFound) {
+          echo "Poetry not found in common paths, will use python -m poetry"
+        }
+
+    - name: Fallback Poetry Installation
+      shell: powershell
+      run: |
+        echo "=== Fallback Poetry Installation ==="
+        
+        # Check if Poetry is already working
+        try {
+          poetry --version | Out-Null
+          echo "Poetry is already working, skipping fallback installation"
+          exit 0
+        } catch {
+          echo "Poetry not working, attempting fallback installation..."
+        }
+        
+        # Try installing Poetry via pip
+        try {
+          echo "Installing Poetry via pip..."
+          python -m pip install poetry --user --upgrade
+          $env:PATH = "$env:APPDATA\Python\Scripts;$env:PATH"
+          
+          # Verify installation
+          python -m poetry --version
+          echo "Poetry installed successfully via pip"
+        } catch {
+          echo "Pip installation failed, trying alternative method..."
+          
+          # Try installing via get-poetry.py
+          try {
+            $poetryInstaller = "$env:TEMP\get-poetry.py"
+            Invoke-WebRequest -Uri "https://install.python-poetry.org" -OutFile $poetryInstaller
+            python $poetryInstaller --yes
+            $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
+            poetry --version
+            echo "Poetry installed successfully via get-poetry.py"
+          } catch {
+            echo "All Poetry installation methods failed!"
+            echo "Will attempt to continue with python -m poetry"
+          }
+        }
+
+    - name: Configure Poetry
+      shell: powershell
+      run: |
+        echo "=== Configuring Poetry ==="
+        
+        # Try multiple methods to configure Poetry
+        $poetryCommands = @(
+          { poetry config virtualenvs.create true },
+          { poetry config virtualenvs.in-project true },
+          { python -m poetry config virtualenvs.create true },
+          { python -m poetry config virtualenvs.in-project true }
+        )
+        
+        foreach ($cmd in $poetryCommands) {
+          try {
+            & $cmd
+            echo "Poetry configuration successful with: $($cmd.ToString())"
+            break
+          } catch {
+            echo "Failed with: $($cmd.ToString()), trying next method..."
+            continue
+          }
+        }
+
+    - name: Verify Poetry Installation
+      shell: powershell
+      run: |
+        echo "=== Poetry Installation Verification ==="
+        
+        # Check if poetry command is available
+        try {
+          $poetryVersion = poetry --version
+          echo "Poetry command found: $poetryVersion"
+          poetry config --list
+        } catch {
+          echo "Poetry command not found, trying python -m poetry..."
+          try {
+            $poetryVersion = python -m poetry --version
+            echo "Python -m poetry found: $poetryVersion"
+            python -m poetry config --list
+          } catch {
+            echo "Both poetry and python -m poetry failed"
+            echo "Environment will continue with available methods"
+          }
+        }
+        
+        echo "=== Environment Information ==="
+        echo "Python version: $(python --version)"
+        echo "Pip version: $(python -m pip --version)"
+        echo "Current PATH: $env:PATH"

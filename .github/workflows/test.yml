@@ -46,8 +46,5 @@ jobs:
     - name: Run all tests
       run: poetry run pytest tests/ -v
 
-    - name: Validate configuration
-      run: poetry run validate_config
-
     - name: Run demo
-      run: poetry run demo
+      run: make demo

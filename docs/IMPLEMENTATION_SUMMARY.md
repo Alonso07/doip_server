@@ -96,7 +96,7 @@ The client now provides:
 
 3. **View message formats**:
    ```bash
-   poetry run demo
+   make demo
    ```
 
 ### Message Examples
