@@ -297,7 +297,9 @@ class DoIPServer:
         if len(payload) < 7:
             self.logger.warning("Routing activation payload too short")
             return self.create_routing_activation_response(
-                ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS
+                ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS,
+                0x0000,  # client_logical_address (unknown due to short payload)
+                0x1000   # logical_address (default gateway address)
             )
 
         # Extract routing activation parameters
@@ -317,7 +319,9 @@ class DoIPServer:
                 f"Source address 0x{client_logical_address:04X} not allowed"
             )
             return self.create_routing_activation_response(
-                ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS
+                ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS,
+                client_logical_address,  # Use the extracted client address
+                0x1000  # logical_address (default gateway address)
             )
 
         # Accept the routing activation
