@@ -40,7 +40,7 @@ debug_client = 'doip_client.debug_client:main'
 packages = [{include = "doip_server", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
+pytest = "^8.4.2"
 pytest-cov = "^6.0.0"
 flake8 = "^7.0.0"
 black = "^24.0.0"
