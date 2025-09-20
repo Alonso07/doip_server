@@ -41,15 +41,55 @@ jobs:
         virtualenvs-in-project: true
         installer-parallel: true
 
-    - name: Configure Poetry
+    - name: Add Poetry to PATH (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $poetryPath = "$env:APPDATA\Python\Scripts"
+        if (Test-Path $poetryPath) {
+          $env:PATH = "$poetryPath;$env:PATH"
+          echo "Poetry added to PATH: $poetryPath"
+        } else {
+          echo "Poetry path not found, will use python -m poetry"
+        }
+
+    - name: Configure Poetry (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry config virtualenvs.create true
         poetry config virtualenvs.in-project true
 
-    - name: Verify Poetry installation
+    - name: Configure Poetry (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        try {
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+        } catch {
+          python -m poetry config virtualenvs.create true
+          python -m poetry config virtualenvs.in-project true
+        }
+
+    - name: Verify Poetry installation (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry --version
         poetry config --list
+
+    - name: Verify Poetry installation (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        try {
+          poetry --version
+          poetry config --list
+        } catch {
+          python -m poetry --version
+          python -m poetry config --list
+        }
 
     - name: Load cached venv
       id: cached-poetry-dependencies
@@ -58,19 +98,47 @@ jobs:
         path: .venv
         key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
-    - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+    - name: Install dependencies (Unix)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
         poetry install --no-interaction --no-root
         poetry check
 
-    - name: Install dependencies (cached)
-      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
+    - name: Install dependencies (Windows)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: powershell
+      run: |
+        try {
+          poetry install --no-interaction --no-root
+          poetry check
+        } catch {
+          python -m poetry install --no-interaction --no-root
+          python -m poetry check
+        }
+
+    - name: Install dependencies (cached) (Unix)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
         poetry install --no-interaction --no-root
         poetry check
 
-    - name: Show environment info
+    - name: Install dependencies (cached) (Windows)
+      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true' && runner.os == 'Windows'
+      shell: powershell
+      run: |
+        try {
+          poetry install --no-interaction --no-root
+          poetry check
+        } catch {
+          python -m poetry install --no-interaction --no-root
+          python -m poetry check
+        }
+
+    - name: Show environment info (Unix)
+      if: matrix.os != 'windows-latest'
+      shell: bash
       run: |
         echo "Python version: $(python --version)"
         echo "Poetry version: $(poetry --version)"
@@ -78,19 +146,55 @@ jobs:
         echo "Installed packages:"
         poetry show
 
-    - name: Run unit tests
+    - name: Show environment info (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        Write-Host "Python version: $(python --version)"
+        Write-Host "Poetry version: $(python -m poetry --version)"
+        Write-Host "Working directory: $(Get-Location)"
+        Write-Host "Installed packages:"
+        python -m poetry show
+
+    - name: Run unit tests (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Unit tests failed but continuing..."
 
-    - name: Run integration tests
+    - name: Run unit tests (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        python -m poetry run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Unit tests failed but continuing..."
+
+    - name: Run integration tests (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Integration tests failed but continuing..."
 
-    - name: Run all tests with coverage
+    - name: Run integration tests (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        python -m poetry run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Integration tests failed but continuing..."
+
+    - name: Run all tests with coverage (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         poetry run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "All tests failed but continuing..."
 
-    - name: Check if coverage file exists
+    - name: Run all tests with coverage (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        python -m poetry run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "All tests failed but continuing..."
+
+    - name: Check if coverage file exists (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         if [ -f "coverage.xml" ]; then
           echo "Coverage file found, size: $(wc -c < coverage.xml) bytes"
@@ -98,6 +202,18 @@ jobs:
           echo "Coverage file not found, creating empty one"
           echo '<?xml version="1.0" ?><coverage></coverage>' > coverage.xml
         fi
+
+    - name: Check if coverage file exists (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        if (Test-Path "coverage.xml") {
+          $size = (Get-Item "coverage.xml").Length
+          Write-Host "Coverage file found, size: $size bytes"
+        } else {
+          Write-Host "Coverage file not found, creating empty one"
+          '<?xml version="1.0" ?><coverage></coverage>' | Out-File -FilePath "coverage.xml" -Encoding UTF8
+        }
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

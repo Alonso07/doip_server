@@ -369,7 +369,8 @@ class DoIPServer:
                 source_address, target_address
         ):
             self.logger.warning(
-                f"Source address 0x{source_address:04X} not allowed for target 0x{target_address:04X}"
+                f"Source address 0x{source_address:04X} not allowed for "
+                f"target 0x{target_address:04X}"
             )
             return self.create_doip_nack(0x03)  # Unsupported source address
 
@@ -421,7 +422,8 @@ class DoIPServer:
                 )
             else:
                 self.logger.debug(
-                    f"ECU 0x{ecu_address:04X} does not support functional  addressing for this service"
+                    f"ECU 0x{ecu_address:04X} does not support functional "
+                    f"addressing for this service"
                 )
 
         if not responding_ecus:
@@ -461,7 +463,10 @@ class DoIPServer:
 
         # Log all responses for debugging
         for i, resp in enumerate(responses):
-            self.logger.info(f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: {resp['response'].hex()}")
+            self.logger.info(
+                f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: "
+                f"{resp['response'].hex()}"
+            )
 
         # Return the first response as the primary response
         # TODO: Implement proper multiple response handling
@@ -484,7 +489,8 @@ class DoIPServer:
             List of response messages from different ECUs
         """
         self.logger.info(
-            f"Handling functional diagnostic message with multiple responses to 0x{functional_address:04X}"
+            f"Handling functional diagnostic message with multiple responses "
+            f"to 0x{functional_address:04X}"
         )
 
         # Convert UDS payload to hex string for matching
@@ -513,7 +519,8 @@ class DoIPServer:
                 )
             else:
                 self.logger.debug(
-                    f"ECU 0x{ecu_address:04X} does not support functional  addressing for this service"
+                    f"ECU 0x{ecu_address:04X} does not support functional "
+                    f"addressing for this service"
                 )
 
         if not responding_ecus:
@@ -544,7 +551,10 @@ class DoIPServer:
 
         # Log all responses for debugging
         for i, resp in enumerate(all_responses):
-            self.logger.info(f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: {resp['response'].hex()}")
+            self.logger.info(
+                f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: "
+                f"{resp['response'].hex()}"
+            )
 
         return all_responses
 
@@ -563,7 +573,8 @@ class DoIPServer:
         )
         if service_config:
             self.logger.info(
-                f"Processing UDS service: {service_config.get('name', 'Unknown')} for ECU 0x{target_address:04X}"
+                f"Processing UDS service: {service_config.get('name', 'Unknown')} "
+                f"for ECU 0x{target_address:04X}"
             )
         else:
             self.logger.warning(
@@ -594,7 +605,8 @@ class DoIPServer:
                 self.response_cycle_state[cycle_key] = next_index
 
                 self.logger.info(
-                    f"Returning response {current_index + 1}/{len(responses)} for service {service_name}: {response_hex}"
+                    f"Returning response {current_index + 1}/{len(responses)} "
+                    f"for service {service_name}: {response_hex}"
                 )
                 self.logger.debug(f"Next response will be index {next_index}")
 
@@ -868,7 +880,8 @@ class DoIPServer:
         # VIN/GID synchronization status (1 byte) - 0x00 = synchronized
         vin_gid_sync_status = 0x00
 
-        # Create payload: VIN (17) + Logical Address (2) + EID (6) + GID (6) + Further Action (1) + Sync Status (1)
+        # Create payload: VIN (17) + Logical Address (2) + EID (6) + GID (6) + 
+        # Further Action (1) + Sync Status (1)
         payload = vin.encode("ascii").ljust(17, b"\x00")  # VIN, pad to 17 bytes
         payload += struct.pack(">H", logical_address)  # Logical address
         payload += eid  # EID

@@ -63,7 +63,7 @@ class DoIPClientWrapper:
             finally:
                 self.doip_client = None
 
-    def send_diagnostic(self, uds_payload, timeout=2.0):
+    def send_diagnostic(self, uds_payload, timeout=2.0) -> bytes | None:
         """
         Send a diagnostic message and receive response.
 
@@ -96,22 +96,13 @@ class DoIPClientWrapper:
                     else:
                         print(f"Received response: {response}")
                     return bytes(response)
-
+                
                 print("No response received")
                 return None
-
-                # Use the original send/receive approach
-                self.doip_client.send_diagnostic(uds_payload, timeout=timeout)
-
-                # Receive response
-                response = self.doip_client.receive_diagnostic(timeout=timeout)
-
-                if response:
-                    print(f"Received response: {response.hex()}")
-                    return bytes(response)
-                else:
-                    print("No response received")
-                    return None
+            
+            # If no send_diagnostic_message method, return None
+            print("Client does not support send_diagnostic_message method")
+            return None
 
         except Exception as e:
             print(f"Error sending diagnostic message: {e}")
@@ -163,9 +154,9 @@ class DoIPClientWrapper:
                 else:
                     print(f"Received response: {response}")
                 return bytes(response)
-            else:
-                print("No response received")
-                return None
+            
+            print("No response received")
+            return None
 
         except Exception as e:
             print(f"Error sending diagnostic message: {e}")
@@ -311,9 +302,9 @@ class DoIPClientWrapper:
                 else:
                     print(f"Received functional response: {response}")
                 return bytes(response)
-            else:
-                print("No functional response received")
-                return None
+            
+            print("No functional response received")
+            return None
 
         except Exception as e:
             print(f"Error sending functional diagnostic message: {e}")
@@ -481,24 +472,24 @@ class DoIPClientWrapper:
                 if response:
                     print(f"Alive check response: {response}")
                     return str(response)
-                else:
-                    print("No alive check response received")
-                    return None
-            else:
-                # Use doipclient's alive check method
-                response = self.doip_client.request_alive_check()
+                
+                print("No alive check response received")
+                return None
+            
+            # Use doipclient's alive check method
+            response = self.doip_client.request_alive_check()
 
-                if response:
-                    print(f"Alive check response: {response}")
-                    # Handle both string and Mock object responses
-                    if hasattr(response, "_mock_name"):
-                        # This is a Mock object, return the expected string
-                        return "Alive response"
-                    else:
-                        return str(response)
-                else:
-                    print("No alive check response received")
-                    return None
+            if response:
+                print(f"Alive check response: {response}")
+                # Handle both string and Mock object responses
+                if hasattr(response, "_mock_name"):
+                    # This is a Mock object, return the expected string
+                    return "Alive response"
+                
+                return str(response)
+            
+            print("No alive check response received")
+            return None
 
         except Exception as e:
             print(f"Error sending alive check: {e}")

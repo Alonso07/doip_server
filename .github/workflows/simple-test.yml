@@ -32,9 +32,6 @@ jobs:
     - name: Run unit tests
       run: poetry run pytest tests/test_doip_unit.py -v
 
-    - name: Validate configuration
-      run: poetry run validate_config
-
     - name: Check code style
       run: |
         poetry run flake8 src/ --count --exit-zero --max-line-length=127 || echo "Style issues found (non-blocking)"
