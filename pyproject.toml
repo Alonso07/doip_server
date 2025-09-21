@@ -29,24 +29,18 @@ dependencies = [
     "psutil>=7.0.0,<8.0.0"
 ]
 
-[project.scripts]
-main = 'doip_server.main:main'
-doip_server = 'doip_server.doip_server:start_doip_server'
-debug_client = 'doip_client.debug_client:main'
-
 [tool.poetry]
 packages = [{include = "doip_server", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^7.0.0"
+pytest = "^8.4.2"
+pytest-cov = "^6.0.0"
 flake8 = "^7.0.0"
 black = "^24.0.0"
 bandit = "^1.7.0"
-safety = "^3.6.1"
+safety = "^2.3.0"
 build = "^1.3.0"
 twine = "^6.2.0"
-pylint = "^3.3.8"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -68,3 +62,11 @@ markers = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+main = 'doip_server.main:main'
+doip_server = 'doip_server.doip_server:start_doip_server'
+doip_client = 'doip_client.doip_client:start_doip_client'
+validate_config = 'doip_server.validate_config:main'
+debug_client = 'doip_client.debug_client:main'
