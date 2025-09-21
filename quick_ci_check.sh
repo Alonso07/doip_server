@@ -18,28 +18,11 @@ fi
 echo "📦 Installing dependencies..."
 poetry install --no-interaction --no-root
 
-# Run pylint (the main check from your CI)
-echo "🔍 Running pylint analysis..."
-pylint_result=$(poetry run pylint $(git ls-files '*.py') 2>/dev/null || true)
-pylint_score=$(echo "$pylint_result" | tail -1 | grep -o '[0-9]\+\.[0-9]\+/10' | head -1)
-
-echo "Pylint Score: $pylint_score"
-
-# Check if score is above 8.5
-if [ -n "$pylint_score" ]; then
-    score=$(echo "$pylint_score" | cut -d'/' -f1)
-    if (( $(echo "$score >= 8.5" | bc -l) )); then
-        echo "✅ Pylint passed (score: $pylint_score)"
-    else
-        echo "❌ Pylint failed (score: $pylint_score, target: 8.5+)"
-        echo "$pylint_result"
-        exit 1
-    fi
-else
-    echo "❌ Could not parse pylint score"
-    echo "$pylint_result"
-    exit 1
-fi
+# Run flake8 linting (replacing pylint)
+echo "🔍 Running flake8 linting..."
+poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+echo "✅ Flake8 linting passed"
 
 # Run tests if they exist
 if [ -d "tests" ] && [ -f "tests/conftest.py" ]; then

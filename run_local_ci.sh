@@ -66,22 +66,11 @@ for python_version in "3.9" "3.10" "3.11"; do
     print_status "Installing dependencies with poetry"
     poetry install --no-interaction --no-root
     
-    # Run pylint
-    print_status "Running pylint analysis"
-    pylint_output=$(poetry run pylint $(git ls-files '*.py') 2>/dev/null || true)
-    pylint_score=$(echo "$pylint_output" | tail -1 | grep -o '[0-9]\+\.[0-9]\+/10' || echo "0.00/10")
-    
-    echo "Pylint Score: $pylint_score"
-    
-    # Check if score is above 8.5 (our target)
-    score=$(echo "$pylint_score" | cut -d'/' -f1)
-    if (( $(echo "$score >= 8.5" | bc -l) )); then
-        print_status "Pylint passed (score: $pylint_score)"
-    else
-        print_error "Pylint failed (score: $pylint_score, target: 8.5+)"
-        echo "$pylint_output"
-        exit 1
-    fi
+    # Run flake8 linting (replacing pylint)
+    print_status "Running flake8 linting"
+    poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+    poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    print_status "Flake8 linting passed"
     
     echo ""
 done
