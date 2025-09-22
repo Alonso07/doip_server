@@ -35,9 +35,9 @@ gateway:
     
   # ECU References - List of ECU configuration files
   ecus:
-    - "ecu_engine.yaml"
-    - "ecu_transmission.yaml" 
-    - "ecu_abs.yaml"
+    - "ecus/engine/ecu_engine.yaml"
+    - "ecus/transmission/ecu_transmission.yaml" 
+    - "ecus/abs/ecu_abs.yaml"
     
   # Response Codes Configuration
   response_codes:

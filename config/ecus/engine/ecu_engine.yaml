@@ -28,8 +28,8 @@ ecu:
   uds_services:
     # Service files to load for this ECU
     service_files:
-      - "config/generic_uds_messages.yaml"  # Common services
-      - "config/ecu_engine_services.yaml"   # Engine-specific services
+      - "config/generic/generic_uds_messages.yaml"  # Common services
+      - "ecu_engine_services.yaml"                  # Engine-specific services
     
     # Service categories (for backward compatibility)
     common_services:

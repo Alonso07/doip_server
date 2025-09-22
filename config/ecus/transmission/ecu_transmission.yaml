@@ -1,10 +1,10 @@
-# ECU Configuration - ABS Control Unit
+# ECU Configuration - Transmission Control Unit
 # This file contains the ECU-specific configuration including addresses and UDS services
 
 ecu:
-  name: "ABS_ECU"
-  description: "Anti-lock Braking System Control Unit"
-  target_address: 0x1002
+  name: "Transmission_ECU"
+  description: "Transmission Control Unit"
+  target_address: 0x1001
   functional_address: 0x1FFF  # Functional address for broadcast diagnostics
   tester_addresses:
     - 0x0E00  # Primary tester
@@ -28,8 +28,8 @@ ecu:
   uds_services:
     # Service files to load for this ECU
     service_files:
-      - "config/generic_uds_messages.yaml"  # Common services
-      - "config/ecu_abs_services.yaml"      # ABS-specific services
+      - "config/generic/generic_uds_messages.yaml"  # Common services
+      - "ecu_transmission_services.yaml"            # Transmission-specific services
     
     # Service categories (for backward compatibility)
     common_services:
@@ -44,17 +44,16 @@ ecu:
     
     # ECU-specific services (only available for this ECU)
     specific_services:
-      - "ABS_Wheel_Speed_Read"
-      - "ABS_System_Status_Read"
-      - "ABS_Valve_Test"
-      - "ABS_Pump_Test"
-      - "ABS_Diagnostic_Codes"
-      - "ABS_Calibration_Reset"
-      - "ABS_Wheel_Speed_Sensor_Test"
-      - "ABS_Hydraulic_Unit_Test"
-      - "ABS_ECU_Temperature_Read"
-      - "ABS_Brake_Pressure_Read"
-      - "ABS_System_Voltage_Read"
-      - "ABS_Learning_Procedure"
-      - "ABS_Valve_Calibration"
-      - "ABS_System_Reset"
+      - "Transmission_Gear_Read"
+      - "Transmission_Temperature_Read"
+      - "Transmission_Fluid_Level_Read"
+      - "Transmission_Shift_Control"
+      - "Transmission_Diagnostic_Codes"
+      - "Transmission_Adaptation_Reset"
+      - "Transmission_Torque_Converter_Status"
+      - "Transmission_Shift_Pressure_Read"
+      - "Transmission_Clutch_Status"
+      - "Transmission_Learning_Status"
+      - "Transmission_Valve_Body_Test"
+      - "Transmission_Pump_Test"
+      - "Transmission_Calibration_Reset"

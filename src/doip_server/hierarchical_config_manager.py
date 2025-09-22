@@ -306,6 +306,11 @@ gateway:
             os.path.join("config", service_file),  # In config directory
             os.path.join("..", "config", service_file),  # Relative to parent
             os.path.join("src", "doip_server", "config", service_file),  # In src
+            # New folder structure paths
+            os.path.join("config", "generic", service_file),  # Generic services
+            os.path.join("config", "ecus", "abs", service_file),  # ABS services
+            os.path.join("config", "ecus", "engine", service_file),  # Engine services
+            os.path.join("config", "ecus", "transmission", service_file),  # Transmission services
         ]
 
         for path in possible_paths:
@@ -320,6 +325,9 @@ gateway:
             "uds_services.yaml",
             "../config/uds_services.yaml",
             "src/doip_server/config/uds_services.yaml",
+            # New folder structure paths
+            "config/generic/generic_uds_messages.yaml",
+            "config/generic/uds_services.yaml",
         ]
 
         for path in possible_paths:
