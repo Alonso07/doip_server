@@ -1,4 +1,4 @@
-.PHONY: install run test build lint format test-all test-ci clean help
+.PHONY: install run test build build-exe build-exe-test build-exe-clean lint format test-all test-ci clean help
 
 # Default target
 help:
@@ -16,6 +16,9 @@ help:
 	@echo "  test-python311 - Run tests with Python 3.11"
 	@echo "  test-python312 - Run tests with Python 3.12"
 	@echo "  test-python313 - Run tests with Python 3.13"
+	@echo "  build-exe   - Build executable for current platform"
+	@echo "  build-exe-test - Build executable and test it"
+	@echo "  build-exe-clean - Clean build and create executable"
 	@echo "  lint        - Run flake8 linting"
 	@echo "  format      - Format code with black"
 	@echo "  format-check - Check code formatting without changes"
@@ -202,3 +205,16 @@ clean:
 	rm -rf .venv-*
 	poetry env remove --all 2>/dev/null || true
 	@echo "Cleanup completed!"
+
+# Executable build targets
+build-exe:
+	@echo "Building executable for current platform..."
+	@./scripts/build/build_executables.sh
+
+build-exe-test:
+	@echo "Building executable and testing..."
+	@./scripts/build/build_executables.sh --test
+
+build-exe-clean:
+	@echo "Cleaning and building executable..."
+	@./scripts/build/build_executables.sh --clean --test

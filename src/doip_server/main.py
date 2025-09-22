@@ -17,32 +17,42 @@ Usage:
 """
 
 import argparse
-from .doip_server import start_doip_server
+import sys
+import os
+
+# Add the src directory to the path for PyInstaller compatibility
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+try:
+    from .doip_server import start_doip_server
+except ImportError:
+    # Fallback for PyInstaller
+    from doip_server import start_doip_server
 
 
 def main():
     """Main entry point for the DoIP server.
-    
+
     This function provides the command-line interface for starting the DoIP server.
     It parses command-line arguments and starts the server with the specified
     configuration. Command-line arguments take precedence over configuration file
     settings.
-    
+
     Command-line Arguments:
         --host: Server host address (overrides configuration)
         --port: Server port number (overrides configuration)
         --gateway-config: Path to gateway configuration file
-        
+
     Configuration Priority:
         1. Command-line arguments (highest priority)
         2. Configuration file settings
         3. Default fallback values (lowest priority)
-        
+
     Raises:
         SystemExit: If argument parsing fails or server startup fails
         FileNotFoundError: If configuration file cannot be found
         ValueError: If configuration parameters are invalid
-        
+
     Example:
         >>> python -m doip_server.main --host 0.0.0.0 --port 13400
         >>> python -m doip_server.main --gateway-config custom_config.yaml

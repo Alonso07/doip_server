@@ -1,0 +1,9 @@
+# Build requirements for PyInstaller
+pyinstaller>=6.0.0
+setuptools>=65.0.0
+wheel>=0.40.0
+
+# Project dependencies
+PyYAML>=6.0,<7.0
+doipclient>=1.1.7,<2.0.0
+psutil>=7.0.0,<8.0.0

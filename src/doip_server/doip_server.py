@@ -37,20 +37,20 @@ ROUTING_ACTIVATION_RESPONSE_CODE_ALREADY_ACTIVATED = 0x05
 
 class DoIPServer:
     """DoIP Server class for handling automotive diagnostic communication.
-    
+
     This class implements a comprehensive DoIP (Diagnostics over IP) server that provides:
-    
+
     - **Vehicle Identification**: UDP-based vehicle identification requests/responses
     - **Routing Activation**: TCP-based routing activation for diagnostic sessions
     - **Diagnostic Message Handling**: UDS (Unified Diagnostic Services) message processing
     - **Functional Addressing**: Support for functional addressing (broadcast to multiple ECUs)
     - **Response Cycling**: Configurable response cycling for testing scenarios
     - **Hierarchical Configuration**: Integration with hierarchical configuration management
-    
+
     The server supports both TCP and UDP protocols simultaneously:
     - **TCP**: Used for diagnostic sessions, routing activation, and UDS communication
     - **UDP**: Used for vehicle identification requests and responses
-    
+
     Key Features:
     - Multi-ECU support with configurable target addresses
     - Source address validation and authorization
@@ -58,7 +58,7 @@ class DoIPServer:
     - Functional addressing for broadcast diagnostic requests
     - Response cycling for testing multiple response scenarios
     - Comprehensive logging and error handling
-    
+
     Attributes:
         config_manager (HierarchicalConfigManager): Configuration management instance
         host (str): Server host address for binding
@@ -76,11 +76,11 @@ class DoIPServer:
 
     def __init__(self, host=None, port=None, gateway_config_path=None):
         """Initialize the DoIP server with configuration management.
-        
+
         This constructor initializes the DoIP server with hierarchical configuration
         management, network settings, and protocol configuration. The server can be
         configured either through explicit parameters or through configuration files.
-        
+
         Args:
             host (str, optional): Server host address. If None, uses configuration value.
                 Default: None (uses config or "0.0.0.0")
@@ -89,12 +89,12 @@ class DoIPServer:
             gateway_config_path (str, optional): Path to gateway configuration file.
                 If None, searches for default configuration files.
                 Default: None
-                
+
         Raises:
             ValueError: If host, port, max_connections, or timeout configuration is invalid
             FileNotFoundError: If no configuration files can be found or created
             yaml.YAMLError: If configuration files contain invalid YAML
-            
+
         Note:
             The initialization process:
             1. Initializes hierarchical configuration manager
@@ -235,21 +235,21 @@ class DoIPServer:
 
     def start(self):
         """Start the DoIP server with both TCP and UDP support.
-        
+
         This method starts the DoIP server by:
         1. Creating and binding TCP server socket for diagnostic sessions
         2. Creating and binding UDP server socket for vehicle identification
         3. Entering the main server loop to handle incoming connections
         4. Processing both TCP and UDP messages concurrently
-        
+
         The server runs until interrupted (KeyboardInterrupt) or stopped programmatically.
         Both TCP and UDP sockets are bound to the same host and port.
-        
+
         Note:
             The server uses non-blocking socket operations with short timeouts
             to allow for concurrent handling of TCP and UDP messages.
             This ensures responsive handling of both connection types.
-            
+
         Raises:
             OSError: If socket binding fails (e.g., port already in use)
             Exception: If server startup fails for any other reason
@@ -330,24 +330,24 @@ class DoIPServer:
 
     def process_doip_message(self, data):
         """Process incoming DoIP message and return appropriate response.
-        
+
         This method parses incoming DoIP messages and routes them to the appropriate
         handler based on the payload type. It validates the DoIP header and protocol
         version before processing the message.
-        
+
         Args:
             data (bytes): Raw DoIP message data including header and payload
-            
+
         Returns:
             bytes or None: DoIP response message if successful, None if invalid or unsupported
-            
+
         Supported Payload Types:
             - 0x0005: Routing Activation Request
             - 0x8001: Diagnostic Message (UDS)
             - 0x0001: Alive Check Request
             - 0x0007: Alive Check Request (alternative)
             - 0x0008: Power Mode Request
-            
+
         Note:
             The method validates:
             - Minimum message length (8 bytes for DoIP header)
@@ -496,23 +496,23 @@ class DoIPServer:
         self, source_address, functional_address, uds_payload, target_ecus
     ):
         """Handle functional diagnostic message by broadcasting to multiple ECUs.
-        
+
         This method implements functional addressing where a single UDS request
         is broadcast to multiple ECUs that support the service. It:
         1. Validates source address authorization for each target ECU
         2. Checks if each ECU supports the UDS service with functional addressing
         3. Processes the UDS message for each responding ECU
         4. Returns the first valid response (with logging of all responses)
-        
+
         Args:
             source_address (int): Source logical address of the requesting client
             functional_address (int): Functional address (e.g., 0x1FFF) for broadcast
             uds_payload (bytes): UDS service payload to broadcast
             target_ecus (List[int]): List of ECU addresses that use this functional address
-            
+
         Returns:
             bytes or None: DoIP response message if at least one ECU responds, None otherwise
-            
+
         Note:
             This implementation returns the first valid response for simplicity.
             In a real implementation, you might want to handle multiple responses
@@ -686,25 +686,25 @@ class DoIPServer:
 
     def process_uds_message(self, uds_payload, target_address):
         """Process UDS message and return response for specific ECU.
-        
+
         This method processes UDS (Unified Diagnostic Services) messages by:
         1. Converting the UDS payload to hex string for service matching
         2. Looking up the service configuration for the target ECU
         3. Implementing response cycling if multiple responses are configured
         4. Returning the appropriate UDS response or negative response
-        
+
         Args:
             uds_payload (bytes): Raw UDS message payload
             target_address (int): Target ECU address for the UDS message
-            
+
         Returns:
             bytes or None: UDS response message if service is supported, None otherwise
-            
+
         Response Cycling:
             If a service has multiple responses configured, this method implements
             response cycling where each subsequent request returns the next response
             in the configured list, cycling back to the first response after the last.
-            
+
         Negative Responses:
             Returns UDS negative response (0x7F + service_id + NRC) for:
             - Unsupported services (NRC 0x7F)

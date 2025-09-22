@@ -25,10 +25,10 @@ Usage:
     Basic server startup:
         >>> from doip_server import start_doip_server
         >>> start_doip_server()
-    
+
     With custom configuration:
         >>> start_doip_server(host="0.0.0.0", port=13400, gateway_config_path="config/gateway1.yaml")
-    
+
     Command-line interface:
         >>> python -m doip_server.main --host 0.0.0.0 --port 13400
 
@@ -60,8 +60,8 @@ from .main import main
 # Public API
 __all__ = [
     "DoIPServer",
-    "start_doip_server", 
+    "start_doip_server",
     "HierarchicalConfigManager",
     "main",
-    "__version__"
+    "__version__",
 ]
