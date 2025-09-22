@@ -149,9 +149,9 @@ format-check:
 # Security checks
 security:
 	@echo "Running security checks..."
-	poetry run bandit -r src/ -f json -o bandit-report.json || true
-	poetry run safety check --json > safety-report.json || true
-	@echo "Security reports generated: bandit-report.json, safety-report.json"
+	poetry run bandit -r src/ -f json -o reports/bandit-report.json || true
+	poetry run safety check --json > reports/safety-report.json || true
+	@echo "Security reports generated: reports/bandit-report.json, reports/safety-report.json"
 
 # Configuration validation
 validate:
@@ -161,8 +161,8 @@ validate:
 # Demo scripts
 demo:
 	@echo "Running demo scripts..."
-	poetry run python test_udp_doip.py
-	poetry run python test_functional_diagnostics.py
+	poetry run python scripts/test/test_udp_doip.py
+	poetry run python scripts/test/test_functional_diagnostics.py
 
 # Building
 build:
@@ -197,8 +197,8 @@ clean:
 	rm -rf htmlcov/
 	rm -rf .coverage
 	rm -rf coverage.xml
-	rm -rf bandit-report.json
-	rm -rf safety-report.json
+	rm -rf reports/bandit-report.json
+	rm -rf reports/safety-report.json
 	rm -rf .venv-*
 	poetry env remove --all 2>/dev/null || true
 	@echo "Cleanup completed!"

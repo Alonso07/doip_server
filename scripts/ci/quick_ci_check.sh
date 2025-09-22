@@ -18,7 +18,7 @@ fi
 echo "📦 Installing dependencies..."
 poetry install --no-interaction --no-root
 
-# Run flake8 linting (replacing pylint)
+# Run flake8 linting
 echo "🔍 Running flake8 linting..."
 poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
 poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics

@@ -23,7 +23,7 @@ GitHub has deprecated several action versions, and the workflows were using outd
 - **`codecov/codecov-action@v3`** → **`codecov/codecov-action@v4`**
 - **`actions/upload-artifact@v3`** → **`actions/upload-artifact@v4`** (2 instances)
 
-### **2. Updated Pylint Workflow (`pylint.yml`)**
+### **2. Updated CI Workflow (`ci.yml`)**
 - **`actions/setup-python@v3`** → **`actions/setup-python@v5`**
 - **`actions/cache@v3`** → **`actions/cache@v4`**
 
@@ -123,7 +123,7 @@ GitHub has deprecated several action versions, and the workflows were using outd
 
 ### **Files Updated**
 1. **`.github/workflows/ci.yml`** - 5 action updates
-2. **`.github/workflows/pylint.yml`** - 2 action updates
+2. **`.github/workflows/ci.yml`** - 2 action updates
 
 ### **Files Verified (No Changes Needed)**
 1. **`.github/workflows/test.yml`** - Already current

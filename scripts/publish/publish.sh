@@ -9,14 +9,16 @@ echo "================================="
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Change to the script directory
-cd "$SCRIPT_DIR"
+# Change to the project root directory (parent of scripts directory)
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+cd "$PROJECT_ROOT"
 
 # Check if we're in the right directory
 if [ ! -f "pyproject.toml" ]; then
     echo "❌ Error: pyproject.toml not found. Please run this script from the project root directory."
     echo "   Current directory: $(pwd)"
     echo "   Script directory: $SCRIPT_DIR"
+    echo "   Project root: $PROJECT_ROOT"
     exit 1
 fi
 
@@ -39,4 +41,4 @@ echo "🐍 Using Poetry environment: $(poetry env info --path)"
 echo ""
 
 # Run the main publishing script
-exec poetry run ./publish_to_pypi.sh
+exec poetry run ./scripts/publish/publish_to_pypi.sh

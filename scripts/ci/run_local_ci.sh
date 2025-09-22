@@ -66,7 +66,7 @@ for python_version in "3.9" "3.10" "3.11"; do
     print_status "Installing dependencies with poetry"
     poetry install --no-interaction --no-root
     
-    # Run flake8 linting (replacing pylint)
+    # Run flake8 linting
     print_status "Running flake8 linting"
     poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
     poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics

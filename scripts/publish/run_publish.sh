@@ -6,8 +6,9 @@
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Change to the script directory
-cd "$SCRIPT_DIR"
+# Change to the project root directory (parent of scripts directory)
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+cd "$PROJECT_ROOT"
 
 # Function to find poetry in common locations
 find_poetry() {
@@ -80,4 +81,4 @@ fi
 
 # Run the main publishing script
 echo "🚀 Starting publishing process..."
-exec "$POETRY_CMD" run ./publish_to_pypi.sh
+exec "$POETRY_CMD" run ./scripts/publish/publish_to_pypi.sh

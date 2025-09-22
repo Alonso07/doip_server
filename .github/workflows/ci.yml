@@ -260,16 +260,16 @@ jobs:
 
     - name: Run security checks
       run: |
-        poetry run bandit -r src/ -f json -o bandit-report.json || true
-        poetry run safety check --json --output safety-report.json || true
+        poetry run bandit -r src/ -f json -o reports/bandit-report.json || true
+        poetry run safety check --json --output reports/safety-report.json || true
 
     - name: Upload security reports
       uses: actions/upload-artifact@v4
       with:
         name: security-reports-${{ matrix.python-version }}
         path: |
-          bandit-report.json
-          safety-report.json
+          reports/bandit-report.json
+          reports/safety-report.json
 
   build:
     needs: [test, lint, security]

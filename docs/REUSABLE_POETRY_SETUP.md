@@ -100,7 +100,7 @@ The original Poetry Windows configuration had significant code duplication acros
 1. **`.github/actions/setup-poetry-windows/action.yml`** - New composite action
 2. **`.github/actions/run-poetry-windows/action.yml`** - New composite action
 3. **`.github/workflows/ci.yml`** - Updated to use composite actions
-4. **`.github/workflows/pylint.yml`** - Updated to use composite actions
+4. **`.github/workflows/ci.yml`** - Updated to use composite actions
 
 ### **Code Reduction Statistics**
 - **Lines of Code**: Reduced by ~200 lines across workflows

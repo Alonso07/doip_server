@@ -10,9 +10,10 @@ import sys
 import os
 
 # Add the src directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(project_root, 'src'))
 
-from doip_client.doip_client import DoIPClientWrapper  # pylint: disable=wrong-import-position
+from doip_client.doip_client import DoIPClientWrapper
 
 
 def test_functional_diagnostics():

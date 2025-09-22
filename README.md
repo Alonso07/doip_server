@@ -12,10 +12,10 @@ poetry install
 poetry run python src/doip_server/main.py --gateway-config config/gateway1.yaml
 
 # Test UDP Vehicle Identification
-python run_udp_client.py --verbose
+python scripts/utilities/run_udp_client.py --verbose
 
 # Test Functional Diagnostics
-python test_functional_diagnostics.py
+python scripts/test/test_functional_diagnostics.py
 
 # Test Hierarchical Configuration
 python -m pytest tests/test_hierarchical_configuration.py -v
@@ -254,7 +254,7 @@ response_functional = client.send_functional_read_data_by_identifier(0xF190)
 
 ```bash
 # Test functional diagnostics
-python test_functional_diagnostics.py
+python scripts/test/test_functional_diagnostics.py
 
 # Run functional demo
 python -c "from doip_client.doip_client import DoIPClientWrapper; DoIPClientWrapper().run_functional_demo()"

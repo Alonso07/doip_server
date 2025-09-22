@@ -10,10 +10,11 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
-from doip_client.udp_doip_client import UDPDoIPClient  # pylint: disable=wrong-import-position
-from doip_server.doip_server import start_doip_server  # pylint: disable=wrong-import-position
+from doip_client.udp_doip_client import UDPDoIPClient
+from doip_server.doip_server import start_doip_server
 
 
 def run_server():

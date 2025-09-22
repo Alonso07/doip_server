@@ -25,10 +25,10 @@ The UDP DoIP client broadcasts vehicle identification requests to the network an
 **Usage:**
 ```bash
 # Run with default settings
-python run_udp_client.py
+python scripts/utilities/run_udp_client.py
 
 # Run with custom parameters
-python run_udp_client.py --port 13400 --timeout 5.0 --requests 3 --verbose
+python scripts/utilities/run_udp_client.py --port 13400 --timeout 5.0 --requests 3 --verbose
 ```
 
 ### DoIP Server UDP Support

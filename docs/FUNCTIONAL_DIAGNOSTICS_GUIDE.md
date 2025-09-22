@@ -139,10 +139,10 @@ response_functional = client.send_functional_read_data_by_identifier(0xF190)
 ## Testing
 
 ### Test Script
-A test script is provided at `test_functional_diagnostics.py`:
+A test script is provided at `scripts/test/test_functional_diagnostics.py`:
 
 ```bash
-python test_functional_diagnostics.py
+python scripts/test/test_functional_diagnostics.py
 ```
 
 ### Unit Tests

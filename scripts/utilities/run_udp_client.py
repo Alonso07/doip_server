@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import after path modification
-from doip_client.udp_doip_client import main  # pylint: disable=wrong-import-position
+from doip_client.udp_doip_client import main
 
 if __name__ == "__main__":
     main()

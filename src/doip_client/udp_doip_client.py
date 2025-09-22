@@ -267,7 +267,7 @@ class UDPDoIPClient:
 
 def main():
     """Main entry point for testing the UDP DoIP client."""
-    import argparse  # pylint: disable=import-outside-toplevel
+    import argparse
 
     parser = argparse.ArgumentParser(
         description="UDP DoIP Client for Vehicle Identification Testing"
