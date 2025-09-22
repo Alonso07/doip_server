@@ -34,7 +34,7 @@ packages = [{include = "doip_server", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"
-pytest-cov = "^6.0.0"
+pytest-cov = "^7.0.0"
 flake8 = "^7.0.0"
 black = "^25.9.0"
 bandit = "^1.7.0"
