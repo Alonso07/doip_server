@@ -12,14 +12,55 @@ import yaml
 
 
 class HierarchicalConfigManager:
-    """Manages DoIP server configuration from multiple YAML files with ECU hierarchy"""
+    """Manages DoIP server configuration from multiple YAML files with ECU hierarchy.
+    
+    This class provides a comprehensive configuration management system for the DoIP server,
+    supporting hierarchical configuration loading from multiple YAML files. It handles:
+    
+    - Gateway configuration (network, protocol, logging settings)
+    - ECU configurations (target addresses, tester addresses, UDS services)
+    - UDS service definitions (common and ECU-specific services)
+    - Configuration validation and fallback mechanisms
+    - Dynamic configuration reloading
+    
+    The hierarchical structure allows for:
+    - Centralized gateway configuration
+    - ECU-specific configurations in separate files
+    - Service definitions that can be shared or ECU-specific
+    - Flexible addressing schemes (physical and functional)
+    
+    Attributes:
+        gateway_config_path (str): Path to the main gateway configuration file
+        gateway_config (Dict[str, Any]): Loaded gateway configuration
+        ecu_configs (Dict[int, Dict[str, Any]]): ECU configurations by target address
+        uds_services (Dict[str, Dict[str, Any]]): UDS service definitions
+        logger (logging.Logger): Logger instance for this manager
+    """
 
     def __init__(self, gateway_config_path: str = None):
-        """
-        Initialize the hierarchical configuration manager
-
+        """Initialize the hierarchical configuration manager.
+        
+        This constructor initializes the configuration manager and loads all
+        configuration files. If no gateway configuration path is provided,
+        it will attempt to find a default configuration file or create one.
+        
         Args:
-            gateway_config_path: Path to the gateway configuration file
+            gateway_config_path (str, optional): Path to the gateway configuration file.
+                If None, the manager will search for default configuration files
+                in common locations or create a default configuration.
+                
+        Raises:
+            FileNotFoundError: If no configuration files can be found or created
+            yaml.YAMLError: If configuration files contain invalid YAML
+            Exception: If configuration loading fails and fallback also fails
+            
+        Note:
+            The initialization process:
+            1. Sets up the gateway configuration path
+            2. Initializes empty configuration dictionaries
+            3. Sets up logging
+            4. Loads all configuration files (gateway, ECUs, UDS services)
+            5. Falls back to default configurations if loading fails
         """
         self.gateway_config_path = (
             gateway_config_path or self._find_default_gateway_config()
@@ -31,7 +72,24 @@ class HierarchicalConfigManager:
         self._load_all_configs()
 
     def _find_default_gateway_config(self) -> str:
-        """Find the default gateway configuration file path"""
+        """Find the default gateway configuration file path.
+        
+        This method searches for gateway configuration files in common locations
+        in the following order of priority:
+        1. config/gateway1.yaml (relative to current working directory)
+        2. gateway1.yaml (in current working directory)
+        3. ../config/gateway1.yaml (parent directory config)
+        4. src/doip_server/config/gateway1.yaml (source directory)
+        
+        If no configuration file is found, a default configuration will be created.
+        
+        Returns:
+            str: Path to the found or created gateway configuration file
+            
+        Note:
+            This method is called during initialization when no explicit
+            gateway configuration path is provided.
+        """
         possible_paths = [
             "config/gateway1.yaml",
             "gateway1.yaml",
@@ -48,21 +106,38 @@ class HierarchicalConfigManager:
         return default_config
 
     def _create_default_gateway_config(self) -> str:
-        """Create a default gateway configuration file if none exists"""
+        """Create a default gateway configuration file if none exists
+        
+        This method generates a comprehensive default gateway configuration
+        with proper network settings, protocol configuration, and ECU references.
+        The configuration follows the hierarchical structure expected by the
+        DoIP server implementation.
+        
+        Returns:
+            str: Path to the created configuration file
+            
+        Note:
+            The default configuration includes:
+            - Network binding to all interfaces (0.0.0.0:13400)
+            - DoIP protocol version 0x02 with inverse 0xFD
+            - Reference to engine ECU configuration
+            - Reasonable connection limits and timeouts
+        """
         default_config_content = """# Default Gateway Configuration
+# This file provides a comprehensive default configuration for the DoIP gateway
 gateway:
   name: "DefaultGateway"
-  description: "Default DoIP Gateway"
+  description: "Default DoIP Gateway - Auto-generated configuration"
   network:
-    host: "0.0.0.0"
-    port: 13400
+    host: "0.0.0.0"  # Bind to all interfaces
+    port: 13400      # Standard DoIP port
     max_connections: 5
     timeout: 30
   protocol:
-    version: 0x02
-    inverse_version: 0xFD
+    version: 0x02      # DoIP protocol version
+    inverse_version: 0xFD  # Inverse protocol version for validation
   ecus:
-    - "ecu_engine.yaml"
+    - "ecu_engine.yaml"  # Reference to engine ECU configuration
 """
 
         # Create config directory if it doesn't exist
@@ -76,7 +151,20 @@ gateway:
         return config_path
 
     def _load_all_configs(self):
-        """Load all configuration files"""
+        """Load all configuration files in the correct order.
+        
+        This method orchestrates the loading of all configuration components:
+        1. Gateway configuration (network, protocol, logging settings)
+        2. ECU configurations (target addresses, tester addresses, UDS services)
+        3. UDS service definitions (common and ECU-specific services)
+        
+        If any step fails, the method will attempt to load fallback configurations
+        to ensure the server can still start with minimal functionality.
+        
+        Raises:
+            Exception: If configuration loading fails completely and no fallback
+                configurations can be loaded
+        """
         try:
             # Load gateway configuration
             self._load_gateway_config()
@@ -258,15 +346,41 @@ gateway:
 
     # Gateway configuration methods
     def get_gateway_config(self) -> Dict[str, Any]:
-        """Get gateway configuration"""
+        """Get the complete gateway configuration.
+        
+        Returns:
+            Dict[str, Any]: Gateway configuration dictionary containing:
+                - name: Gateway name
+                - description: Gateway description
+                - network: Network configuration (host, port, etc.)
+                - protocol: Protocol configuration (version, inverse_version)
+                - ecus: List of ECU configuration file references
+                - logging: Logging configuration (if present)
+                - security: Security configuration (if present)
+                - vehicle: Vehicle information (if present)
+        """
         return self.gateway_config.get("gateway", {})
 
     def get_network_config(self) -> Dict[str, Any]:
-        """Get network configuration"""
+        """Get network configuration settings.
+        
+        Returns:
+            Dict[str, Any]: Network configuration containing:
+                - host: Server host address (default: "0.0.0.0")
+                - port: Server port number (default: 13400)
+                - max_connections: Maximum concurrent connections
+                - timeout: Connection timeout in seconds
+        """
         return self.get_gateway_config().get("network", {})
 
     def get_server_binding_info(self) -> tuple[str, int]:
-        """Get server host and port for binding"""
+        """Get server host and port for binding.
+        
+        Returns:
+            tuple[str, int]: A tuple containing (host, port) for server binding.
+                - host: Server host address (default: "0.0.0.0")
+                - port: Server port number (default: 13400)
+        """
         network_config = self.get_network_config()
         host = network_config.get("host", "0.0.0.0")
         port = network_config.get("port", 13400)
@@ -303,15 +417,41 @@ gateway:
 
     # ECU configuration methods
     def get_all_ecu_addresses(self) -> List[int]:
-        """Get all configured ECU target addresses"""
+        """Get all configured ECU target addresses.
+        
+        Returns:
+            List[int]: List of all configured ECU target addresses.
+                These are the addresses that the DoIP server will accept
+                as valid target addresses for diagnostic messages.
+        """
         return list(self.ecu_configs.keys())
 
     def get_ecu_config(self, target_address: int) -> Optional[Dict[str, Any]]:
-        """Get ECU configuration by target address"""
+        """Get ECU configuration by target address.
+        
+        Args:
+            target_address (int): The target address of the ECU to retrieve
+            
+        Returns:
+            Optional[Dict[str, Any]]: ECU configuration dictionary if found, None otherwise.
+                The configuration contains:
+                - ecu: ECU information (name, target_address, tester_addresses, etc.)
+                - uds_services: UDS service configuration for this ECU
+                - routine_activation: Routine activation configuration
+        """
         return self.ecu_configs.get(target_address)
 
     def get_ecu_tester_addresses(self, target_address: int) -> List[int]:
-        """Get allowed tester addresses for a specific ECU"""
+        """Get allowed tester addresses for a specific ECU.
+        
+        Args:
+            target_address (int): The target address of the ECU
+            
+        Returns:
+            List[int]: List of allowed tester addresses for this ECU.
+                These are the source addresses that are permitted to send
+                diagnostic messages to this ECU.
+        """
         ecu_config = self.get_ecu_config(target_address)
         if ecu_config:
             ecu_info = ecu_config.get("ecu", {})
@@ -505,7 +645,21 @@ gateway:
         self.logger.info("All configurations reloaded")
 
     def validate_configs(self) -> bool:
-        """Validate all configuration files"""
+        """Validate all configuration files for completeness and correctness.
+        
+        This method performs comprehensive validation of all loaded configurations:
+        - Gateway configuration (network, protocol settings)
+        - ECU configurations (target addresses, tester addresses)
+        - UDS services (service definitions)
+        
+        Returns:
+            bool: True if all configurations are valid, False otherwise
+            
+        Note:
+            Validation errors are logged with appropriate error levels.
+            Warnings are issued for missing optional configurations,
+            errors are issued for missing required configurations.
+        """
         # Validate gateway configuration
         if not self.gateway_config:
             self.logger.error("Gateway configuration is empty")

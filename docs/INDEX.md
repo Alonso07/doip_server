@@ -1,63 +1,198 @@
-# DoIP Server Documentation Index
+# Documentation Index
 
-## 📚 Documentation Files
+This is the main index for all DoIP server documentation.
 
-### Core Documentation
-- **README.md** - Main project overview
-- **PROJECT_STATUS.md** - Current project status
+## 📚 Core Documentation
 
-### Configuration Guides
-- **HIERARCHICAL_CONFIGURATION_GUIDE.md** - Hierarchical configuration system
+### [README.md](README.md)
+Main project overview with quick start guide, features, and basic usage.
 
-### Implementation Details
-- **IMPLEMENTATION_SUMMARY.md** - Overall implementation summary
-- **CONFIGURATION_IMPLEMENTATION_SUMMARY.md** - Configuration system implementation
-- **HIERARCHICAL_CONFIGURATION_IMPLEMENTATION_SUMMARY.md** - Hierarchical configuration implementation
-- **RESPONSE_CYCLING_IMPLEMENTATION_SUMMARY.md** - Response cycling feature implementation
-- **UDP_DOIP_VEHICLE_IDENTIFICATION.md** - UDP DoIP vehicle identification feature (NEW!)
+### [CONFIGURATION.md](CONFIGURATION.md)
+Complete configuration guide covering:
+- Hierarchical configuration system
+- Gateway configuration
+- ECU configuration
+- UDS services setup
+- Response cycling configuration
+- Troubleshooting and best practices
 
-### Testing & Quality
-- **TEST_RESULTS_SUMMARY.md** - Test results summary
-- **COMPREHENSIVE_TEST_RESULTS.md** - Detailed test results and analysis
-- **LATEST_TEST_RESULTS.md** - Latest test results (December 2024)
+### [API.md](API.md)
+Comprehensive API reference including:
+- DoIPServer class methods
+- HierarchicalConfigManager class methods
+- Command-line interface
+- Configuration API
+- UDS services API
+- Error handling and examples
 
-### Deployment & CI/CD
-- **PYPI_PUBLISHING_GUIDE.md** - PyPI package publishing guide
-- **GITHUB_ACTIONS_SETUP.md** - GitHub Actions CI/CD setup
-- **GITHUB_ACTIONS_TROUBLESHOOTING.md** - GitHub Actions troubleshooting
+### [TESTING.md](TESTING.md)
+Testing guide and results covering:
+- Test suite overview (185/186 tests passing)
+- Running tests (unit, integration, configuration)
+- Test structure and organization
+- Test coverage and results
+- CI/CD pipeline testing
 
-### Development & Maintenance
-- **CONFIGURATION_ENHANCEMENT_SUMMARY.md** - Configuration enhancements summary
-- **CI_FIXES_SUMMARY.md** - CI/CD fixes and improvements
+### [DEPLOYMENT.md](DEPLOYMENT.md)
+Deployment and CI/CD guide including:
+- Local and production deployment
+- Docker deployment
+- GitHub Actions CI/CD
+- PyPI package publishing
+- System service setup
+- Monitoring and security
 
 ## 🏗️ Architecture Overview
 
 ### Configuration Structure
 ```
 config/
-├── gateway1.yaml          # Gateway network configuration
+├── gateway1.yaml          # Gateway configuration
 ├── ecu_engine.yaml        # Engine ECU configuration
 ├── ecu_transmission.yaml  # Transmission ECU configuration
 ├── ecu_abs.yaml          # ABS ECU configuration
-└── uds_services.yaml     # Common UDS services
+└── uds_services.yaml     # UDS service definitions
 ```
 
 ### Key Features
-- **Hierarchical Configuration**: Multi-file configuration system
-- **Dynamic ECU Loading**: Load ECUs at runtime
-- **Response Cycling**: Cycle through multiple responses per service
-- **UDP Vehicle Identification**: Network discovery via UDP broadcasts (NEW!)
-- **Per-ECU Services**: ECU-specific UDS services
-- **Address Validation**: Per-ECU address validation
+- **Hierarchical Configuration**: Multi-file YAML configuration system
+- **Multi-ECU Support**: Individual ECU configurations
+- **Functional Addressing**: Broadcast diagnostic requests
+- **Response Cycling**: Configurable response variations for testing
+- **UDS Services**: Unified Diagnostic Services implementation
+- **Vehicle Identification**: UDP-based vehicle identification
 
-### Test Coverage
-- **Unit Tests**: 17/17 passing (100%)
-- **Hierarchical Config Tests**: 21/21 passing (100%)
-- **Response Cycling Tests**: 9/9 passing (100%)
-- **Legacy Integration Tests**: 13/13 passing (100%)
-- **Client Extended Tests**: 25/25 passing (100%)
-- **Main Module Tests**: 12/12 passing (100%)
-- **Validate Config Tests**: 15/15 passing (100%)
-- **Debug Client Tests**: 30/30 passing (100%)
-- **Demo Tests**: 5/6 passing (83% - 1 skipped)
-- **Overall**: 185/186 tests passing (99.5% success rate)
+## 🧪 Test Coverage
+
+| Category | Tests | Status | Description |
+|----------|-------|--------|-------------|
+| **Unit Tests** | 17/17 | ✅ 100% | Fast component tests |
+| **Hierarchical Config** | 21/21 | ✅ 100% | Configuration management |
+| **Response Cycling** | 9/9 | ✅ 100% | Response cycling functionality |
+| **Integration Tests** | 13/13 | ✅ 100% | Server-client communication |
+| **Client Extended** | 25/25 | ✅ 100% | Extended client functionality |
+| **Main Module** | 12/12 | ✅ 100% | Main module tests |
+| **Validate Config** | 15/15 | ✅ 100% | Configuration validation |
+| **Debug Client** | 30/30 | ✅ 100% | Debug client functionality |
+| **Demo Tests** | 5/6 | ✅ 83% | Demo functionality |
+| **TOTAL** | **185/186** | **✅ 99.5%** | **Comprehensive coverage** |
+
+## 🚀 Quick Start
+
+### Installation
+```bash
+poetry install
+```
+
+### Start Server
+```bash
+poetry run python -m doip_server.main
+```
+
+### Run Tests
+```bash
+poetry run pytest tests/ -v
+```
+
+### Configuration
+```bash
+# Validate configuration
+poetry run python -c "from src.doip_server.hierarchical_config_manager import HierarchicalConfigManager; HierarchicalConfigManager().validate_configs()"
+```
+
+## 📖 Documentation Navigation
+
+### For Users
+1. Start with [README.md](README.md) for overview
+2. Read [CONFIGURATION.md](CONFIGURATION.md) for setup
+3. Check [API.md](API.md) for usage examples
+4. See [TESTING.md](TESTING.md) for validation
+
+### For Developers
+1. Review [API.md](API.md) for implementation details
+2. Check [TESTING.md](TESTING.md) for test coverage
+3. See [DEPLOYMENT.md](DEPLOYMENT.md) for CI/CD setup
+4. Use [CONFIGURATION.md](CONFIGURATION.md) for customization
+
+### For DevOps
+1. Start with [DEPLOYMENT.md](DEPLOYMENT.md) for deployment
+2. Check [TESTING.md](TESTING.md) for CI/CD testing
+3. Review [CONFIGURATION.md](CONFIGURATION.md) for production config
+4. See [API.md](API.md) for monitoring integration
+
+## 🔧 Configuration Examples
+
+### Basic Gateway
+```yaml
+gateway:
+  name: "Basic Gateway"
+  network:
+    host: "0.0.0.0"
+    port: 13400
+  protocol:
+    version: 0x02
+    inverse_version: 0xFD
+  ecus: []
+```
+
+### Multi-ECU Setup
+```yaml
+gateway:
+  name: "Multi-ECU Gateway"
+  network:
+    host: "0.0.0.0"
+    port: 13400
+  ecus:
+    - "ecu_engine.yaml"
+    - "ecu_transmission.yaml"
+    - "ecu_abs.yaml"
+```
+
+## 🧪 Testing Examples
+
+### Run All Tests
+```bash
+poetry run pytest tests/ -v
+```
+
+### Run Specific Tests
+```bash
+# Unit tests only
+poetry run pytest tests/test_doip_unit.py -v
+
+# Integration tests
+poetry run pytest tests/test_doip_integration.py -v
+
+# Configuration tests
+poetry run pytest tests/test_hierarchical_configuration.py -v
+```
+
+## 🚀 Deployment Examples
+
+### Docker
+```bash
+docker build -t doip-server .
+docker run -p 13400:13400 doip-server
+```
+
+### System Service
+```bash
+sudo systemctl enable doip-server
+sudo systemctl start doip-server
+```
+
+### PyPI Package
+```bash
+pip install doip-server
+```
+
+## 📞 Support
+
+- **Documentation**: Check the relevant documentation files
+- **Issues**: Create an issue on GitHub
+- **Configuration**: Use `poetry run python -m doip_server.main --help`
+- **Testing**: See [TESTING.md](TESTING.md) for troubleshooting
+
+## 📄 License
+
+MIT License - see [LICENSE](../LICENSE) for details.

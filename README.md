@@ -26,14 +26,14 @@ poetry run pytest tests/ -v
 
 ## 📚 Documentation
 
-All documentation has been moved to the `docs/` directory for better organization:
+Comprehensive documentation is available in the `docs/` directory:
 
 - **[📖 Documentation Index](docs/INDEX.md)** - Complete documentation index
 - **[🚀 Getting Started](docs/README.md)** - Detailed project overview and setup
-- **[⚙️ Hierarchical Configuration](docs/HIERARCHICAL_CONFIGURATION_GUIDE.md)** - Multi-file configuration system guide
-- **[🔧 Functional Diagnostics](docs/FUNCTIONAL_DIAGNOSTICS_GUIDE.md)** - Broadcast addressing and functional diagnostics
-- **[🧪 Test Results](docs/COMPREHENSIVE_TEST_RESULTS.md)** - Complete test results and analysis
-- **[📋 Implementation Summary](docs/HIERARCHICAL_CONFIGURATION_IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+- **[⚙️ Configuration Guide](docs/CONFIGURATION.md)** - Complete configuration guide
+- **[🔧 API Reference](docs/API.md)** - API reference and examples
+- **[🧪 Testing Guide](docs/TESTING.md)** - Testing guide and results
+- **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Deployment and CI/CD guide
 
 ## ✨ Key Features
 
