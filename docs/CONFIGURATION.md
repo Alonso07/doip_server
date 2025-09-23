@@ -195,6 +195,64 @@ engine_services:
 - **Per-ECU State**: Separate cycling state for each ECU-service combination
 - **Reset Capability**: Reset cycling state for testing
 
+### Request Mirroring
+- **Dynamic Responses**: Mirror parts of the request in the response
+- **Character-based Indexing**: Use character positions to specify which parts to mirror
+- **Flexible Syntax**: Support for single characters, ranges, and multiple parts
+- **Error Handling**: Graceful fallback for invalid indices
+
+#### Request Mirroring Syntax
+
+The request mirroring feature allows you to include parts of the original request in the response using the following syntax:
+
+```yaml
+responses:
+  - "0x620C{request[2:4]}"     # Mirror characters 2-3 from request
+  - "0x620C{request[2:6]}"     # Mirror characters 2-5 from request  
+  - "0x620C{request[2]}"       # Mirror single character at position 2
+  - "0x620C{request[2:4]}{request[6:8]}"  # Mirror multiple parts
+```
+
+#### Examples
+
+**Basic Mirroring:**
+```yaml
+engine_services:
+  read_data_by_identifier:
+    request: "0x220C02"
+    responses:
+      - "0x620C{request[4:6]}"  # Mirrors the data identifier (02)
+    description: "Read data by identifier with mirroring"
+```
+
+**Routine Control with Mirroring:**
+```yaml
+engine_services:
+  routine_control:
+    request: "0x31010001"
+    responses:
+      - "0x7101{request[2:8]}"  # Mirrors the routine identifier (010001)
+    description: "Routine control with request mirroring"
+```
+
+**Complex Mirroring:**
+```yaml
+engine_services:
+  complex_service:
+    request: "0x220C03FF"
+    responses:
+      - "0x620C{request[2:4]}{request[6:8]}"  # Mirrors 0C and FF
+    description: "Complex request mirroring example"
+```
+
+#### Indexing Rules
+
+- **Character-based**: Indices refer to character positions in the hex string
+- **0x prefix handling**: Automatically removed for indexing (0x220C01 → 220C01)
+- **Range notation**: `[start:end]` includes start, excludes end (like Python slices)
+- **Error handling**: Invalid indices return "00" as fallback
+- **Single character**: `[index]` returns one character at that position
+
 ## Configuration Validation
 
 ### Automatic Validation

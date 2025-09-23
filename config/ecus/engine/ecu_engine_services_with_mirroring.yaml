@@ -1,0 +1,54 @@
+# Engine ECU Specific UDS Services with Request Mirroring
+# This file contains UDS services specific to the Engine Control Unit
+# with examples of request mirroring functionality
+
+engine_services:
+  # Example 1: Mirror specific bytes from request
+  Engine_Data_Read_With_Mirroring:
+    request: "0x220C01"
+    responses:
+      - "0x620C01{request[2:4]}"  # Mirror bytes 2-3 from request (0x0C01)
+      - "0x620C01{request[2:6]}"  # Mirror bytes 2-5 from request (0x0C01XX)
+    description: "Read engine data with request mirroring"
+    supports_functional: false
+    
+  # Example 2: Mirror with offset (skip first byte)
+  Engine_Routine_Control_With_Mirroring:
+    request: "0x31010001"
+    responses:
+      - "0x7101{request[2:8]}"  # Mirror bytes 2-7 from request (0x010001)
+    description: "Engine routine control with request mirroring"
+    supports_functional: false
+    
+  # Example 3: Mirror specific positions
+  Engine_Read_Data_By_Identifier_With_Mirroring:
+    request: "0x220C02"
+    responses:
+      - "0x620C{request[4:6]}"  # Mirror bytes 4-5 from request (0x02)
+      - "0x620C{request[4:8]}"  # Mirror bytes 4-7 from request (0x02XX)
+    description: "Read data by identifier with request mirroring"
+    supports_functional: false
+    
+  # Example 4: Complex mirroring with multiple parts
+  Engine_Complex_Mirroring:
+    request: "0x220C03"
+    responses:
+      - "0x620C{request[2:4]}{request[6:8]}"  # Mirror bytes 2-3 and 6-7
+    description: "Complex request mirroring example"
+    supports_functional: false
+    
+  # Example 5: Mirror with regex pattern
+  Engine_Any_Data_Read_With_Mirroring:
+    request: "regex:^220C[0-9A-F]{2}$"
+    responses:
+      - "0x620C{request[4:6]}"  # Mirror the data identifier part
+    description: "Read any engine data with request mirroring"
+    supports_functional: false
+    
+  # Example 6: Mirror with conditional logic
+  Engine_Conditional_Mirroring:
+    request: "0x220C04"
+    responses:
+      - "0x620C{request[2:4] if request[2:4] == '0C' else 'FF'}"  # Conditional mirroring
+    description: "Conditional request mirroring example"
+    supports_functional: false

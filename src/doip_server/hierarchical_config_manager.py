@@ -614,6 +614,71 @@ gateway:
                     }
         return None
 
+    def process_response_with_mirroring(
+        self, response_template: str, request: str
+    ) -> str:
+        """Process a response template with request mirroring expressions.
+
+        Args:
+            response_template: Response template string that may contain mirroring expressions
+            request: Original request string (hex format)
+
+        Returns:
+            Processed response string with mirrored request parts
+
+        Mirroring expressions:
+            - {request[start:end]} - Mirror characters from start to end (exclusive)
+            - {request[start:]} - Mirror characters from start to end of string
+            - {request[:end]} - Mirror characters from start to end (exclusive)
+            - {request[index]} - Mirror single character at index
+        """
+        if not response_template or not request:
+            return response_template
+
+        # Remove 0x prefix from request if present for easier indexing
+        clean_request = request[2:] if request.startswith("0x") else request
+
+        # Pattern to match {request[...]} expressions
+        pattern = r"\{request\[([^\]]+)\]\}"
+
+        def replace_mirror_expression(match):
+            try:
+                index_expr = match.group(1)
+
+                # Handle slice notation [start:end]
+                if ":" in index_expr:
+                    parts = index_expr.split(":")
+                    if len(parts) == 2:
+                        start_str, end_str = parts
+                        start = int(start_str) if start_str else 0
+                        end = int(end_str) if end_str else len(clean_request)
+
+                        # Direct character indexing (no conversion needed)
+                        if start < 0 or end > len(clean_request) or start >= end:
+                            return "00"  # Default fallback
+
+                        return clean_request[start:end]
+                    else:
+                        return "00"  # Invalid slice format
+                else:
+                    # Single index
+                    index = int(index_expr)
+
+                    if index < 0 or index >= len(clean_request):
+                        return "00"  # Default fallback
+
+                    return clean_request[index]
+
+            except (ValueError, IndexError):
+                return "00"  # Default fallback for any error
+
+        # Replace all mirroring expressions
+        processed_response = re.sub(
+            pattern, replace_mirror_expression, response_template
+        )
+
+        return processed_response
+
     def get_uds_services_supporting_functional(self, target_address: int) -> List[str]:
         """Get list of service names that support functional addressing for a specific ECU"""
         ecu_services = self.get_ecu_uds_services(target_address)
@@ -634,9 +699,9 @@ gateway:
             return True
         if f"0x{config_request}" == request:
             return True
-        
+
         # Check if config_request is a regex pattern (starts with 'regex:')
-        if config_request.startswith('regex:'):
+        if config_request.startswith("regex:"):
             pattern = config_request[6:]  # Remove 'regex:' prefix
             try:
                 # Compile the regex pattern for case-insensitive matching
@@ -645,16 +710,16 @@ gateway:
                 if regex.match(request):
                     return True
                 # If request has 0x prefix, test without it
-                if request.startswith('0x') and regex.match(request[2:]):
+                if request.startswith("0x") and regex.match(request[2:]):
                     return True
                 # If request doesn't have 0x prefix, test with it
-                if not request.startswith('0x') and regex.match(f"0x{request}"):
+                if not request.startswith("0x") and regex.match(f"0x{request}"):
                     return True
             except re.error as e:
                 # Log regex compilation error but don't fail the matching
                 self.logger.warning(f"Invalid regex pattern '{pattern}': {e}")
                 return False
-        
+
         return False
 
     def get_routine_activation_config(self, target_address: int) -> Dict[str, Any]:

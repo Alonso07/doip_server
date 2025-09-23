@@ -308,73 +308,141 @@ class TestHierarchicalDoIPServer:
     def test_regex_request_matching(self):
         """Test regex-based request matching functionality"""
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
-        
+
         # Test exact matching still works
         assert config_manager._match_request("0x220C01", "220C01") is True
         assert config_manager._match_request("220C01", "0x220C01") is True
         assert config_manager._match_request("0x220C01", "0x220C01") is True
-        
+
         # Test regex matching with various patterns
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C01") is True
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220CFF") is True
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "0x220C01") is True
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C") is False  # Too short
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C123") is False  # Too long
-        
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C01") is True
+        )
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220CFF") is True
+        )
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "0x220C01") is True
+        )
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C") is False
+        )  # Too short
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C123") is False
+        )  # Too long
+
         # Test diagnostic session control pattern
         assert config_manager._match_request("regex:^10[0-9A-F]{2}$", "1003") is True
         assert config_manager._match_request("regex:^10[0-9A-F]{2}$", "10FF") is True
         assert config_manager._match_request("regex:^10[0-9A-F]{2}$", "0x1003") is True
-        assert config_manager._match_request("regex:^10[0-9A-F]{2}$", "100") is False  # Too short
-        
+        assert (
+            config_manager._match_request("regex:^10[0-9A-F]{2}$", "100") is False
+        )  # Too short
+
         # Test security access pattern
         assert config_manager._match_request("regex:^27[0-9A-F]{2}$", "2701") is True
         assert config_manager._match_request("regex:^27[0-9A-F]{2}$", "27FF") is True
         assert config_manager._match_request("regex:^27[0-9A-F]{2}$", "0x2701") is True
-        assert config_manager._match_request("regex:^27[0-9A-F]{2}$", "270") is False  # Too short
-        
+        assert (
+            config_manager._match_request("regex:^27[0-9A-F]{2}$", "270") is False
+        )  # Too short
+
         # Test complex pattern for routine control
-        assert config_manager._match_request("regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "31010001") is True
-        assert config_manager._match_request("regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "31FF00FF") is True
-        assert config_manager._match_request("regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "0x31010001") is True
-        assert config_manager._match_request("regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "3101000") is False  # Too short
-        assert config_manager._match_request("regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "310100011") is False  # Too long
-        
+        assert (
+            config_manager._match_request(
+                "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "31010001"
+            )
+            is True
+        )
+        assert (
+            config_manager._match_request(
+                "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "31FF00FF"
+            )
+            is True
+        )
+        assert (
+            config_manager._match_request(
+                "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "0x31010001"
+            )
+            is True
+        )
+        assert (
+            config_manager._match_request(
+                "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "3101000"
+            )
+            is False
+        )  # Too short
+        assert (
+            config_manager._match_request(
+                "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$", "310100011"
+            )
+            is False
+        )  # Too long
+
         # Test alternation pattern
         assert config_manager._match_request("regex:^19(02|03|0A)$", "1902") is True
         assert config_manager._match_request("regex:^19(02|03|0A)$", "1903") is True
         assert config_manager._match_request("regex:^19(02|03|0A)$", "190A") is True
         assert config_manager._match_request("regex:^19(02|03|0A)$", "0x1902") is True
-        assert config_manager._match_request("regex:^19(02|03|0A)$", "1901") is False  # Not in alternation
-        assert config_manager._match_request("regex:^19(02|03|0A)$", "190B") is False  # Not in alternation
-        
+        assert (
+            config_manager._match_request("regex:^19(02|03|0A)$", "1901") is False
+        )  # Not in alternation
+        assert (
+            config_manager._match_request("regex:^19(02|03|0A)$", "190B") is False
+        )  # Not in alternation
+
         # Test case insensitivity
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220c01") is True
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C01") is True
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220cff") is True
-        
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220c01") is True
+        )
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C01") is True
+        )
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220cff") is True
+        )
+
         # Test invalid regex patterns
-        assert config_manager._match_request("regex:^220C[0-9A-F{2}$", "220C01") is False  # Invalid regex
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2", "220C01") is False  # Invalid regex
-        
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F{2}$", "220C01") is False
+        )  # Invalid regex
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2", "220C01") is False
+        )  # Invalid regex
+
         # Test non-regex strings (should not match)
-        assert config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C01") is True
-        assert config_manager._match_request("not_regex:^220C[0-9A-F]{2}$", "220C01") is False  # Not a regex prefix
+        assert (
+            config_manager._match_request("regex:^220C[0-9A-F]{2}$", "220C01") is True
+        )
+        assert (
+            config_manager._match_request("not_regex:^220C[0-9A-F]{2}$", "220C01")
+            is False
+        )  # Not a regex prefix
 
     def test_regex_service_lookup(self):
         """Test that regex-based services can be found in configuration"""
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
-        
+
         # Test that regex services from generic config can be found
-        service = config_manager.get_uds_service_by_request("22F190", 0x1000)  # Engine ECU
+        service = config_manager.get_uds_service_by_request(
+            "22F190", 0x1000
+        )  # Engine ECU
         assert service is not None
-        assert "Read_Data_By_Identifier_Any" in service["name"] or "Read_VIN" in service["name"]
-        
+        assert (
+            "Read_Data_By_Identifier_Any" in service["name"]
+            or "Read_VIN" in service["name"]
+        )
+
         # Test that regex services from engine config can be found
-        service = config_manager.get_uds_service_by_request("220C01", 0x1000)  # Engine ECU
+        service = config_manager.get_uds_service_by_request(
+            "220C01", 0x1000
+        )  # Engine ECU
         assert service is not None
         # Should match either exact or regex pattern
-        assert "Engine_RPM_Read" in service["name"] or "Engine_Data_Read_Any" in service["name"]
+        assert (
+            "Engine_RPM_Read" in service["name"]
+            or "Engine_Data_Read_Any" in service["name"]
+        )
 
 
 class TestHierarchicalConfigurationIntegration:

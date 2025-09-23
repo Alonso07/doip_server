@@ -748,7 +748,12 @@ class DoIPServer:
                 current_index = self.response_cycle_state.get(cycle_key, 0)
 
                 # Select response based on current index
-                response_hex = responses[current_index]
+                response_template = responses[current_index]
+
+                # Process response template with request mirroring
+                response_hex = self.config_manager.process_response_with_mirroring(
+                    response_template, uds_hex
+                )
 
                 # Update index for next time (cycle back to 0 when reaching end)
                 next_index = (current_index + 1) % len(responses)
