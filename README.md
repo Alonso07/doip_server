@@ -34,6 +34,10 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[🔧 API Reference](docs/API.md)** - API reference and examples
 - **[🧪 Testing Guide](docs/TESTING.md)** - Testing guide and results
 - **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Deployment and CI/CD guide
+- **[🤝 Contributing](docs/CONTRIBUTING.md)** - How to contribute to this project
+- **[📋 Changelog](docs/CHANGELOG.md)** - Project changelog and release notes
+- **[🔒 Security](docs/SECURITY.md)** - Security policy and vulnerability reporting
+- **[📜 Code of Conduct](docs/CODE_OF_CONDUCT.md)** - Community guidelines
 
 ## ✨ Key Features
 

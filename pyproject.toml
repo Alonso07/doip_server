@@ -36,7 +36,7 @@ Repository = "https://github.com/Alonso07/doip_server"
 Documentation = "https://github.com/Alonso07/doip_server/tree/main/docs"
 "Bug Tracker" = "https://github.com/Alonso07/doip_server/issues"
 "Source Code" = "https://github.com/alonso07/doip_server"
-"Changelog" = "https://github.com/alonso07/doip_server/blob/main/CHANGELOG.md"
+"Changelog" = "https://github.com/alonso07/doip_server/blob/main/docs/CHANGELOG.md"
 
 [tool.poetry]
 packages = [{include = "doip_server", from = "src"}]

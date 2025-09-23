@@ -42,6 +42,36 @@ Deployment and CI/CD guide including:
 - System service setup
 - Monitoring and security
 
+## 🤝 Community & Project Management
+
+### [CONTRIBUTING.md](CONTRIBUTING.md)
+Comprehensive contributor guide including:
+- Development setup and workflow
+- Coding standards and testing requirements
+- Pull request process
+- Issue reporting guidelines
+- Community guidelines
+
+### [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+Community standards and guidelines:
+- Expected behavior and community values
+- Reporting and enforcement procedures
+- Creating a welcoming environment
+
+### [CHANGELOG.md](CHANGELOG.md)
+Project changelog and release notes:
+- Version history and changes
+- Migration guides
+- Security updates
+- Feature announcements
+
+### [SECURITY.md](SECURITY.md)
+Security policy and procedures:
+- Vulnerability reporting process
+- Security best practices
+- Supported versions
+- Security considerations
+
 ## 🏗️ Architecture Overview
 
 ### Configuration Structure

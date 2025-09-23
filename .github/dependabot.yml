@@ -9,9 +9,9 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "YOUR_USERNAME"
+      - "Alonso07"
     assignees:
-      - "YOUR_USERNAME"
+      - "Alonso07"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
@@ -26,9 +26,9 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "YOUR_USERNAME"
+      - "Alonso07"
     assignees:
-      - "YOUR_USERNAME"
+      - "Alonso07"
     commit-message:
       prefix: "ci"
       include: "scope"
