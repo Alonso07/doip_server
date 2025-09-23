@@ -7,7 +7,7 @@ authors = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.15"
 keywords = ["doip", "diagnostics", "automotive", "uds", "iso13400", "server", "client"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -41,6 +41,7 @@ bandit = "^1.7.0"
 safety = ">=3.6.1"
 build = "^1.3.0"
 twine = "^6.2.0"
+pyinstaller = "^6.16.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

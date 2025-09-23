@@ -28,19 +28,19 @@ make build-exe-clean
 
 ```bash
 # Build for current platform
-./scripts/build/build_executables.sh
+./scripts/build_tools/build_executables.sh
 
 # Build and test
-./scripts/build/build_executables.sh --test
+./scripts/build_tools/build_executables.sh --test
 
 # Clean build and test
-./scripts/build/build_executables.sh --clean --test
+./scripts/build_tools/build_executables.sh --clean --test
 ```
 
 ## Files Structure
 
 ```
-scripts/build/
+scripts/build_tools/
 ├── build_executables.sh    # Main build script
 ├── test_build.sh          # Test script
 ├── generate_spec.py       # Dynamic spec file generator
@@ -108,19 +108,19 @@ requirements-build.txt     # Build dependencies
 ### Basic Build
 ```bash
 # Build for current platform
-./scripts/build/build_executables.sh
+./scripts/build_tools/build_executables.sh
 ```
 
 ### Test Build
 ```bash
 # Build and test
-./scripts/build/build_executables.sh --test
+./scripts/build_tools/build_executables.sh --test
 ```
 
 ### Clean Build
 ```bash
 # Clean and build
-./scripts/build/build_executables.sh --clean --test
+./scripts/build_tools/build_executables.sh --clean --test
 ```
 
 ### Makefile Targets
@@ -203,7 +203,7 @@ doip_server.exe --gateway-config config\gateway1.yaml %*
    - Run with `--clean` flag
 
 2. **"Permission denied"**
-   - Make scripts executable: `chmod +x scripts/build/*.sh`
+   - Make scripts executable: `chmod +x scripts/build_tools/*.sh`
    - Check file permissions
 
 3. **"PyInstaller not found"**
@@ -219,7 +219,7 @@ doip_server.exe --gateway-config config\gateway1.yaml %*
 Enable debug output:
 ```bash
 export PYINSTALLER_DEBUG=1
-./scripts/build/build_executables.sh --clean --test
+./scripts/build_tools/build_executables.sh --clean --test
 ```
 
 ## Performance

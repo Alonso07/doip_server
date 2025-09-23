@@ -209,12 +209,12 @@ clean:
 # Executable build targets
 build-exe:
 	@echo "Building executable for current platform..."
-	@./scripts/build/build_executables.sh
+	@./scripts/build_tools/build_executables.sh
 
 build-exe-test:
 	@echo "Building executable and testing..."
-	@./scripts/build/build_executables.sh --test
+	@./scripts/build_tools/build_executables.sh --test
 
 build-exe-clean:
 	@echo "Cleaning and building executable..."
-	@./scripts/build/build_executables.sh --clean --test
+	@./scripts/build_tools/build_executables.sh --clean --test

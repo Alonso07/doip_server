@@ -133,11 +133,11 @@ class TestResponseCycling:
         assert cycling_state["ECU_0x1000_Read_VIN"] == 1
         assert cycling_state["ECU_0x1000_Engine_RPM_Read"] == 1
 
-    def test_response_cycling_with_three_responses(self):
-        """Test response cycling with a service that has 3 responses"""
+    def test_response_cycling_with_eight_responses(self):
+        """Test response cycling with a service that has 8 responses"""
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
-        # Test Transmission_Gear_Read service (has 3 responses)
+        # Test Transmission_Gear_Read service (has 8 responses)
         request_bytes = bytes.fromhex("220C0A")
         target_address = 0x1001  # Transmission ECU
 
@@ -156,10 +156,35 @@ class TestResponseCycling:
         assert response3 is not None
         assert response3.hex().upper() == "620C0A03"
 
-        # Fourth call - should cycle back to first response
+        # Fourth call - should return fourth response
         response4 = server.process_uds_message(request_bytes, target_address)
         assert response4 is not None
-        assert response4.hex().upper() == "620C0A01"
+        assert response4.hex().upper() == "620C0A04"
+
+        # Fifth call - should return fifth response
+        response5 = server.process_uds_message(request_bytes, target_address)
+        assert response5 is not None
+        assert response5.hex().upper() == "620C0A05"
+
+        # Sixth call - should return sixth response
+        response6 = server.process_uds_message(request_bytes, target_address)
+        assert response6 is not None
+        assert response6.hex().upper() == "620C0A06"
+
+        # Seventh call - should return seventh response
+        response7 = server.process_uds_message(request_bytes, target_address)
+        assert response7 is not None
+        assert response7.hex().upper() == "620C0A00"
+
+        # Eighth call - should return eighth response
+        response8 = server.process_uds_message(request_bytes, target_address)
+        assert response8 is not None
+        assert response8.hex().upper() == "620C0AFF"
+
+        # Ninth call - should cycle back to first response
+        response9 = server.process_uds_message(request_bytes, target_address)
+        assert response9 is not None
+        assert response9.hex().upper() == "620C0A01"
 
         # Check cycling state
         cycling_state = server.get_response_cycling_state()

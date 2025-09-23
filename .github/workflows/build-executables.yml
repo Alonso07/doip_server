@@ -65,14 +65,103 @@ jobs:
       run: |
         pip install pyinstaller
 
-    - name: Build executable
+    - name: Build executable (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         # Create build directory
         mkdir -p dist/executables
         
         # Generate PyInstaller spec file dynamically
         echo "Generating PyInstaller spec file..."
-        python scripts/build/generate_spec.py . doip_server.spec
+        chmod +x scripts/build_tools/generate_spec.py
+        python scripts/build_tools/generate_spec.py . doip_server.spec || {
+          echo "generate_spec.py failed. Creating spec file inline as fallback..."
+            # Create a basic spec file as fallback using echo commands
+            echo "# -*- mode: python ; coding: utf-8 -*-" > doip_server.spec
+            echo "" >> doip_server.spec
+            echo '"""' >> doip_server.spec
+            echo "PyInstaller spec file for DoIP Server" >> doip_server.spec
+            echo "Fallback spec file created when generate_spec.py is not available" >> doip_server.spec
+            echo '"""' >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "import os" >> doip_server.spec
+            echo "import sys" >> doip_server.spec
+            echo "from pathlib import Path" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Get the project root directory (current working directory)" >> doip_server.spec
+            echo "project_root = os.getcwd()" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Define the main entry point" >> doip_server.spec
+            echo "main_script = os.path.join(project_root, 'src', 'doip_server', 'main.py')" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Define data files to include" >> doip_server.spec
+            echo "config_files = [" >> doip_server.spec
+            echo "    (os.path.join(project_root, 'config'), 'config')," >> doip_server.spec
+            echo "]" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Define hidden imports" >> doip_server.spec
+            echo "hidden_imports = [" >> doip_server.spec
+            echo "    'yaml', 'doipclient', 'psutil', 'doip_server'," >> doip_server.spec
+            echo "    'doip_server.doip_server', 'doip_server.hierarchical_config_manager'," >> doip_server.spec
+            echo "    'doip_client', 'doip_client.doip_client', 'doip_client.debug_client'," >> doip_server.spec
+            echo "    'doip_client.udp_doip_client'," >> doip_server.spec
+            echo "]" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Define excludes" >> doip_server.spec
+            echo "excludes = [" >> doip_server.spec
+            echo "    'tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy', 'PIL'," >> doip_server.spec
+            echo "    'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 'wx', 'IPython'," >> doip_server.spec
+            echo "    'jupyter', 'notebook', 'sphinx', 'pytest', 'pytest-cov'," >> doip_server.spec
+            echo "    'flake8', 'black', 'bandit', 'safety', 'build', 'twine'," >> doip_server.spec
+            echo "]" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Analysis configuration" >> doip_server.spec
+            echo "a = Analysis(" >> doip_server.spec
+            echo "    [main_script]," >> doip_server.spec
+            echo "    pathex=[project_root]," >> doip_server.spec
+            echo "    binaries=[]," >> doip_server.spec
+            echo "    datas=config_files," >> doip_server.spec
+            echo "    hiddenimports=hidden_imports," >> doip_server.spec
+            echo "    hookspath=[]," >> doip_server.spec
+            echo "    hooksconfig={}," >> doip_server.spec
+            echo "    runtime_hooks=[]," >> doip_server.spec
+            echo "    excludes=excludes," >> doip_server.spec
+            echo "    win_no_prefer_redirects=False," >> doip_server.spec
+            echo "    win_private_assemblies=False," >> doip_server.spec
+            echo "    cipher=None," >> doip_server.spec
+            echo "    noarchive=False," >> doip_server.spec
+            echo ")" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Remove duplicate entries" >> doip_server.spec
+            echo "pyz = PYZ(a.pure, a.zipped_data, cipher=None)" >> doip_server.spec
+            echo "" >> doip_server.spec
+            echo "# Create single executable file (onefile mode)" >> doip_server.spec
+            echo "exe = EXE(" >> doip_server.spec
+            echo "    pyz," >> doip_server.spec
+            echo "    a.scripts," >> doip_server.spec
+            echo "    a.binaries," >> doip_server.spec
+            echo "    a.zipfiles," >> doip_server.spec
+            echo "    a.datas," >> doip_server.spec
+            echo "    []," >> doip_server.spec
+            echo "    name='doip_server'," >> doip_server.spec
+            echo "    debug=False," >> doip_server.spec
+            echo "    bootloader_ignore_signals=False," >> doip_server.spec
+            echo "    strip=False," >> doip_server.spec
+            echo "    upx=True," >> doip_server.spec
+            echo "    upx_exclude=[]," >> doip_server.spec
+            echo "    runtime_tmpdir=None," >> doip_server.spec
+            echo "    console=True," >> doip_server.spec
+            echo "    disable_windowed_traceback=False," >> doip_server.spec
+            echo "    argv_emulation=False," >> doip_server.spec
+            echo "    target_arch=None," >> doip_server.spec
+            echo "    codesign_identity=None," >> doip_server.spec
+            echo "    entitlements_file=None," >> doip_server.spec
+            echo "    icon=None," >> doip_server.spec
+            echo "    onefile=True," >> doip_server.spec
+            echo ")" >> doip_server.spec
+            echo "Fallback spec file created successfully"
+          }
         
         # Build with PyInstaller
         python -m PyInstaller \
@@ -85,7 +174,119 @@ jobs:
         # Clean up generated spec file
         rm -f doip_server.spec
 
-    - name: Test executable
+    - name: Build executable (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        # Create build directory
+        New-Item -ItemType Directory -Force -Path "dist/executables"
+        
+        # Generate PyInstaller spec file dynamically
+        Write-Host "Generating PyInstaller spec file..."
+        try {
+          python scripts/build_tools/generate_spec.py . doip_server.spec
+        } catch {
+          Write-Host "generate_spec.py failed. Creating spec file inline as fallback..."
+            # Create a basic spec file as fallback using PowerShell commands
+            "# -*- mode: python ; coding: utf-8 -*-" | Out-File -FilePath "doip_server.spec" -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            '"""' | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "PyInstaller spec file for DoIP Server" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "Fallback spec file created when generate_spec.py is not available" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            '"""' | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "import os" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "import sys" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "from pathlib import Path" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Get the project root directory (current working directory)" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "project_root = os.getcwd()" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Define the main entry point" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "main_script = os.path.join(project_root, 'src', 'doip_server', 'main.py')" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Define data files to include" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "config_files = [" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    (os.path.join(project_root, 'config'), 'config')," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "]" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Define hidden imports" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "hidden_imports = [" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'yaml', 'doipclient', 'psutil', 'doip_server'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'doip_server.doip_server', 'doip_server.hierarchical_config_manager'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'doip_client', 'doip_client.doip_client', 'doip_client.debug_client'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'doip_client.udp_doip_client'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "]" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Define excludes" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "excludes = [" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy', 'PIL'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 'wx', 'IPython'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'jupyter', 'notebook', 'sphinx', 'pytest', 'pytest-cov'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    'flake8', 'black', 'bandit', 'safety', 'build', 'twine'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "]" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Analysis configuration" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "a = Analysis(" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    [main_script]," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    pathex=[project_root]," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    binaries=[]," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    datas=config_files," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    hiddenimports=hidden_imports," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    hookspath=[]," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    hooksconfig={}," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    runtime_hooks=[]," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    excludes=excludes," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    win_no_prefer_redirects=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    win_private_assemblies=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    cipher=None," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    noarchive=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            ")" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Remove duplicate entries" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "pyz = PYZ(a.pure, a.zipped_data, cipher=None)" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "# Create single executable file (onefile mode)" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "exe = EXE(" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    pyz," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    a.scripts," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    a.binaries," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    a.zipfiles," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    a.datas," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    []," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    name='doip_server'," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    debug=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    bootloader_ignore_signals=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    strip=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    upx=True," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    upx_exclude=[]," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    runtime_tmpdir=None," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    console=True," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    disable_windowed_traceback=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    argv_emulation=False," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    target_arch=None," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    codesign_identity=None," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    entitlements_file=None," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    icon=None," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            "    onefile=True," | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            ")" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
+            Write-Host "Fallback spec file created successfully"
+          }
+        
+        # Build with PyInstaller
+        python -m PyInstaller `
+          --clean `
+          --noconfirm `
+          --distpath dist/executables `
+          --workpath build `
+          doip_server.spec
+        
+        # Clean up generated spec file
+        Remove-Item -Force doip_server.spec -ErrorAction SilentlyContinue
+
+    - name: Test executable (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         # Test the built executable
         if [ -f "dist/executables/${{ matrix.executable_name }}" ]; then
@@ -97,7 +298,23 @@ jobs:
           exit 1
         fi
 
-    - name: Create distribution package
+    - name: Test executable (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        # Test the built executable
+        if (Test-Path "dist/executables/${{ matrix.executable_name }}") {
+          Write-Host "Testing executable..."
+          & "dist/executables/${{ matrix.executable_name }}" --help
+          Write-Host "Executable test passed"
+        } else {
+          Write-Host "Error: Executable not found"
+          exit 1
+        }
+
+    - name: Create distribution package (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         # Create distribution directory
         DIST_NAME="doip_server_${{ matrix.platform }}_$(date +%Y%m%d_%H%M%S)"
@@ -161,6 +378,73 @@ jobs:
           zip -r "${DIST_NAME}.zip" "$DIST_NAME"
           echo "Created: ${DIST_NAME}.zip"
         fi
+
+    - name: Create distribution package (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        # Create distribution directory
+        $DIST_NAME = "doip_server_${{ matrix.platform }}_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        $DIST_PATH = "dist/executables/$DIST_NAME"
+        New-Item -ItemType Directory -Force -Path $DIST_PATH
+        
+        # Copy executable and config
+        if (Test-Path "dist/executables/${{ matrix.executable_name }}") {
+          Copy-Item "dist/executables/${{ matrix.executable_name }}" "$DIST_PATH/"
+        } else {
+          Write-Host "Error: Executable not found"
+          exit 1
+        }
+        Copy-Item -Recurse "config" "$DIST_PATH/"
+        Copy-Item "README.md" "$DIST_PATH/"
+        Copy-Item "LICENSE" "$DIST_PATH/"
+        
+        # Create run script
+        $runScriptContent = @"
+        #!/bin/bash
+        # DoIP Server Runner Script
+        
+        SCRIPT_DIR=`$(cd `$(dirname `"`${BASH_SOURCE[0]}`")` && pwd)
+        cd `"`$SCRIPT_DIR`"
+        
+        # Check if executable exists
+        if [ -f `"./${{ matrix.executable_name }}`" ]; then
+          ./${{ matrix.executable_name }} --gateway-config config/gateway1.yaml `"`$@`"
+        else
+          echo `"Error: DoIP Server executable not found`"
+          exit 1
+        fi
+        "@
+        $runScriptContent | Out-File -FilePath "$DIST_PATH/run_doip_server.sh" -Encoding UTF8
+        
+        # Create Windows batch file
+        $batchContent = @"
+        @echo off
+        REM DoIP Server Runner Script for Windows
+        
+        cd /d `"%~dp0`"
+        
+        REM Check if executable exists
+        if exist `"${{ matrix.executable_name }}`" (
+          ${{ matrix.executable_name }} --gateway-config config\gateway1.yaml %*
+        ) else (
+          echo Error: DoIP Server executable not found
+          exit /b 1
+        )
+        "@
+        $batchContent | Out-File -FilePath "$DIST_PATH/run_doip_server.bat" -Encoding ASCII
+        
+        # Create archive
+        Set-Location "dist/executables"
+        if (Get-Command tar -ErrorAction SilentlyContinue) {
+          tar -czf "${DIST_NAME}.tar.gz" "$DIST_NAME"
+          Write-Host "Created: ${DIST_NAME}.tar.gz"
+        }
+        
+        if (Get-Command zip -ErrorAction SilentlyContinue) {
+          Compress-Archive -Path "$DIST_NAME" -DestinationPath "${DIST_NAME}.zip" -Force
+          Write-Host "Created: ${DIST_NAME}.zip"
+        }
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
