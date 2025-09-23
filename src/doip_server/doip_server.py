@@ -207,6 +207,18 @@ class DoIPServer:
             "inverse_protocol_version": f"0x{self.inverse_protocol_version:02X}",
         }
 
+    def is_ready(self) -> bool:
+        """Check if server is ready to accept connections
+
+        Returns:
+            bool: True if server is running and sockets are bound, False otherwise
+        """
+        return (
+            self.running
+            and self.server_socket is not None
+            and self.udp_socket is not None
+        )
+
     def _setup_logging(self):
         """Setup logging based on configuration"""
         logging_config = self.config_manager.get_logging_config()
@@ -273,6 +285,9 @@ class DoIPServer:
         self.logger.info(self.config_manager.get_config_summary())
 
         print(f"DoIP server listening on {self.host}:{self.port} (TCP and UDP)")
+
+        # Signal that server is ready for connections
+        self.logger.info("DoIP server is ready to accept connections")
 
         try:
             while self.running:

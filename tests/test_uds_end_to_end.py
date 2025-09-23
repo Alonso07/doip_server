@@ -15,6 +15,7 @@ import struct
 import time
 import threading
 import sys
+import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -25,47 +26,118 @@ from doip_client.udp_doip_client import UDPDoIPClient
 from doip_server.doip_server import DoIPServer
 
 
+def find_available_port(start_port=13400, max_attempts=10):
+    """Find an available port starting from start_port"""
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("127.0.0.1", port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError(
+        f"No available port found in range {start_port}-{start_port + max_attempts - 1}"
+    )
+
+
+def is_port_in_use(port):
+    """Check if a port is in use"""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            s.connect(("127.0.0.1", port))
+            return True
+    except (OSError, socket.timeout):
+        return False
+
+
 class TestUDSEndToEnd:
     """End-to-end UDS diagnostic communication tests"""
 
     @pytest.fixture
     def server(self):
         """Create and start DoIP server for testing"""
-        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        # Find an available port to avoid conflicts in CI
+        test_port = find_available_port()
+
+        # Create server with the available port
+        server = DoIPServer(
+            host="127.0.0.1", port=test_port, gateway_config_path="config/gateway1.yaml"
+        )
         server_thread = threading.Thread(target=server.start, daemon=True)
         server_thread.start()
 
-        # Wait for server to start and be ready
-        time.sleep(2)
+        # Wait for server to start and be ready with proper verification
+        self._wait_for_server_ready(server, max_wait_time=10)
 
         yield server
 
         # Cleanup
         server.stop()
+        time.sleep(1)  # Give time for cleanup
+
+    def _wait_for_server_ready(self, server, max_wait_time=10):
+        """Wait for server to be ready with proper verification"""
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait_time:
+            # Check if server is ready using the new method
+            if not server.is_ready():
+                time.sleep(0.1)
+                continue
+
+            # Test TCP connection to verify server is ready
+            try:
+                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                test_socket.settimeout(1.0)
+                test_socket.connect(("127.0.0.1", server.port))
+                test_socket.close()
+
+                # Test UDP socket by sending a test packet
+                udp_test_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                udp_test_socket.settimeout(1.0)
+                udp_test_socket.sendto(b"test", ("127.0.0.1", server.port))
+                udp_test_socket.close()
+
+                print(f"✅ Server ready after {time.time() - start_time:.2f} seconds")
+                return
+
+            except Exception as e:
+                print(f"Server not ready yet: {e}")
+                time.sleep(0.2)
+                continue
+
+        raise TimeoutError(
+            f"Server failed to become ready within {max_wait_time} seconds"
+        )
 
     def test_udp_vehicle_discovery_to_tcp_diagnostics(self, server):
         """Test complete workflow: UDP discovery -> TCP connection -> UDS diagnostics"""
 
         # Step 1: UDP Vehicle Identification Discovery
         print("\n=== Step 1: UDP Vehicle Identification Discovery ===")
-        udp_client = UDPDoIPClient(server_port=13400, timeout=5.0)
+        udp_client = UDPDoIPClient(
+            server_port=server.port, server_host=server.host, timeout=10.0
+        )  # Use server's actual port and host
 
         # Start UDP client and send discovery request with retry
-        udp_client.start()
+        if not udp_client.start():
+            raise RuntimeError("Failed to start UDP client")
 
-        # Retry logic for UDP discovery
+        # Retry logic for UDP discovery with more attempts and longer delays
         vehicle_info = None
-        for attempt in range(3):
+        for attempt in range(5):  # Increased from 3 to 5 attempts
+            print(f"UDP discovery attempt {attempt + 1}/5...")
             vehicle_info = udp_client.send_vehicle_identification_request()
             if vehicle_info is not None:
                 break
             print(f"UDP discovery attempt {attempt + 1} failed, retrying...")
-            time.sleep(0.5)
+            time.sleep(1.0)  # Increased delay for CI stability
 
         udp_client.stop()
 
         # Verify vehicle information received
-        assert vehicle_info is not None, "UDP vehicle discovery failed after 3 attempts"
+        assert vehicle_info is not None, "UDP vehicle discovery failed after 5 attempts"
         assert vehicle_info["vin"] == "1HGBH41JXMN109186"
         assert vehicle_info["logical_address"] == 0x1000
         assert vehicle_info["eid"] == "123456789ABC"
@@ -84,7 +156,7 @@ class TestUDSEndToEnd:
 
         try:
             # Connect to server
-            tcp_client.connect(("127.0.0.1", 13400))
+            tcp_client.connect(("127.0.0.1", server.port))
             print("✅ TCP connection established")
 
             # Step 3: DoIP Routing Activation
@@ -413,39 +485,83 @@ class TestUDSEndToEnd:
 class TestUDSEndToEndIntegration:
     """Integration tests for end-to-end UDS communication"""
 
+    def _wait_for_server_ready(self, server, max_wait_time=10):
+        """Wait for server to be ready with proper verification"""
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait_time:
+            # Check if server is ready using the new method
+            if not server.is_ready():
+                time.sleep(0.1)
+                continue
+
+            # Test TCP connection to verify server is ready
+            try:
+                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                test_socket.settimeout(1.0)
+                test_socket.connect(("127.0.0.1", server.port))
+                test_socket.close()
+
+                # Test UDP socket by sending a test packet
+                udp_test_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                udp_test_socket.settimeout(1.0)
+                udp_test_socket.sendto(b"test", ("127.0.0.1", server.port))
+                udp_test_socket.close()
+
+                print(f"✅ Server ready after {time.time() - start_time:.2f} seconds")
+                return
+
+            except Exception as e:
+                print(f"Server not ready yet: {e}")
+                time.sleep(0.2)
+                continue
+
+        raise TimeoutError(
+            f"Server failed to become ready within {max_wait_time} seconds"
+        )
+
     def test_complete_diagnostic_workflow(self):
         """Test complete diagnostic workflow with real server"""
 
         print("\n=== Complete Diagnostic Workflow Test ===")
 
+        # Find an available port to avoid conflicts in CI
+        test_port = find_available_port()
+
         # Start server in background
-        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        server = DoIPServer(
+            host="127.0.0.1", port=test_port, gateway_config_path="config/gateway1.yaml"
+        )
         server_thread = threading.Thread(target=server.start, daemon=True)
         server_thread.start()
 
         try:
-            # Wait for server to start
-            time.sleep(2)
+            # Wait for server to start with proper verification
+            self._wait_for_server_ready(server, max_wait_time=10)
 
             # Step 1: UDP Discovery
             print("1. UDP Vehicle Discovery...")
-            udp_client = UDPDoIPClient(server_port=13400, timeout=5.0)
-            udp_client.start()
+            udp_client = UDPDoIPClient(
+                server_port=server.port, server_host=server.host, timeout=10.0
+            )  # Use server's actual port and host
+            if not udp_client.start():
+                raise RuntimeError("Failed to start UDP client")
 
-            # Retry logic for UDP discovery
+            # Retry logic for UDP discovery with more attempts and longer delays
             vehicle_info = None
-            for attempt in range(3):
+            for attempt in range(5):  # Increased from 3 to 5 attempts
+                print(f"UDP discovery attempt {attempt + 1}/5...")
                 vehicle_info = udp_client.send_vehicle_identification_request()
                 if vehicle_info is not None:
                     break
                 print(f"UDP discovery attempt {attempt + 1} failed, retrying...")
-                time.sleep(0.5)
+                time.sleep(1.0)  # Increased delay for CI stability
 
             udp_client.stop()
 
             assert (
                 vehicle_info is not None
-            ), "UDP vehicle discovery failed after 3 attempts"
+            ), "UDP vehicle discovery failed after 5 attempts"
             print(f"   ✅ Vehicle discovered: {vehicle_info['vin']}")
 
             # Step 2: TCP Diagnostic Communication
@@ -453,7 +569,7 @@ class TestUDSEndToEndIntegration:
 
             tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp_client.settimeout(10.0)
-            tcp_client.connect(("127.0.0.1", 13400))
+            tcp_client.connect(("127.0.0.1", server.port))
 
             # Routing activation
             routing_request = self._create_routing_activation_request()

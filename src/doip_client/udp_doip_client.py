@@ -25,18 +25,25 @@ class UDPDoIPClient:
     PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST = 0x0001
     PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE = 0x0004
 
-    def __init__(self, server_port: int = 13400, timeout: float = 5.0):
+    def __init__(
+        self,
+        server_port: int = 13400,
+        server_host: str = "255.255.255.255",
+        timeout: float = 5.0,
+    ):
         """
         Initialize the UDP DoIP client.
 
         Args:
             server_port: UDP port to send requests to (default: 13400)
+            server_host: Server host address (default: 255.255.255.255 for broadcast)
             timeout: Timeout for receiving responses in seconds
         """
         self.server_port = server_port
+        self.server_host = server_host
         self.timeout = timeout
         self.socket = None
-        self.broadcast_address = "255.255.255.255"
+        self.broadcast_address = server_host
 
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -145,7 +152,16 @@ class UDPDoIPClient:
         """
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+            # Only enable broadcast if using broadcast address
+            if self.server_host == "255.255.255.255":
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                self.logger.info("UDP client configured for broadcast mode")
+            else:
+                self.logger.info(
+                    f"UDP client configured for unicast mode to {self.server_host}"
+                )
+
             self.socket.settimeout(self.timeout)
 
             # Bind to any available port
@@ -153,6 +169,16 @@ class UDPDoIPClient:
             local_port = self.socket.getsockname()[1]
 
             self.logger.info(f"UDP DoIP client started on port {local_port}")
+
+            # Test that we can actually send data
+            try:
+                test_data = b"test"
+                self.socket.sendto(test_data, (self.server_host, self.server_port))
+                self.logger.debug("UDP client test send successful")
+            except Exception as e:
+                self.logger.warning(f"UDP client test send failed: {e}")
+                # Don't fail startup for this, but log it
+
             return True
 
         except Exception as e:
@@ -183,18 +209,21 @@ class UDPDoIPClient:
 
             self.logger.info(
                 f"Sending vehicle identification request to "
-                f"{self.broadcast_address}:{self.server_port}"
+                f"{self.server_host}:{self.server_port}"
             )
             self.logger.debug(f"Request: {request.hex()}")
 
             # Send request
-            self.socket.sendto(request, (self.broadcast_address, self.server_port))
+            bytes_sent = self.socket.sendto(
+                request, (self.server_host, self.server_port)
+            )
+            self.logger.debug(f"Sent {bytes_sent} bytes")
 
             # Wait for response
             self.logger.info("Waiting for vehicle identification response...")
             data, addr = self.socket.recvfrom(1024)
 
-            self.logger.info(f"Received response from {addr}")
+            self.logger.info(f"Received response from {addr} ({len(data)} bytes)")
             self.logger.debug(f"Response: {data.hex()}")
 
             # Parse response
