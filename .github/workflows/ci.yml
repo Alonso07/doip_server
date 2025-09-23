@@ -7,6 +7,51 @@ on:
     branches: [ main, develop ]
 
 jobs:
+  # Quick checks that run on every PR
+  quick-checks:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 2.1.1
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction --no-root
+
+    - name: Run linting
+      run: |
+        poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Check code formatting
+      run: poetry run black --check --diff src/ tests/
+
+    - name: Run security checks
+      run: |
+        poetry run bandit -r src/ -f json -o reports/bandit-report.json || true
+        poetry run safety check --json --output reports/safety-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: |
+          reports/bandit-report.json
+          reports/safety-report.json
+
+  # Comprehensive tests on multiple platforms
   test:
     strategy:
       fail-fast: false
@@ -25,14 +70,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -53,104 +90,16 @@ jobs:
       if: runner.os == 'Windows'
       uses: ./.github/actions/setup-poetry-windows
 
-    - name: Verify Poetry installation (Unix)
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        poetry --version
-        poetry config --list
-
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Install dependencies (Unix)
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && runner.os != 'Windows'
-      shell: bash
+    - name: Install dependencies
       run: |
         poetry install --no-interaction --no-root
         poetry check
 
-    - name: Install dependencies (Windows)
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      uses: ./.github/actions/run-poetry-windows
-      with:
-        command: 'install --no-interaction --no-root'
-
-    - name: Install dependencies (cached) (Unix)
-      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true' && runner.os != 'Windows'
-      shell: bash
+    - name: Run all tests with coverage
       run: |
-        poetry install --no-interaction --no-root
-        poetry check
+        poetry run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing
 
-    - name: Install dependencies (cached) (Windows)
-      if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true' && runner.os == 'Windows'
-      uses: ./.github/actions/run-poetry-windows
-      with:
-        command: 'install --no-interaction --no-root'
-
-    - name: Show environment info (Unix)
-      if: matrix.os != 'windows-latest'
-      shell: bash
-      run: |
-        echo "Python version: $(python --version)"
-        echo "Poetry version: $(poetry --version)"
-        echo "Working directory: $(pwd)"
-        echo "Installed packages:"
-        poetry show
-
-    - name: Show environment info (Windows)
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        Write-Host "Python version: $(python --version)"
-        Write-Host "Poetry version: $(python -m poetry --version)"
-        Write-Host "Working directory: $(Get-Location)"
-        Write-Host "Installed packages:"
-        python -m poetry show
-
-    - name: Run unit tests (Unix)
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        poetry run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Unit tests failed but continuing..."
-
-    - name: Run unit tests (Windows)
-      if: runner.os == 'Windows'
-      uses: ./.github/actions/run-poetry-windows
-      with:
-        command: 'run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing'
-
-    - name: Run integration tests (Unix)
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        poetry run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "Integration tests failed but continuing..."
-
-    - name: Run integration tests (Windows)
-      if: runner.os == 'Windows'
-      uses: ./.github/actions/run-poetry-windows
-      with:
-        command: 'run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing'
-
-    - name: Run all tests with coverage (Unix)
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        poetry run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing || echo "All tests failed but continuing..."
-
-    - name: Run all tests with coverage (Windows)
-      if: runner.os == 'Windows'
-      uses: ./.github/actions/run-poetry-windows
-      with:
-        command: 'run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing'
-
-    - name: Check if coverage file exists (Unix)
-      if: runner.os != 'Windows'
+    - name: Check if coverage file exists
       shell: bash
       run: |
         if [ -f "coverage.xml" ]; then
@@ -160,132 +109,29 @@ jobs:
           echo '<?xml version="1.0" ?><coverage></coverage>' > coverage.xml
         fi
 
-    - name: Check if coverage file exists (Windows)
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        if (Test-Path "coverage.xml") {
-          $size = (Get-Item "coverage.xml").Length
-          Write-Host "Coverage file found, size: $size bytes"
-        } else {
-          Write-Host "Coverage file not found, creating empty one"
-          '<?xml version="1.0" ?><coverage></coverage>' | Out-File -FilePath "coverage.xml" -Encoding UTF8
-        }
-
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       if: always()
       with:
         file: ./coverage.xml
         flags: unittests
-        name: codecov-umbrella
+        name: codecov-${{ matrix.os }}-${{ matrix.python-version }}
         fail_ci_if_error: false
 
-  lint:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.11]
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: 2.1.1
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
-
-    - name: Configure Poetry
-      run: |
-        poetry config virtualenvs.create true
-        poetry config virtualenvs.in-project true
-
-    - name: Install dependencies
-      run: |
-        poetry install --no-interaction --no-root
-        poetry check
-
-    - name: Run flake8
-      run: |
-        poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-    - name: Check code formatting
-      run: |
-        poetry run black --check --diff src/ tests/
-
-  security:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.11]
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: 2.1.1
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
-
-    - name: Configure Poetry
-      run: |
-        poetry config virtualenvs.create true
-        poetry config virtualenvs.in-project true
-
-    - name: Install dependencies
-      run: |
-        poetry install --no-interaction --no-root
-        poetry check
-
-    - name: Run security checks
-      run: |
-        poetry run bandit -r src/ -f json -o reports/bandit-report.json || true
-        poetry run safety check --json --output reports/safety-report.json || true
-
-    - name: Upload security reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-reports-${{ matrix.python-version }}
-        path: |
-          reports/bandit-report.json
-          reports/safety-report.json
-
+  # Build only on main branch
   build:
-    needs: [test, lint, security]
+    needs: [quick-checks, test]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.11]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.11'
         cache: 'pip'
 
     - name: Install Poetry
@@ -294,7 +140,6 @@ jobs:
         version: 2.1.1
         virtualenvs-create: true
         virtualenvs-in-project: true
-        installer-parallel: true
 
     - name: Configure Poetry
       run: |

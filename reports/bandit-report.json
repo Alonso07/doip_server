@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2025-09-22T00:00:20Z",
+  "generated_at": "2025-09-23T05:29:02Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 0,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 2,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 2193,
+      "loc": 2597,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -76,7 +76,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 0,
+      "loc": 52,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -89,7 +89,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 715,
+      "loc": 841,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -102,7 +102,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 2,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 463,
+      "loc": 654,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -115,14 +115,14 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 28,
+      "loc": 63,
       "nosec": 0,
       "skipped_tests": 0
     }
   },
   "results": [
     {
-      "code": "252                 \"name\": \"FallbackGateway\",\n253                 \"network\": {\"host\": \"0.0.0.0\", \"port\": 13400},\n254                 \"protocol\": {\"version\": 0x02, \"inverse_version\": 0xFD},\n",
+      "code": "351                 \"name\": \"FallbackGateway\",\n352                 \"network\": {\"host\": \"0.0.0.0\", \"port\": 13400},\n353                 \"protocol\": {\"version\": 0x02, \"inverse_version\": 0xFD},\n",
       "col_offset": 36,
       "end_col_offset": 45,
       "filename": "src/doip_server/hierarchical_config_manager.py",
@@ -133,16 +133,16 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible binding to all interfaces.",
-      "line_number": 253,
+      "line_number": 352,
       "line_range": [
-        253
+        352
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html",
       "test_id": "B104",
       "test_name": "hardcoded_bind_all_interfaces"
     },
     {
-      "code": "270         network_config = self.get_network_config()\n271         host = network_config.get(\"host\", \"0.0.0.0\")\n272         port = network_config.get(\"port\", 13400)\n",
+      "code": "395         network_config = self.get_network_config()\n396         host = network_config.get(\"host\", \"0.0.0.0\")\n397         port = network_config.get(\"port\", 13400)\n",
       "col_offset": 42,
       "end_col_offset": 51,
       "filename": "src/doip_server/hierarchical_config_manager.py",
@@ -153,9 +153,9 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible binding to all interfaces.",
-      "line_number": 271,
+      "line_number": 396,
       "line_range": [
-        271
+        396
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html",
       "test_id": "B104",

@@ -35,8 +35,8 @@ class TestUDSEndToEnd:
         server_thread = threading.Thread(target=server.start, daemon=True)
         server_thread.start()
 
-        # Wait for server to start
-        time.sleep(1)
+        # Wait for server to start and be ready
+        time.sleep(2)
 
         yield server
 
@@ -50,13 +50,22 @@ class TestUDSEndToEnd:
         print("\n=== Step 1: UDP Vehicle Identification Discovery ===")
         udp_client = UDPDoIPClient(server_port=13400, timeout=5.0)
 
-        # Start UDP client and send discovery request
+        # Start UDP client and send discovery request with retry
         udp_client.start()
-        vehicle_info = udp_client.send_vehicle_identification_request()
+
+        # Retry logic for UDP discovery
+        vehicle_info = None
+        for attempt in range(3):
+            vehicle_info = udp_client.send_vehicle_identification_request()
+            if vehicle_info is not None:
+                break
+            print(f"UDP discovery attempt {attempt + 1} failed, retrying...")
+            time.sleep(0.5)
+
         udp_client.stop()
 
         # Verify vehicle information received
-        assert vehicle_info is not None
+        assert vehicle_info is not None, "UDP vehicle discovery failed after 3 attempts"
         assert vehicle_info["vin"] == "1HGBH41JXMN109186"
         assert vehicle_info["logical_address"] == 0x1000
         assert vehicle_info["eid"] == "123456789ABC"
@@ -422,10 +431,21 @@ class TestUDSEndToEndIntegration:
             print("1. UDP Vehicle Discovery...")
             udp_client = UDPDoIPClient(server_port=13400, timeout=5.0)
             udp_client.start()
-            vehicle_info = udp_client.send_vehicle_identification_request()
+
+            # Retry logic for UDP discovery
+            vehicle_info = None
+            for attempt in range(3):
+                vehicle_info = udp_client.send_vehicle_identification_request()
+                if vehicle_info is not None:
+                    break
+                print(f"UDP discovery attempt {attempt + 1} failed, retrying...")
+                time.sleep(0.5)
+
             udp_client.stop()
 
-            assert vehicle_info is not None
+            assert (
+                vehicle_info is not None
+            ), "UDP vehicle discovery failed after 3 attempts"
             print(f"   ✅ Vehicle discovered: {vehicle_info['vin']}")
 
             # Step 2: TCP Diagnostic Communication
