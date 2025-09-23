@@ -128,6 +128,61 @@ engine_services:
 - **Functional Addresses**: Broadcast addresses for functional addressing
 - **Address Validation**: Automatic validation of source/target addresses
 
+### UDS Request Matching
+
+The DoIP server supports two types of UDS request matching:
+
+#### Exact Matching (Default)
+UDS requests are matched exactly against the configured request string:
+```yaml
+engine_services:
+  read_engine_rpm:
+    request: "0x220C01"  # Exact match required
+    responses: ["0x620C018000"]
+    description: "Read engine RPM"
+```
+
+#### Regular Expression Matching
+For flexible request patterns, use the `regex:` prefix to enable regular expression matching:
+```yaml
+engine_services:
+  read_any_engine_data:
+    request: "regex:^220C[0-9A-F]{2}$"  # Matches any 220CXX request
+    responses: ["0x620C0080"]
+    description: "Read any engine data identifier"
+    
+  diagnostic_session_any:
+    request: "regex:^10[0-9A-F]{2}$"  # Matches any 10XX request
+    responses: ["0x500300001212"]
+    description: "Any diagnostic session control request"
+    
+  security_access_any:
+    request: "regex:^27[0-9A-F]{2}$"  # Matches any 27XX request
+    responses: ["0x6701"]
+    description: "Any security access request"
+```
+
+**Regex Pattern Guidelines:**
+- Use `^` to match the start of the string
+- Use `$` to match the end of the string
+- Use `[0-9A-F]` to match any hexadecimal character
+- Use `{2}` to match exactly 2 characters
+- Use `+` to match one or more characters
+- Use `*` to match zero or more characters
+- Use `|` for alternation (OR logic)
+
+**Examples:**
+- `^22F1[0-9A-F]{2}$` - Matches 22F1 followed by any 2 hex digits
+- `^10[0-9A-F]+$` - Matches 10 followed by one or more hex digits
+- `^19(02|03|0A)$` - Matches 1902, 1903, or 190A
+- `^31[0-9A-F]{2}00[0-9A-F]{2}$` - Matches 31XX00XX pattern for routine control
+
+**Important Notes:**
+- Regex patterns are case-insensitive
+- Both the original request and the request with `0x` prefix are tested
+- Invalid regex patterns are logged as warnings and treated as non-matching
+- Exact matching is tried first, then regex matching
+
 ### UDS Services
 - **Service Definitions**: Configure UDS services and responses
 - **Response Cycling**: Multiple responses per service for testing

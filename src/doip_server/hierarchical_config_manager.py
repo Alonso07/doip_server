@@ -9,6 +9,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 import yaml
+import re
 
 
 class HierarchicalConfigManager:
@@ -623,8 +624,8 @@ gateway:
         return functional_services
 
     def _match_request(self, config_request: str, request: str) -> bool:
-        """Check if a request matches a configured request"""
-        # Handle both with and without 0x prefix
+        """Check if a request matches a configured request or regex pattern"""
+        # Handle both with and without 0x prefix for exact matches
         if config_request == request:
             return True
         if config_request == f"0x{request}":
@@ -633,6 +634,27 @@ gateway:
             return True
         if f"0x{config_request}" == request:
             return True
+        
+        # Check if config_request is a regex pattern (starts with 'regex:')
+        if config_request.startswith('regex:'):
+            pattern = config_request[6:]  # Remove 'regex:' prefix
+            try:
+                # Compile the regex pattern for case-insensitive matching
+                regex = re.compile(pattern, re.IGNORECASE)
+                # Test against both the original request and variations with/without 0x prefix
+                if regex.match(request):
+                    return True
+                # If request has 0x prefix, test without it
+                if request.startswith('0x') and regex.match(request[2:]):
+                    return True
+                # If request doesn't have 0x prefix, test with it
+                if not request.startswith('0x') and regex.match(f"0x{request}"):
+                    return True
+            except re.error as e:
+                # Log regex compilation error but don't fail the matching
+                self.logger.warning(f"Invalid regex pattern '{pattern}': {e}")
+                return False
+        
         return False
 
     def get_routine_activation_config(self, target_address: int) -> Dict[str, Any]:

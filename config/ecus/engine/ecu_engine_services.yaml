@@ -116,3 +116,25 @@ engine_services:
       - "0x620C2E02"  # Calibration failed
     description: "Read engine calibration status"
     supports_functional: false  # Physical addressing only
+
+  # Regex-based flexible matching examples
+  Engine_Data_Read_Any:
+    request: "regex:^220C[0-9A-F]{2}$"  # Matches any 220CXX request
+    responses:
+      - "0x620C0080"  # Generic engine data response
+    description: "Read any engine data identifier"
+    supports_functional: false
+    
+  Engine_Routine_Control_Any:
+    request: "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$"  # Matches any 31XX00XX routine
+    responses:
+      - "0x71000000"  # Generic routine response
+    description: "Any engine routine control request"
+    supports_functional: false
+    
+  Engine_DTC_Read_Any:
+    request: "regex:^19[0-9A-F]{2}$"  # Matches any 19XX DTC request
+    responses:
+      - "0x59020000"  # Generic DTC response
+    description: "Read any engine diagnostic trouble codes"
+    supports_functional: true

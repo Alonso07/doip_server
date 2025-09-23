@@ -61,6 +61,28 @@ common_services:
     description: "Security Access"
 
   # Additional common services
+  
+  # Example of regex-based matching for flexible request patterns
+  Read_Data_By_Identifier_Any:
+    request: "regex:^22F1[0-9A-F]{2}$"  # Matches any 22F1XX request
+    responses:
+      - "0x62F1901020011223344556677889AABB12121212"  # Generic response
+    description: "Read any data identifier starting with 22F1"
+    supports_functional: true
+    
+  Diagnostic_Session_Control_Any:
+    request: "regex:^10[0-9A-F]{2}$"  # Matches any 10XX request
+    responses:
+      - "0x500300001212"  # Generic positive response
+    description: "Any diagnostic session control request"
+    supports_functional: true
+    
+  Security_Access_Any:
+    request: "regex:^27[0-9A-F]{2}$"  # Matches any 27XX request
+    responses:
+      - "0x6701"  # Generic positive response
+    description: "Any security access request"
+    supports_functional: false
   Read_Data_By_Identifier:
     request: "0x22"
     responses:
