@@ -185,7 +185,13 @@ class TestUDSEndToEnd:
             )
             tcp_client.send(diag_request)
 
-            # Receive session control response
+            # Receive session control response (now multiple responses: ACK + UDS)
+            # First response should be ACK
+            ack_response = tcp_client.recv(1024)
+            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+            
+            # Second response should be UDS response
             response = tcp_client.recv(1024)
             session_response = self._parse_diagnostic_message_response(response)
 
@@ -203,7 +209,13 @@ class TestUDSEndToEnd:
             )
             tcp_client.send(diag_request)
 
-            # Receive VIN response
+            # Receive VIN response (now multiple responses: ACK + UDS)
+            # First response should be ACK
+            ack_response = tcp_client.recv(1024)
+            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+            
+            # Second response should be UDS response
             response = tcp_client.recv(1024)
             vin_response = self._parse_diagnostic_message_response(response)
 
@@ -234,7 +246,12 @@ class TestUDSEndToEnd:
                 )
                 tcp_client.send(diag_request)
 
-                # Receive service response
+                # Receive service response (now multiple responses: ACK + UDS)
+                # First response should be ACK
+                ack_response = tcp_client.recv(1024)
+                ack_parsed = self._parse_diagnostic_message_response(ack_response)
+                assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+                # Then receive UDS response
                 response = tcp_client.recv(1024)
                 service_response = self._parse_diagnostic_message_response(response)
 
@@ -252,6 +269,12 @@ class TestUDSEndToEnd:
                 )
                 tcp_client.send(diag_request)
 
+                # Receive VIN response (now multiple responses: ACK + UDS)
+                # First response should be ACK
+                ack_response = tcp_client.recv(1024)
+                ack_parsed = self._parse_diagnostic_message_response(ack_response)
+                assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+                # Then receive UDS response
                 response = tcp_client.recv(1024)
                 vin_response = self._parse_diagnostic_message_response(response)
 
@@ -268,6 +291,12 @@ class TestUDSEndToEnd:
             )
             tcp_client.send(diag_request)
 
+            # Receive tester present response (now multiple responses: ACK + UDS)
+            # First response should be ACK
+            ack_response = tcp_client.recv(1024)
+            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+            # Then receive UDS response
             response = tcp_client.recv(1024)
             tester_response = self._parse_diagnostic_message_response(response)
 
@@ -304,6 +333,11 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C01),  # RPM
             )
             tcp_client.send(engine_request)
+            # Receive ACK first
+            ack_response = tcp_client.recv(1024)
+            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+            # Then receive UDS response
             engine_response = self._parse_diagnostic_message_response(
                 tcp_client.recv(1024)
             )
@@ -318,6 +352,11 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C0A),  # Gear
             )
             tcp_client.send(trans_request)
+            # Receive ACK first
+            ack_response = tcp_client.recv(1024)
+            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+            # Then receive UDS response
             trans_response = self._parse_diagnostic_message_response(
                 tcp_client.recv(1024)
             )
@@ -332,6 +371,11 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C0B),  # Wheel Speed
             )
             tcp_client.send(abs_request)
+            # Receive ACK first
+            ack_response = tcp_client.recv(1024)
+            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
+            # Then receive UDS response
             abs_response = self._parse_diagnostic_message_response(
                 tcp_client.recv(1024)
             )

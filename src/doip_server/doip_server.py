@@ -326,7 +326,7 @@ class DoIPServer:
             self.udp_socket.close()
 
     def handle_client(self, client_socket):
-        """Handle client connection"""
+        """Handle client connection and send multiple DoIP messages when needed"""
         try:
             while self.running:
                 data = client_socket.recv(1024)
@@ -334,17 +334,26 @@ class DoIPServer:
                     break
 
                 print(f"Received data: {data.hex()}")
-                response = self.process_doip_message(data)
-                if response:
-                    client_socket.send(response)
-                    print(f"Sent response: {response.hex()}")
+                responses = self.process_doip_message(data)
+                
+                # Handle both single response and list of responses
+                if responses:
+                    if isinstance(responses, list):
+                        # Send multiple responses
+                        for i, response in enumerate(responses):
+                            client_socket.send(response)
+                            print(f"Sent response {i+1}/{len(responses)}: {response.hex()}")
+                    else:
+                        # Single response (backward compatibility)
+                        client_socket.send(responses)
+                        print(f"Sent response: {responses.hex()}")
         except Exception as e:
             print(f"Error handling client: {e}")
         finally:
             client_socket.close()
 
     def process_doip_message(self, data):
-        """Process incoming DoIP message and return appropriate response.
+        """Process incoming DoIP message and return appropriate response(s).
 
         This method parses incoming DoIP messages and routes them to the appropriate
         handler based on the payload type. It validates the DoIP header and protocol
@@ -354,11 +363,13 @@ class DoIPServer:
             data (bytes): Raw DoIP message data including header and payload
 
         Returns:
-            bytes or None: DoIP response message if successful, None if invalid or unsupported
+            bytes, list, or None: DoIP response message(s) if successful, None if invalid or unsupported
+            - For diagnostic messages: Returns list of responses (ACK + UDS responses)
+            - For other messages: Returns single response message
 
         Supported Payload Types:
             - 0x0005: Routing Activation Request
-            - 0x8001: Diagnostic Message (UDS)
+            - 0x8001: Diagnostic Message (UDS) - returns list of responses
             - 0x0001: Alive Check Request
             - 0x0007: Alive Check Request (alternative)
             - 0x0008: Power Mode Request
@@ -454,12 +465,16 @@ class DoIPServer:
         )
 
     def handle_diagnostic_message(self, payload):
-        """Handle diagnostic message (UDS)"""
+        """Handle diagnostic message (UDS) and return list of responses
+        
+        Returns:
+            list: List of DoIP response messages to send to client
+        """
         self.logger.info("Processing diagnostic message")
 
         if len(payload) < 4:
             self.logger.warning("Diagnostic message payload too short")
-            return None
+            return [self.create_doip_nack(0x01)]  # Invalid payload length
 
         # Extract source and target addresses
         source_address = struct.unpack(">H", payload[0:2])[0]
@@ -491,21 +506,35 @@ class DoIPServer:
                 f"Source address 0x{source_address:04X} not allowed for "
                 f"target 0x{target_address:04X}"
             )
-            return self.create_doip_nack(0x03)  # Unsupported source address
+            return [self.create_doip_nack(0x03)]  # Unsupported source address
 
         if not self.config_manager.is_target_address_valid(target_address):
             self.logger.warning(f"Target address 0x{target_address:04X} not valid")
-            return self.create_doip_nack(0x04)  # Unsupported target address
+            return [self.create_doip_nack(0x04)]  # Unsupported target address
 
         # Process UDS message
         uds_response = self.process_uds_message(uds_payload, target_address)
 
+        responses = []
+        
+        # Always send diagnostic message acknowledgment first
+        ack_message = self.create_diagnostic_message_ack(
+            target_address, source_address, 0x00  # ACK code
+        )
+        responses.append(ack_message)
+        self.logger.info("Added diagnostic message acknowledgment to response list")
+
+        # Add UDS response if available
         if uds_response:
-            return self.create_diagnostic_message_response(
+            uds_response_message = self.create_diagnostic_message_response(
                 target_address, source_address, uds_response
             )
+            responses.append(uds_response_message)
+            self.logger.info("Added UDS response to response list")
+        else:
+            self.logger.warning("No UDS response generated")
 
-        return None
+        return responses
 
     def handle_functional_diagnostic_message(
         self, source_address, functional_address, uds_payload, target_ecus
@@ -517,7 +546,7 @@ class DoIPServer:
         1. Validates source address authorization for each target ECU
         2. Checks if each ECU supports the UDS service with functional addressing
         3. Processes the UDS message for each responding ECU
-        4. Returns the first valid response (with logging of all responses)
+        4. Returns a list of all valid responses
 
         Args:
             source_address (int): Source logical address of the requesting client
@@ -526,12 +555,7 @@ class DoIPServer:
             target_ecus (List[int]): List of ECU addresses that use this functional address
 
         Returns:
-            bytes or None: DoIP response message if at least one ECU responds, None otherwise
-
-        Note:
-            This implementation returns the first valid response for simplicity.
-            In a real implementation, you might want to handle multiple responses
-            differently (e.g., sequential responses, aggregated responses, etc.).
+            list: List of DoIP response messages to send to client
         """
         self.logger.info(
             f"Handling functional diagnostic message to 0x{functional_address:04X}"
@@ -571,10 +595,16 @@ class DoIPServer:
             self.logger.warning(
                 f"No ECUs support functional addressing for UDS request: {uds_hex}"
             )
-            return self.create_doip_nack(0x04)  # Unsupported target address
+            return [self.create_doip_nack(0x04)]  # Unsupported target address
+
+        # Always send diagnostic message acknowledgment first
+        ack_message = self.create_diagnostic_message_ack(
+            functional_address, source_address, 0x00  # ACK code
+        )
+        responses = [ack_message]
+        self.logger.info("Added diagnostic message acknowledgment to response list")
 
         # Process the UDS message for each responding ECU and collect responses
-        responses = []
         for ecu_address in responding_ecus:
             uds_response = self.process_uds_message(uds_payload, ecu_address)
             if uds_response:
@@ -582,34 +612,24 @@ class DoIPServer:
                 response = self.create_diagnostic_message_response(
                     functional_address, source_address, uds_response
                 )
-                responses.append({"ecu_address": ecu_address, "response": response})
+                responses.append(response)
                 self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
 
-        if not responses:
-            self.logger.warning("No valid responses generated from any ECU")
-            return self.create_doip_nack(0x04)  # Unsupported target address
+        if len(responses) == 1:  # Only ACK, no UDS responses
+            self.logger.warning("No valid UDS responses generated from any ECU")
+            # Still return the ACK message
 
         # Enhanced functional addressing: return multiple responses
-        # Store all responses for potential multiple response handling
-        self.logger.info(f"Functional addressing: {len(responses)} ECUs responded")
-
-        # For now, return the first response as the primary response
-        # In a real implementation, you might want to handle multiple responses differently
-        # This could involve:
-        # 1. Returning all responses sequentially
-        # 2. Aggregating responses into a single response
-        # 3. Using a different protocol for multiple responses
+        self.logger.info(f"Functional addressing: {len(responses)-1} ECUs responded (plus ACK)")
 
         # Log all responses for debugging
         for i, resp in enumerate(responses):
-            self.logger.info(
-                f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: "
-                f"{resp['response'].hex()}"
-            )
+            if i == 0:
+                self.logger.info(f"ACK Response: {resp.hex()}")
+            else:
+                self.logger.info(f"UDS Response {i} from ECU: {resp.hex()}")
 
-        # Return the first response as the primary response
-        # TODO: Implement proper multiple response handling
-        return responses[0]["response"]
+        return responses
 
     def handle_functional_diagnostic_message_multiple_responses(
         self, source_address, functional_address, uds_payload, target_ecus
@@ -984,6 +1004,40 @@ class DoIPServer:
             len(payload),
         )
 
+        return header + payload
+
+    def create_diagnostic_message_ack(self, source_addr, target_addr, ack_code=0x00):
+        """Create DoIP diagnostic message acknowledgment (0x8002)
+        
+        Args:
+            source_addr (int): Source address (ECU address)
+            target_addr (int): Target address (tester address)
+            ack_code (int): Acknowledgment code (0x00 = ACK)
+            
+        Returns:
+            bytes: DoIP diagnostic message acknowledgment message
+            
+        Payload structure:
+            - 1 byte: DoIP version (from config)
+            - 1 byte: Inverse DoIP version (from config)
+            - 2 bytes: Payload type (0x8002)
+            - 4 bytes: Payload length (usually 5)
+            - 2 bytes: Source address (ECU address)
+            - 2 bytes: Target address (tester address)
+            - 1 byte: Acknowledgment code (0x00 = ACK)
+        """
+        # Create payload: source_addr (2 bytes) + target_addr (2 bytes) + ack_code (1 byte)
+        payload = struct.pack(">HHB", source_addr, target_addr, ack_code)
+        
+        # Create DoIP header
+        header = struct.pack(
+            ">BBHI",
+            self.protocol_version,
+            self.inverse_protocol_version,
+            PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_ACK,
+            len(payload),
+        )
+        
         return header + payload
 
     def handle_udp_message(self, data, addr):
