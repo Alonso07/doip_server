@@ -1,7 +1,7 @@
 # ABS ECU Specific UDS Services
 # This file contains UDS services specific to the Anti-lock Braking System Control Unit
 
-abs_services:
+specific_services:
   ABS_Wheel_Speed_Read:
     request: "0x220C0B"
     responses:

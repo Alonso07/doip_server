@@ -335,14 +335,16 @@ class DoIPServer:
 
                 print(f"Received data: {data.hex()}")
                 responses = self.process_doip_message(data)
-                
+
                 # Handle both single response and list of responses
                 if responses:
                     if isinstance(responses, list):
                         # Send multiple responses
                         for i, response in enumerate(responses):
                             client_socket.send(response)
-                            print(f"Sent response {i+1}/{len(responses)}: {response.hex()}")
+                            print(
+                                f"Sent response {i+1}/{len(responses)}: {response.hex()}"
+                            )
                     else:
                         # Single response (backward compatibility)
                         client_socket.send(responses)
@@ -466,7 +468,7 @@ class DoIPServer:
 
     def handle_diagnostic_message(self, payload):
         """Handle diagnostic message (UDS) and return list of responses
-        
+
         Returns:
             list: List of DoIP response messages to send to client
         """
@@ -516,7 +518,7 @@ class DoIPServer:
         uds_response = self.process_uds_message(uds_payload, target_address)
 
         responses = []
-        
+
         # Always send diagnostic message acknowledgment first
         ack_message = self.create_diagnostic_message_ack(
             target_address, source_address, 0x00  # ACK code
@@ -620,7 +622,9 @@ class DoIPServer:
             # Still return the ACK message
 
         # Enhanced functional addressing: return multiple responses
-        self.logger.info(f"Functional addressing: {len(responses)-1} ECUs responded (plus ACK)")
+        self.logger.info(
+            f"Functional addressing: {len(responses)-1} ECUs responded (plus ACK)"
+        )
 
         # Log all responses for debugging
         for i, resp in enumerate(responses):
@@ -1008,15 +1012,15 @@ class DoIPServer:
 
     def create_diagnostic_message_ack(self, source_addr, target_addr, ack_code=0x00):
         """Create DoIP diagnostic message acknowledgment (0x8002)
-        
+
         Args:
             source_addr (int): Source address (ECU address)
             target_addr (int): Target address (tester address)
             ack_code (int): Acknowledgment code (0x00 = ACK)
-            
+
         Returns:
             bytes: DoIP diagnostic message acknowledgment message
-            
+
         Payload structure:
             - 1 byte: DoIP version (from config)
             - 1 byte: Inverse DoIP version (from config)
@@ -1028,7 +1032,7 @@ class DoIPServer:
         """
         # Create payload: source_addr (2 bytes) + target_addr (2 bytes) + ack_code (1 byte)
         payload = struct.pack(">HHB", source_addr, target_addr, ack_code)
-        
+
         # Create DoIP header
         header = struct.pack(
             ">BBHI",
@@ -1037,7 +1041,7 @@ class DoIPServer:
             PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_ACK,
             len(payload),
         )
-        
+
         return header + payload
 
     def handle_udp_message(self, data, addr):

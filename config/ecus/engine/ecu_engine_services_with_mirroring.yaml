@@ -2,7 +2,7 @@
 # This file contains UDS services specific to the Engine Control Unit
 # with examples of request mirroring functionality
 
-engine_services:
+specific_services:
   # Example 1: Mirror specific bytes from request
   Engine_Data_Read_With_Mirroring:
     request: "0x220C01"

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-12-25
+
+### Changed
+- **BREAKING**: Updated ECU service configuration naming convention
+  - Changed from ECU-specific service names (`abs_services`, `engine_services`, `transmission_services`) to generic `specific_services`
+  - This makes the configuration more agnostic and easily extensible for new ECU types
+  - Updated `hierarchical_config_manager.py` to use the new naming convention
+  - All existing functionality preserved with improved maintainability
+
 ### Added
 - docs/CONTRIBUTING.md with comprehensive contributor guidelines
 - docs/CODE_OF_CONDUCT.md for community standards

@@ -279,20 +279,10 @@ gateway:
             for service_name, service_config_data in common_services.items():
                 self.uds_services[service_name] = service_config_data
 
-            # Load ECU-specific services based on file name or content
-            if "engine_services" in service_config:
-                engine_services = service_config.get("engine_services", {})
-                for service_name, service_config_data in engine_services.items():
-                    self.uds_services[service_name] = service_config_data
-
-            if "transmission_services" in service_config:
-                transmission_services = service_config.get("transmission_services", {})
-                for service_name, service_config_data in transmission_services.items():
-                    self.uds_services[service_name] = service_config_data
-
-            if "abs_services" in service_config:
-                abs_services = service_config.get("abs_services", {})
-                for service_name, service_config_data in abs_services.items():
+            # Load ECU-specific services using the generic specific_services key
+            if "specific_services" in service_config:
+                specific_services = service_config.get("specific_services", {})
+                for service_name, service_config_data in specific_services.items():
                     self.uds_services[service_name] = service_config_data
 
             self.logger.debug(f"Loaded services from: {actual_path}")
@@ -560,16 +550,10 @@ gateway:
             common_services = service_config.get("common_services", {})
             services.update(common_services)
 
-            # Load ECU-specific services based on ECU address
-            if ecu_address == 0x1000:  # Engine ECU
-                engine_services = service_config.get("engine_services", {})
-                services.update(engine_services)
-            elif ecu_address == 0x1001:  # Transmission ECU
-                transmission_services = service_config.get("transmission_services", {})
-                services.update(transmission_services)
-            elif ecu_address == 0x1002:  # ABS ECU
-                abs_services = service_config.get("abs_services", {})
-                services.update(abs_services)
+            # Load ECU-specific services using the generic specific_services key
+            # This works for any ECU type since they all use the same key name
+            specific_services = service_config.get("specific_services", {})
+            services.update(specific_services)
 
             return services
 

@@ -1,7 +1,7 @@
 # Transmission ECU Specific UDS Services
 # This file contains UDS services specific to the Transmission Control Unit
 
-transmission_services:
+specific_services:
   Transmission_Gear_Read:
     request: "0x220C0A"
     responses:

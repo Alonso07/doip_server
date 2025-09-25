@@ -1,7 +1,7 @@
 # Engine ECU Specific UDS Services
 # This file contains UDS services specific to the Engine Control Unit
 
-engine_services:
+specific_services:
   Engine_RPM_Read:
     request: "0x220C01"
     responses:
