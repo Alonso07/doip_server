@@ -35,8 +35,8 @@ print_error() {
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Change to the script directory
-cd "$SCRIPT_DIR"
+# Change to the project root directory (two levels up from scripts/publish)
+cd "$SCRIPT_DIR/../.."
 
 # Check if we're in the right directory
 if [ ! -f "pyproject.toml" ]; then
