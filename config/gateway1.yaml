@@ -66,6 +66,30 @@ gateway:
       0x7E: "Sub-function not supported in active session"
       0x7F: "Service not supported in active session"
 
+  # Power Mode Status Configuration
+  power_mode_status:
+    description: "Power mode status values for DoIP power mode response (payload type 0x0008)"
+    current_status: 0x0001  # Current power mode status (2 bytes)
+    available_statuses:
+      0x0000: 
+        name: "Power Off"
+        description: "ECU is powered off"
+      0x0001:
+        name: "Power On"
+        description: "ECU is powered on and ready"
+      0x0002:
+        name: "Power Standby"
+        description: "ECU is in standby mode"
+      0x0003:
+        name: "Power Sleep"
+        description: "ECU is in sleep mode"
+      0x0004:
+        name: "Power Wake"
+        description: "ECU is waking up"
+    response_cycling:
+      enabled: false  # Enable cycling through different power mode statuses
+      cycle_through: [0x0001, 0x0002, 0x0003]  # Statuses to cycle through
+
 # Logging Configuration
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
