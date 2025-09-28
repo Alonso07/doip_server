@@ -416,6 +416,10 @@ gateway:
             "description": gateway_config.get("description", ""),
         }
 
+    def get_power_mode_config(self) -> Dict[str, Any]:
+        """Get power mode status configuration"""
+        return self.get_gateway_config().get("power_mode_status", {})
+
     # ECU configuration methods
     def get_all_ecu_addresses(self) -> List[int]:
         """Get all configured ECU target addresses.
