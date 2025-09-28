@@ -599,20 +599,22 @@ class DoIPServer:
             )
             return [self.create_doip_nack(0x04)]  # Unsupported target address
 
-        # Always send diagnostic message acknowledgment first
+        # Send one ACK for the functional request (using functional address as source)
         ack_message = self.create_diagnostic_message_ack(
             functional_address, source_address, 0x00  # ACK code
         )
         responses = [ack_message]
-        self.logger.info("Added diagnostic message acknowledgment to response list")
+        self.logger.info(
+            "Added single diagnostic message acknowledgment for functional request"
+        )
 
         # Process the UDS message for each responding ECU and collect responses
         for ecu_address in responding_ecus:
             uds_response = self.process_uds_message(uds_payload, ecu_address)
             if uds_response:
-                # Create individual response for this ECU
+                # Create individual response for this ECU (using ECU's address as source)
                 response = self.create_diagnostic_message_response(
-                    functional_address, source_address, uds_response
+                    ecu_address, source_address, uds_response
                 )
                 responses.append(response)
                 self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
@@ -622,16 +624,21 @@ class DoIPServer:
             # Still return the ACK message
 
         # Enhanced functional addressing: return multiple responses
+        # 1 ACK + N UDS responses (one per responding ECU)
+        ecu_count = len(responses) - 1  # Subtract 1 for the ACK
         self.logger.info(
-            f"Functional addressing: {len(responses)-1} ECUs responded (plus ACK)"
+            f"Functional addressing: {ecu_count} ECUs responded (1 ACK + {ecu_count} UDS responses)"
         )
 
         # Log all responses for debugging
         for i, resp in enumerate(responses):
-            if i == 0:
+            if i == 0:  # First response is the ACK
                 self.logger.info(f"ACK Response: {resp.hex()}")
-            else:
-                self.logger.info(f"UDS Response {i} from ECU: {resp.hex()}")
+            else:  # Remaining responses are UDS responses from individual ECUs
+                ecu_addr = responding_ecus[i - 1]
+                self.logger.info(
+                    f"UDS Response from ECU 0x{ecu_addr:04X}: {resp.hex()}"
+                )
 
         return responses
 
