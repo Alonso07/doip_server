@@ -609,6 +609,7 @@ class DoIPServer:
         )
 
         # Process the UDS message for each responding ECU and collect responses
+        ecu_addresses_with_responses = []
         for ecu_address in responding_ecus:
             uds_response = self.process_uds_message(uds_payload, ecu_address)
             if uds_response:
@@ -617,6 +618,7 @@ class DoIPServer:
                     ecu_address, source_address, uds_response
                 )
                 responses.append(response)
+                ecu_addresses_with_responses.append(ecu_address)
                 self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
 
         if len(responses) == 1:  # Only ACK, no UDS responses
@@ -635,7 +637,7 @@ class DoIPServer:
             if i == 0:  # First response is the ACK
                 self.logger.info(f"ACK Response: {resp.hex()}")
             else:  # Remaining responses are UDS responses from individual ECUs
-                ecu_addr = responding_ecus[i - 1]
+                ecu_addr = ecu_addresses_with_responses[i - 1]
                 self.logger.info(
                     f"UDS Response from ECU 0x{ecu_addr:04X}: {resp.hex()}"
                 )
