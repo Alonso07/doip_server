@@ -104,8 +104,7 @@ jobs:
           --ignore=tests/test_debug_client.py \
           --ignore=tests/test_demo_response_cycling.py \
           --ignore=tests/test_uds_end_to_end.py \
-          --ignore=tests/test_functional_address_comprehensive.py \
-          --ignore=tests/test_functional_address_integration.py
+          --ignore=tests/test_functional_addressing_e2e.py
 
     - name: Check if coverage file exists
       shell: bash
@@ -172,8 +171,7 @@ jobs:
           tests/test_debug_client.py \
           tests/test_demo_response_cycling.py \
           tests/test_uds_end_to_end.py \
-          tests/test_functional_address_comprehensive.py \
-          tests/test_functional_address_integration.py
+          tests/test_functional_addressing_e2e.py
 
     - name: Check if coverage file exists
       shell: bash

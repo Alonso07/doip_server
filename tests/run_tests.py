@@ -31,15 +31,17 @@ def main():
     project_root = Path(__file__).parent.parent
 
     if len(sys.argv) < 2:
-        print("Usage: python run_tests.py [unit|integration|all|coverage]")
+        print("Usage: python run_tests.py [unit|integration|functional|all|coverage]")
         print("\nOptions:")
         print("  unit       - Run unit tests only (fast)")
         print("  integration- Run integration tests only")
+        print("  functional - Run functional addressing tests only")
         print("  all        - Run all tests")
         print("  coverage   - Run tests with coverage report")
         print("\nExamples:")
         print("  python run_tests.py unit")
         print("  python run_tests.py integration")
+        print("  python run_tests.py functional")
         print("  python run_tests.py all")
         print("  python run_tests.py coverage")
         return
@@ -58,6 +60,17 @@ def main():
         cmd = (
             f"cd {project_root} && poetry run pytest tests/test_doip_integration.py -v"
         )
+        output = run_command(cmd)
+        if output:
+            print(output)
+
+    elif test_type == "functional":
+        print("Running functional addressing tests...")
+        print("Note: These tests require the DoIP server to be running")
+        print(
+            "Start server with: python -m doip_server.main --host 0.0.0.0 --port 13400"
+        )
+        cmd = f"cd {project_root} && DOIP_SERVER_RUNNING=true poetry run pytest tests/test_functional_addressing_e2e.py -v"
         output = run_command(cmd)
         if output:
             print(output)
