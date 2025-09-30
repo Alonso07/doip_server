@@ -454,10 +454,10 @@ class TestPowerModeUDP:
         client = UDPDoIPClient()
 
         # Create a valid response
-        power_mode_status = 0x0001  # Power On
+        power_mode_status = 0x01  # Power On
 
         # Create payload
-        payload = struct.pack(">H", power_mode_status)
+        payload = struct.pack(">B", power_mode_status)
 
         # Create DoIP header
         header = struct.pack(
@@ -495,7 +495,7 @@ class TestPowerModeUDP:
         assert result is None
 
         # Test wrong payload length
-        invalid_response = b"\x02\xfd\x40\x04\x00\x00\x00\x01\x00"
+        invalid_response = b"\x02\xfd\x40\x04\x00\x00\x00\x02\x00\x01"
         result = client.parse_power_mode_information_response(invalid_response)
         assert result is None
 
@@ -504,9 +504,9 @@ class TestPowerModeUDP:
         # Mock configuration manager
         mock_config = MagicMock()
         mock_config.get_power_mode_config.return_value = {
-            "current_status": 0x0002,  # Power Standby
+            "current_status": 0x02,  # Power Standby
             "available_statuses": {
-                0x0002: {
+                0x02: {
                     "name": "Power Standby",
                     "description": "ECU is in standby mode",
                 }
@@ -521,17 +521,17 @@ class TestPowerModeUDP:
         response = server.create_power_mode_response()
 
         # Check response format
-        assert len(response) == 8 + 2  # Header + payload
+        assert len(response) == 8 + 1  # Header + payload
         assert response[0] == 0x02  # Protocol version
         assert response[1] == 0xFD  # Inverse protocol version
         assert struct.unpack(">H", response[2:4])[0] == 0x4004  # Payload type
-        assert struct.unpack(">I", response[4:8])[0] == 2  # Payload length
+        assert struct.unpack(">I", response[4:8])[0] == 1  # Payload length
 
         # Check payload content
         payload = response[8:]
-        power_mode_status = struct.unpack(">H", payload[0:2])[0]
+        power_mode_status = payload[0]
 
-        assert power_mode_status == 0x0002  # Power Standby
+        assert power_mode_status == 0x02  # Power Standby
 
     def test_power_mode_information_udp_message_handling(self):
         """Test power mode information UDP message handling in server"""
@@ -552,7 +552,7 @@ class TestPowerModeUDP:
         mock_socket.sendto.assert_called_once()
         response_data, addr = mock_socket.sendto.call_args[0]
         assert addr == ("127.0.0.1", 12345)
-        assert len(response_data) == 10  # Should have header (8) + payload (2)
+        assert len(response_data) == 9  # Should have header (8) + payload (1)
 
     def test_power_mode_information_udp_message_handling_invalid_protocol(self):
         """Test power mode information UDP message handling with invalid protocol version"""
@@ -896,8 +896,8 @@ class TestPowerModeEndToEnd:
             response["power_mode_status"], int
         ), "Power mode status should be integer"
         assert (
-            0 <= response["power_mode_status"] <= 0xFFFF
-        ), "Power mode status should be valid 16-bit value"
+            0 <= response["power_mode_status"] <= 0xFF
+        ), "Power mode status should be valid 8-bit value"
 
     def test_power_mode_with_custom_config_e2e(self):
         """Test power mode information with custom configuration values using port 13400"""
@@ -907,26 +907,26 @@ gateway:
   name: "Test Gateway E2E"
   logical_address: 0x2000
   power_mode_status:
-    current_status: 0x0003  # Power Sleep
+    current_status: 0x03  # Power Sleep
     available_statuses:
-      0x0000:
+      0x00:
         name: "Power Off"
         description: "ECU is powered off"
-      0x0001:
+      0x01:
         name: "Power On"
         description: "ECU is powered on and ready"
-      0x0002:
+      0x02:
         name: "Power Standby"
         description: "ECU is in standby mode"
-      0x0003:
+      0x03:
         name: "Power Sleep"
         description: "ECU is in sleep mode"
-      0x0004:
+      0x04:
         name: "Power Wake"
         description: "ECU is waking up"
     response_cycling:
       enabled: false
-      cycle_through: [0x0001, 0x0002, 0x0003]
+      cycle_through: [0x01, 0x02, 0x03]
 """
 
         # Create temporary config file
@@ -949,8 +949,8 @@ gateway:
                 response is not None
             ), "Should receive power mode information response"
             assert (
-                response["power_mode_status"] == 0x0003
-            ), f"Power mode status should be 0x0003, got 0x{response['power_mode_status']:04X}"
+                response["power_mode_status"] == 0x03
+            ), f"Power mode status should be 0x03, got 0x{response['power_mode_status']:02X}"
 
         finally:
             # Clean up config file
@@ -967,20 +967,20 @@ gateway:
   name: "Test Gateway E2E"
   logical_address: 0x2000
   power_mode_status:
-    current_status: 0x0001  # Power On
+    current_status: 0x01  # Power On
     available_statuses:
-      0x0001:
+      0x01:
         name: "Power On"
         description: "ECU is powered on and ready"
-      0x0002:
+      0x02:
         name: "Power Standby"
         description: "ECU is in standby mode"
-      0x0003:
+      0x03:
         name: "Power Sleep"
         description: "ECU is in sleep mode"
     response_cycling:
       enabled: true
-      cycle_through: [0x0001, 0x0002, 0x0003]
+      cycle_through: [0x01, 0x02, 0x03]
 """
 
         # Create temporary config file
@@ -1003,8 +1003,8 @@ gateway:
                 responses.append(response["power_mode_status"])
                 time.sleep(0.1)  # Small delay between requests
 
-            # Verify cycling pattern: 0x0001, 0x0002, 0x0003, 0x0001, 0x0002, 0x0003
-            expected_pattern = [0x0001, 0x0002, 0x0003, 0x0001, 0x0002, 0x0003]
+            # Verify cycling pattern: 0x01, 0x02, 0x03, 0x01, 0x02, 0x03
+            expected_pattern = [0x01, 0x02, 0x03, 0x01, 0x02, 0x03]
             assert (
                 responses == expected_pattern
             ), f"Expected {expected_pattern}, got {responses}"

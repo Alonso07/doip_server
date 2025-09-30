@@ -152,9 +152,9 @@ class UDPDoIPClient:
             self.logger.error(f"Unexpected payload type: 0x{payload_type:04X}")
             return None
 
-        # Check payload length (should be 2 bytes for power mode information response)
-        if payload_length != 2:
-            self.logger.error(f"Invalid payload length: {payload_length}, expected 2")
+        # Check payload length (should be 1 byte for power mode information response)
+        if payload_length != 1:
+            self.logger.error(f"Invalid payload length: {payload_length}, expected 1")
             return None
 
         if len(data) < 8 + payload_length:
@@ -165,8 +165,8 @@ class UDPDoIPClient:
         payload = data[8 : 8 + payload_length]
 
         # Power Mode Information Response payload structure:
-        # Power Mode Status (2 bytes)
-        power_mode_status = struct.unpack(">H", payload[0:2])[0]
+        # Power Mode Status (1 byte)
+        power_mode_status = payload[0]
 
         return {
             "power_mode_status": power_mode_status,
@@ -521,7 +521,7 @@ class UDPDoIPClient:
             if response_data:
                 self.logger.info("Power mode information response parsed successfully")
                 self.logger.info(
-                    f"Power Mode Status: 0x{response_data['power_mode_status']:04X}"
+                    f"Power Mode Status: 0x{response_data['power_mode_status']:02X}"
                 )
             else:
                 self.logger.error("Failed to parse power mode information response")

@@ -68,27 +68,27 @@ gateway:
 
   # Power Mode Status Configuration
   power_mode_status:
-    description: "Power mode status values for DoIP power mode response (payload type 0x0008)"
-    current_status: 0x0001  # Current power mode status (2 bytes)
+    description: "Power mode status values for DoIP power mode response (payload type 0x4004)"
+    current_status: 0x01  # Current power mode status (1 byte)
     available_statuses:
-      0x0000: 
+      0x00: 
         name: "Power Off"
         description: "ECU is powered off"
-      0x0001:
+      0x01:
         name: "Power On"
         description: "ECU is powered on and ready"
-      0x0002:
+      0x02:
         name: "Power Standby"
         description: "ECU is in standby mode"
-      0x0003:
+      0x03:
         name: "Power Sleep"
         description: "ECU is in sleep mode"
-      0x0004:
+      0x04:
         name: "Power Wake"
         description: "ECU is waking up"
     response_cycling:
       enabled: false  # Enable cycling through different power mode statuses
-      cycle_through: [0x0001, 0x0002, 0x0003]  # Statuses to cycle through
+      cycle_through: [0x01, 0x02, 0x03]  # Statuses to cycle through
 
   # DoIP Entity Status Configuration
   entity_status:

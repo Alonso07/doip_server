@@ -985,14 +985,14 @@ class DoIPServer:
         # Get power mode configuration
         power_mode_config = self.config_manager.get_power_mode_config()
 
-        # Get current status from configuration, default to 0x0001 (Power On)
-        current_status = power_mode_config.get("current_status", 0x0001)
+        # Get current status from configuration, default to 0x01 (Power On)
+        current_status = power_mode_config.get("current_status", 0x01)
 
         # Check if response cycling is enabled
         response_cycling = power_mode_config.get("response_cycling", {})
         if response_cycling.get("enabled", False):
             # Get cycling statuses
-            cycle_through = response_cycling.get("cycle_through", [0x0001])
+            cycle_through = response_cycling.get("cycle_through", [0x01])
             if cycle_through:
                 # Use response cycling logic similar to UDS services
                 cycle_key = ("power_mode", "power_mode_status")
@@ -1008,19 +1008,19 @@ class DoIPServer:
                 )
 
                 self.logger.info(
-                    f"Power mode response cycling: using status 0x{current_status:04X}"
+                    f"Power mode response cycling: using status 0x{current_status:02X}"
                 )
 
-        # Power mode response - client expects 2 bytes (H format)
+        # Power mode response - client expects 1 byte (B format)
         payload = struct.pack(
-            ">H", current_status
-        )  # 2 bytes indicating power mode status
+            ">B", current_status
+        )  # 1 byte indicating power mode status
 
         # Log the power mode status being returned
         available_statuses = power_mode_config.get("available_statuses", {})
         status_info = available_statuses.get(current_status, {})
-        status_name = status_info.get("name", f"Unknown (0x{current_status:04X})")
-        self.logger.info(f"Power mode response: {status_name} (0x{current_status:04X})")
+        status_name = status_info.get("name", f"Unknown (0x{current_status:02X})")
+        self.logger.info(f"Power mode response: {status_name} (0x{current_status:02X})")
 
         header = struct.pack(
             ">BBHI",

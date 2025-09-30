@@ -101,7 +101,7 @@ class TestPowerModeResponseGeneration:
         response = server.create_power_mode_response()
 
         # Verify response structure
-        assert len(response) == 10  # 8 bytes header + 2 bytes payload
+        assert len(response) == 9  # 8 bytes header + 1 byte payload
 
         # Verify DoIP header
         assert response[0] == 0x02  # Protocol version
@@ -109,11 +109,11 @@ class TestPowerModeResponseGeneration:
         assert (
             struct.unpack(">H", response[2:4])[0] == 0x4004
         )  # Payload type (Power Mode Information Response)
-        assert struct.unpack(">I", response[4:8])[0] == 2  # Payload length
+        assert struct.unpack(">I", response[4:8])[0] == 1  # Payload length
 
-        # Verify power mode status (should be 0x0001 - Power On)
-        power_status = struct.unpack(">H", response[8:10])[0]
-        assert power_status == 0x0001
+        # Verify power mode status (should be 0x01 - Power On)
+        power_status = response[8]
+        assert power_status == 0x01
 
     def test_create_power_mode_response_custom_status(self):
         """Test power mode response creation with custom status"""
@@ -123,9 +123,9 @@ class TestPowerModeResponseGeneration:
                 "name": "Test Gateway",
                 "logical_address": 0x1000,
                 "power_mode_status": {
-                    "current_status": 0x0003,  # Power Sleep
+                    "current_status": 0x03,  # Power Sleep
                     "available_statuses": {
-                        0x0003: {
+                        0x03: {
                             "name": "Power Sleep",
                             "description": "ECU is in sleep mode",
                         }
@@ -138,9 +138,9 @@ class TestPowerModeResponseGeneration:
         server.config_manager.gateway_config = custom_config
         response = server.create_power_mode_response()
 
-        # Verify power mode status (should be 0x0003 - Power Sleep)
-        power_status = struct.unpack(">H", response[8:10])[0]
-        assert power_status == 0x0003
+        # Verify power mode status (should be 0x03 - Power Sleep)
+        power_status = response[8]
+        assert power_status == 0x03
 
     def test_create_power_mode_response_cycling_enabled(self):
         """Test power mode response creation with cycling enabled"""
@@ -150,24 +150,24 @@ class TestPowerModeResponseGeneration:
                 "name": "Test Gateway",
                 "logical_address": 0x1000,
                 "power_mode_status": {
-                    "current_status": 0x0001,
+                    "current_status": 0x01,
                     "available_statuses": {
-                        0x0001: {
+                        0x01: {
                             "name": "Power On",
                             "description": "ECU is powered on",
                         },
-                        0x0002: {
+                        0x02: {
                             "name": "Power Standby",
                             "description": "ECU is in standby",
                         },
-                        0x0003: {
+                        0x03: {
                             "name": "Power Sleep",
                             "description": "ECU is in sleep",
                         },
                     },
                     "response_cycling": {
                         "enabled": True,
-                        "cycle_through": [0x0001, 0x0002, 0x0003],
+                        "cycle_through": [0x01, 0x02, 0x03],
                     },
                 },
             }
@@ -180,11 +180,11 @@ class TestPowerModeResponseGeneration:
         responses = []
         for i in range(6):  # Test 2 full cycles
             response = server.create_power_mode_response()
-            power_status = struct.unpack(">H", response[8:10])[0]
+            power_status = response[8]
             responses.append(power_status)
 
-        # Verify cycling pattern: 0x0001, 0x0002, 0x0003, 0x0001, 0x0002, 0x0003
-        expected_pattern = [0x0001, 0x0002, 0x0003, 0x0001, 0x0002, 0x0003]
+        # Verify cycling pattern: 0x01, 0x02, 0x03, 0x01, 0x02, 0x03
+        expected_pattern = [0x01, 0x02, 0x03, 0x01, 0x02, 0x03]
         assert responses == expected_pattern
 
     def test_create_power_mode_response_cycling_empty_list(self):
@@ -194,7 +194,7 @@ class TestPowerModeResponseGeneration:
                 "name": "Test Gateway",
                 "logical_address": 0x1000,
                 "power_mode_status": {
-                    "current_status": 0x0001,
+                    "current_status": 0x01,
                     "response_cycling": {
                         "enabled": True,
                         "cycle_through": [],  # Empty list
@@ -208,8 +208,8 @@ class TestPowerModeResponseGeneration:
         response = server.create_power_mode_response()
 
         # Should fall back to current_status when cycling list is empty
-        power_status = struct.unpack(">H", response[8:10])[0]
-        assert power_status == 0x0001
+        power_status = response[8]
+        assert power_status == 0x01
 
     def test_create_power_mode_response_missing_config(self):
         """Test power mode response creation when config is missing"""
@@ -226,9 +226,9 @@ class TestPowerModeResponseGeneration:
         server.config_manager.gateway_config = custom_config
         response = server.create_power_mode_response()
 
-        # Should use default status (0x0001) when config is missing
-        power_status = struct.unpack(">H", response[8:10])[0]
-        assert power_status == 0x0001
+        # Should use default status (0x01) when config is missing
+        power_status = response[8]
+        assert power_status == 0x01
 
 
 class TestPowerModeRequestHandling:
@@ -280,13 +280,13 @@ class TestPowerModeIntegration:
 
         # Verify the response is a power mode response
         assert result is not None
-        assert len(result) == 10  # 8 bytes header + 2 bytes payload
+        assert len(result) == 9  # 8 bytes header + 1 byte payload
         assert result[0] == 0x02  # Protocol version
         assert result[1] == 0xFD  # Inverse protocol version
         assert (
             struct.unpack(">H", result[2:4])[0] == 0x4004
         )  # Payload type (Power Mode Information Response)
-        assert struct.unpack(">I", result[4:8])[0] == 2  # Payload length
+        assert struct.unpack(">I", result[4:8])[0] == 1  # Payload length
 
     def test_power_mode_response_cycling_state_management(self):
         """Test power mode response cycling state management"""
@@ -295,10 +295,10 @@ class TestPowerModeIntegration:
                 "name": "Test Gateway",
                 "logical_address": 0x1000,
                 "power_mode_status": {
-                    "current_status": 0x0001,
+                    "current_status": 0x01,
                     "response_cycling": {
                         "enabled": True,
-                        "cycle_through": [0x0001, 0x0002, 0x0003],
+                        "cycle_through": [0x01, 0x02, 0x03],
                     },
                 },
             }
@@ -343,7 +343,7 @@ class TestPowerModeIntegration:
                 log for log in log_calls if "Power mode response:" in log
             ]
             assert len(power_mode_logs) == 1
-            assert "Power On (0x0001)" in power_mode_logs[0]
+            assert "Power On (0x01)" in power_mode_logs[0]
 
     def test_power_mode_response_cycling_logging(self):
         """Test power mode response cycling logging"""
@@ -374,7 +374,7 @@ class TestPowerModeIntegration:
                 log for log in log_calls if "Power mode response cycling:" in log
             ]
             assert len(cycling_logs) == 1
-            assert "0x0001" in cycling_logs[0]
+            assert "0x01" in cycling_logs[0]
 
 
 class TestPowerModeEdgeCases:
@@ -387,9 +387,9 @@ class TestPowerModeEdgeCases:
                 "name": "Test Gateway",
                 "logical_address": 0x1000,
                 "power_mode_status": {
-                    "current_status": 0x9999,  # Invalid status
+                    "current_status": 0x99,  # Invalid status
                     "available_statuses": {
-                        0x0001: {"name": "Power On", "description": "ECU is powered on"}
+                        0x01: {"name": "Power On", "description": "ECU is powered on"}
                     },
                 },
             }
@@ -400,8 +400,8 @@ class TestPowerModeEdgeCases:
         response = server.create_power_mode_response()
 
         # Should still work with invalid status
-        power_status = struct.unpack(">H", response[8:10])[0]
-        assert power_status == 0x9999
+        power_status = response[8]
+        assert power_status == 0x99
 
     def test_power_mode_response_cycling_with_single_status(self):
         """Test power mode response cycling with only one status"""
@@ -410,10 +410,10 @@ class TestPowerModeEdgeCases:
                 "name": "Test Gateway",
                 "logical_address": 0x1000,
                 "power_mode_status": {
-                    "current_status": 0x0001,
+                    "current_status": 0x01,
                     "response_cycling": {
                         "enabled": True,
-                        "cycle_through": [0x0001],  # Only one status
+                        "cycle_through": [0x01],  # Only one status
                     },
                 },
             }
@@ -425,8 +425,8 @@ class TestPowerModeEdgeCases:
         # Test multiple calls - should always return the same status
         for i in range(5):
             response = server.create_power_mode_response()
-            power_status = struct.unpack(">H", response[8:10])[0]
-            assert power_status == 0x0001
+            power_status = response[8]
+            assert power_status == 0x01
 
     def test_power_mode_response_malformed_config(self):
         """Test power mode response with malformed configuration"""
@@ -437,7 +437,7 @@ class TestPowerModeEdgeCases:
                 "power_mode_status": {
                     # Missing current_status
                     "available_statuses": {},
-                    "response_cycling": {"enabled": True, "cycle_through": [0x0001]},
+                    "response_cycling": {"enabled": True, "cycle_through": [0x01]},
                 },
             }
         }
@@ -446,9 +446,9 @@ class TestPowerModeEdgeCases:
         server.config_manager.gateway_config = custom_config
         response = server.create_power_mode_response()
 
-        # Should fall back to default status (0x0001)
-        power_status = struct.unpack(">H", response[8:10])[0]
-        assert power_status == 0x0001
+        # Should fall back to default status (0x01)
+        power_status = response[8]
+        assert power_status == 0x01
 
 
 if __name__ == "__main__":
