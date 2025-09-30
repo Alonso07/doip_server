@@ -9,6 +9,7 @@ import re
 import subprocess
 from pathlib import Path
 
+
 def get_current_version():
     """Get current version from pyproject.toml"""
     pyproject_path = Path("pyproject.toml")
@@ -24,9 +25,10 @@ def get_current_version():
 
     return match.group(1)
 
+
 def bump_version(version, bump_type):
     """Bump version based on type"""
-    parts = version.split('.')
+    parts = version.split(".")
     if len(parts) != 3:
         print(f"Error: Invalid version format: {version}")
         sys.exit(1)
@@ -49,20 +51,18 @@ def bump_version(version, bump_type):
 
     return f"{major}.{minor}.{patch}"
 
+
 def update_pyproject_toml(new_version):
     """Update version in pyproject.toml"""
     pyproject_path = Path("pyproject.toml")
     content = pyproject_path.read_text()
 
     # Replace version line
-    new_content = re.sub(
-        r'version = "[^"]+"',
-        f'version = "{new_version}"',
-        content
-    )
+    new_content = re.sub(r'version = "[^"]+"', f'version = "{new_version}"', content)
 
     pyproject_path.write_text(new_content)
     print(f"Updated pyproject.toml: {new_version}")
+
 
 def main():
     """Main function to handle version bumping."""
@@ -79,7 +79,7 @@ def main():
 
     # Confirm with user
     confirm = input(f"Bump version to {new_version}? (y/N): ")
-    if confirm.lower() not in ['y', 'yes']:
+    if confirm.lower() not in ["y", "yes"]:
         print("Version bump cancelled")
         sys.exit(0)
 
@@ -90,7 +90,9 @@ def main():
     print("Running tests...")
     result = subprocess.run(
         ["poetry", "run", "pytest", "tests/", "--tb=no", "-q"],
-        capture_output=True, text=True, check=False
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if result.returncode != 0:
         print("Error: Tests failed. Please fix tests before bumping version.")
@@ -108,6 +110,7 @@ def main():
     print(f"2. Create tag: git tag v{new_version}")
     print("3. Push changes: git push origin main --tags")
     print("4. Publish: ./publish_to_pypi.sh")
+
 
 if __name__ == "__main__":
     main()

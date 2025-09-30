@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 from doip_client.udp_doip_client import UDPDoIPClient
 
+
 def test_udp_client():
     """Test UDP DoIP client functionality"""
     print("=== UDP DoIP Client Test ===")
@@ -32,13 +33,13 @@ def test_udp_client():
     # Create a mock response
     vin = "1HGBH41JXMN109186"
     logical_address = 0x1000
-    eid = b'\x12\x34\x56\x78\x9A\xBC'
-    gid = b'\xDE\xF0\x12\x34\x56\x78'
+    eid = b"\x12\x34\x56\x78\x9a\xbc"
+    gid = b"\xde\xf0\x12\x34\x56\x78"
     further_action = 0x00
     sync_status = 0x00
 
     # Create payload
-    payload = vin.encode('ascii').ljust(17, b'\x00')
+    payload = vin.encode("ascii").ljust(17, b"\x00")
     payload += struct.pack(">H", logical_address)
     payload += eid
     payload += gid
@@ -51,7 +52,7 @@ def test_udp_client():
         0x02,  # Protocol version
         0xFD,  # Inverse protocol version
         0x0004,  # Payload type
-        len(payload)
+        len(payload),
     )
 
     response_data = header + payload
@@ -72,7 +73,7 @@ def test_udp_client():
 
     # Test invalid response
     print("\n3. Testing invalid response handling...")
-    invalid_response = b'\x01\xFE\x00\x04\x00\x00\x00\x21' + b'\x00' * 33
+    invalid_response = b"\x01\xfe\x00\x04\x00\x00\x00\x21" + b"\x00" * 33
     result = client.parse_vehicle_identification_response(invalid_response)
     if result is None:
         print("   ✅ Invalid response correctly rejected!")
@@ -81,6 +82,7 @@ def test_udp_client():
 
     print("\n=== Test Complete ===")
     print("✅ UDP DoIP client functionality working correctly!")
+
 
 if __name__ == "__main__":
     test_udp_client()

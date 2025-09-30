@@ -8,6 +8,7 @@ by checking the server logs for functional address processing.
 import socket
 import struct
 
+
 def test_functional_addressing():
     """Test functional addressing by sending raw DoIP messages"""
     print("=== Simple Functional Addressing Test ===")
@@ -35,7 +36,9 @@ def test_functional_addressing():
 
         # Send functional diagnostic request (Read VIN)
         print("\n--- Sending Functional Diagnostic Request (Read VIN) ---")
-        functional_request = create_functional_diagnostic_request(b'\x22\xF1\x90')  # Read VIN
+        functional_request = create_functional_diagnostic_request(
+            b"\x22\xf1\x90"
+        )  # Read VIN
         sock.send(functional_request)
         print(f"Sent functional request: {functional_request.hex()}")
 
@@ -50,9 +53,13 @@ def test_functional_addressing():
             payload_type = struct.unpack(">H", response[2:4])[0]
             payload_length = struct.unpack(">I", response[4:8])[0]
 
-            print(f"Response - Protocol: 0x{protocol_version:02X}, "
-                  f"Inverse: 0x{inverse_protocol_version:02X}")
-            print(f"Response - Payload Type: 0x{payload_type:04X}, Length: {payload_length}")
+            print(
+                f"Response - Protocol: 0x{protocol_version:02X}, "
+                f"Inverse: 0x{inverse_protocol_version:02X}"
+            )
+            print(
+                f"Response - Payload Type: 0x{payload_type:04X}, Length: {payload_length}"
+            )
 
             if payload_type == 0x8001:  # Diagnostic message
                 print("✓ Received valid DoIP diagnostic message response")
@@ -63,17 +70,21 @@ def test_functional_addressing():
                     target_addr = struct.unpack(">H", response[10:12])[0]
                     uds_payload = response[12:]
 
-                    print(f"Response - Source: 0x{source_addr:04X}, Target: 0x{target_addr:04X}")
+                    print(
+                        f"Response - Source: 0x{source_addr:04X}, Target: 0x{target_addr:04X}"
+                    )
                     print(f"Response - UDS Payload: {uds_payload.hex()}")
 
                     # Positive response for Read VIN
                     # (0x62 = Read Data by Identifier positive response)
-                    if uds_payload.startswith(b'\x62\xF1\x90'):
+                    if uds_payload.startswith(b"\x62\xf1\x90"):
                         print("✓ Received valid UDS response for Read VIN")
                         print("✓ Functional addressing is working correctly!")
                     else:
                         print(f"✗ Unexpected UDS response format: {uds_payload.hex()}")
-                        print("Expected: 62F190... (Read Data by Identifier positive response)")
+                        print(
+                            "Expected: 62F190... (Read Data by Identifier positive response)"
+                        )
                 else:
                     print("✗ Response too short for diagnostic message")
             else:
@@ -86,6 +97,7 @@ def test_functional_addressing():
     finally:
         sock.close()
         print("\nDisconnected from server")
+
 
 def create_routing_activation_request():
     """Create a DoIP routing activation request"""
@@ -102,12 +114,20 @@ def create_routing_activation_request():
     reserved = 0x00000000
 
     # Build message
-    header = struct.pack(">BBHI", protocol_version, inverse_protocol_version,
-                         payload_type, payload_length)
-    payload = struct.pack(">HHB", client_logical_address, logical_address, response_code)
+    header = struct.pack(
+        ">BBHI",
+        protocol_version,
+        inverse_protocol_version,
+        payload_type,
+        payload_length,
+    )
+    payload = struct.pack(
+        ">HHB", client_logical_address, logical_address, response_code
+    )
     payload += struct.pack(">I", reserved)
 
     return header + payload
+
 
 def create_functional_diagnostic_request(uds_payload):
     """Create a DoIP diagnostic message request to functional address"""
@@ -122,12 +142,18 @@ def create_functional_diagnostic_request(uds_payload):
     target_address = 0x1FFF  # Functional address
 
     # Build message
-    header = struct.pack(">BBHI", protocol_version, inverse_protocol_version,
-                         payload_type, payload_length)
+    header = struct.pack(
+        ">BBHI",
+        protocol_version,
+        inverse_protocol_version,
+        payload_type,
+        payload_length,
+    )
     payload = struct.pack(">HH", source_address, target_address)
     payload += uds_payload
 
     return header + payload
+
 
 if __name__ == "__main__":
     print("Simple Functional Addressing Test")
@@ -136,4 +162,6 @@ if __name__ == "__main__":
 
     test_functional_addressing()
 
-    print("\nTest completed. Check server logs for detailed functional addressing information.")
+    print(
+        "\nTest completed. Check server logs for detailed functional addressing information."
+    )

@@ -90,6 +90,42 @@ gateway:
       enabled: false  # Enable cycling through different power mode statuses
       cycle_through: [0x0001, 0x0002, 0x0003]  # Statuses to cycle through
 
+  # DoIP Entity Status Configuration
+  entity_status:
+    description: "DoIP Entity Status Response configuration (payload type 0x4002)"
+    node_type: 0x01  # Node type: 0x01 = Vehicle Gateway, 0x02 = Node
+    max_open_sockets: 10  # Maximum number of concurrent diagnostic connections
+    current_open_sockets: 0  # Current number of active diagnostic connections
+    doip_entity_status: 0x00  # Entity status: 0x00 = Ready, 0x01 = Not ready
+    diagnostic_power_mode: 0x02  # Diagnostic power mode: 0x01 = Power on, 0x02 = Power off, 0x03 = Not ready
+    # Available node types
+    available_node_types:
+      0x01:
+        name: "Vehicle Gateway"
+        description: "DoIP entity is a vehicle gateway"
+      0x02:
+        name: "Node"
+        description: "DoIP entity is a node"
+    # Available entity statuses
+    available_entity_statuses:
+      0x00:
+        name: "Ready"
+        description: "Entity is ready for diagnostic communication"
+      0x01:
+        name: "Not Ready"
+        description: "Entity is not ready for diagnostic communication"
+    # Available diagnostic power modes
+    available_diagnostic_power_modes:
+      0x01:
+        name: "Power On"
+        description: "Diagnostic power is on"
+      0x02:
+        name: "Power Off"
+        description: "Diagnostic power is off"
+      0x03:
+        name: "Not Ready"
+        description: "Diagnostic power is not ready"
+
 # Logging Configuration
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL

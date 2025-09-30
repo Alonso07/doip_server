@@ -9,13 +9,16 @@ import sys
 import os
 from pathlib import Path
 
+
 def run_command(cmd, description):
     """Run a command and return success status"""
     print(f"🔧 {description}")
     print(f"   Running: {cmd}")
 
     try:
-        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd, shell=True, check=True, capture_output=True, text=True
+        )
         print("   ✅ Success")
         if result.stdout:
             print(f"   Output: {result.stdout.strip()}")
@@ -51,10 +54,15 @@ def simulate_windows_ci():
     # Install Poetry if not available
     if not run_command("poetry --version", "Checking Poetry installation"):
         print("📦 Installing Poetry...")
-        run_command("curl -sSL https://install.python-poetry.org | python3 -", "Installing Poetry")
+        run_command(
+            "curl -sSL https://install.python-poetry.org | python3 -",
+            "Installing Poetry",
+        )
 
     # Install dependencies
-    if not run_command("poetry install --no-interaction --no-root", "Installing dependencies"):
+    if not run_command(
+        "poetry install --no-interaction --no-root", "Installing dependencies"
+    ):
         print("❌ Failed to install dependencies")
         return False
 
@@ -72,27 +80,24 @@ def simulate_windows_ci():
     success = run_command(
         "poetry run pytest tests/test_doip_unit.py -v --cov=doip_server "
         "--cov-report=xml --cov-report=term-missing",
-        "Running unit tests"
+        "Running unit tests",
     )
 
     # Integration tests
     success &= run_command(
         "poetry run pytest tests/test_doip_integration.py -v --cov=doip_server "
         "--cov-report=xml --cov-report=term-missing",
-        "Running integration tests"
+        "Running integration tests",
     )
 
     # All tests
     success &= run_command(
         "poetry run pytest tests/ -v --cov=doip_server --cov-report=xml --cov-report=term-missing",
-        "Running all tests"
+        "Running all tests",
     )
 
     # Configuration validation
-    success &= run_command(
-        "poetry run validate_config",
-        "Validating configuration"
-    )
+    success &= run_command("poetry run validate_config", "Validating configuration")
 
     # Check coverage file
     if Path("coverage.xml").exists():
@@ -105,28 +110,25 @@ def simulate_windows_ci():
     print("\n🔍 Code Quality Checks:")
     run_command(
         "poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics",
-        "Running flake8 (critical errors)"
+        "Running flake8 (critical errors)",
     )
     run_command(
         "poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 "
         "--max-line-length=127 --statistics",
-        "Running flake8 (style checks)"
+        "Running flake8 (style checks)",
     )
     run_command(
         "poetry run black --check --diff src/ tests/",
-        "Checking code formatting with black"
+        "Checking code formatting with black",
     )
 
     # Security checks (simulating security job)
     print("\n🔒 Security Checks:")
     run_command(
         "poetry run bandit -r src/ -f json -o bandit-report.json",
-        "Running bandit security scan"
+        "Running bandit security scan",
     )
-    run_command(
-        "poetry run safety check --json",
-        "Running safety dependency check"
-    )
+    run_command("poetry run safety check --json", "Running safety dependency check")
 
     # Build package (simulating build job)
     print("\n📦 Building Package:")
@@ -140,6 +142,7 @@ def simulate_windows_ci():
         print("🔧 Please fix the failing tests/checks before pushing to CI.")
 
     return success
+
 
 if __name__ == "__main__":
     success = simulate_windows_ci()

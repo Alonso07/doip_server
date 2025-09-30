@@ -11,7 +11,7 @@ import os
 
 # Add the src directory to the path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(project_root, 'src'))
+sys.path.insert(0, os.path.join(project_root, "src"))
 
 from doip_client.doip_client import DoIPClientWrapper
 
@@ -28,7 +28,7 @@ def test_functional_diagnostics():
         server_host="127.0.0.1",
         server_port=13400,
         logical_address=0x0E00,
-        target_address=0x1000  # This will be overridden for functional addressing
+        target_address=0x1000,  # This will be overridden for functional addressing
     )
 
     try:
@@ -84,7 +84,9 @@ def test_functional_diagnostics():
         time.sleep(1)
 
         print("\n=== Functional Diagnostics Test Complete ===")
-        print("Note: Check server logs to see which ECUs responded to functional requests.")
+        print(
+            "Note: Check server logs to see which ECUs responded to functional requests."
+        )
 
     except Exception as e:
         print(f"Error during functional diagnostics test: {e}")
@@ -100,7 +102,7 @@ def test_physical_vs_functional():
         server_host="127.0.0.1",
         server_port=13400,
         logical_address=0x0E00,
-        target_address=0x1000
+        target_address=0x1000,
     )
 
     try:

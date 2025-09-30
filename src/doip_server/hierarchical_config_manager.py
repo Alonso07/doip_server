@@ -420,6 +420,10 @@ gateway:
         """Get power mode status configuration"""
         return self.get_gateway_config().get("power_mode_status", {})
 
+    def get_entity_status_config(self) -> Dict[str, Any]:
+        """Get DoIP entity status configuration"""
+        return self.get_gateway_config().get("entity_status", {})
+
     # ECU configuration methods
     def get_all_ecu_addresses(self) -> List[int]:
         """Get all configured ECU target addresses.

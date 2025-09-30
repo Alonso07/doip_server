@@ -24,6 +24,8 @@ PAYLOAD_TYPE_ROUTING_ACTIVATION_RESPONSE = 0x0006
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE = 0x8001
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_ACK = 0x8002
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_NACK = 0x8003
+PAYLOAD_TYPE_ENTITY_STATUS_REQUEST = 0x4001
+PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE = 0x4002
 
 # UDS Service IDs (now handled by configuration)
 
@@ -431,7 +433,7 @@ class DoIPServer:
             return self.create_routing_activation_response(
                 ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS,
                 0x0000,  # client_logical_address (unknown due to short payload)
-                0x1000,  # logical_address (default gateway address)
+                self._get_gateway_logical_address(),  # logical_address (gateway address from config)
             )
 
         # Extract routing activation parameters
@@ -453,7 +455,7 @@ class DoIPServer:
             return self.create_routing_activation_response(
                 ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS,
                 client_logical_address,  # Use the extracted client address
-                0x1000,  # logical_address (default gateway address)
+                self._get_gateway_logical_address(),  # logical_address (gateway address from config)
             )
 
         # Accept the routing activation
@@ -609,6 +611,7 @@ class DoIPServer:
         )
 
         # Process the UDS message for each responding ECU and collect responses
+        ecu_addresses_with_responses = []
         for ecu_address in responding_ecus:
             uds_response = self.process_uds_message(uds_payload, ecu_address)
             if uds_response:
@@ -617,6 +620,7 @@ class DoIPServer:
                     ecu_address, source_address, uds_response
                 )
                 responses.append(response)
+                ecu_addresses_with_responses.append(ecu_address)
                 self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
 
         if len(responses) == 1:  # Only ACK, no UDS responses
@@ -635,7 +639,7 @@ class DoIPServer:
             if i == 0:  # First response is the ACK
                 self.logger.info(f"ACK Response: {resp.hex()}")
             else:  # Remaining responses are UDS responses from individual ECUs
-                ecu_addr = responding_ecus[i - 1]
+                ecu_addr = ecu_addresses_with_responses[i - 1]
                 self.logger.info(
                     f"UDS Response from ECU 0x{ecu_addr:04X}: {resp.hex()}"
                 )
@@ -914,6 +918,11 @@ class DoIPServer:
         self.logger.info("Processing power mode request")
         return self.create_power_mode_response()
 
+    def handle_entity_status_request(self, _payload):
+        """Handle DoIP entity status request (payload type 0x4001)"""
+        self.logger.info("Processing DoIP entity status request")
+        return self.create_entity_status_response()
+
     def create_uds_negative_response(self, service_id: int, nrc: int) -> bytes:
         """Create UDS negative response"""
         # UDS negative response format: 0x7F + service_id + NRC
@@ -1044,6 +1053,71 @@ class DoIPServer:
 
         return header + payload
 
+    def create_entity_status_response(self):
+        """Create DoIP Entity Status Response message (payload type 0x4002)"""
+        # Get entity status configuration
+        entity_status_config = self.config_manager.get_entity_status_config()
+
+        # Get configuration values with defaults
+        node_type = entity_status_config.get("node_type", 0x01)
+        max_open_sockets = entity_status_config.get("max_open_sockets", 10)
+        current_open_sockets = entity_status_config.get("current_open_sockets", 0)
+        doip_entity_status = entity_status_config.get("doip_entity_status", 0x00)
+        diagnostic_power_mode = entity_status_config.get("diagnostic_power_mode", 0x02)
+
+        # Create payload according to DoIP Entity Status Response format:
+        # Node Type (1 byte) + Max Open Sockets (1 byte) + Current Open Sockets (1 byte) +
+        # DoIP Entity Status (1 byte) + Diagnostic Power Mode (1 byte)
+        payload = struct.pack(
+            ">BBBBB",
+            node_type,
+            max_open_sockets,
+            current_open_sockets,
+            doip_entity_status,
+            diagnostic_power_mode,
+        )
+
+        # Create DoIP header
+        header = struct.pack(
+            ">BBHI",
+            self.protocol_version,
+            self.inverse_protocol_version,
+            PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE,
+            len(payload),
+        )
+
+        # Log the entity status being returned
+        available_node_types = entity_status_config.get("available_node_types", {})
+        available_entity_statuses = entity_status_config.get(
+            "available_entity_statuses", {}
+        )
+        available_diagnostic_power_modes = entity_status_config.get(
+            "available_diagnostic_power_modes", {}
+        )
+
+        node_type_info = available_node_types.get(node_type, {})
+        node_type_name = node_type_info.get("name", f"Unknown (0x{node_type:02X})")
+
+        entity_status_info = available_entity_statuses.get(doip_entity_status, {})
+        entity_status_name = entity_status_info.get(
+            "name", f"Unknown (0x{doip_entity_status:02X})"
+        )
+
+        diagnostic_power_mode_info = available_diagnostic_power_modes.get(
+            diagnostic_power_mode, {}
+        )
+        diagnostic_power_mode_name = diagnostic_power_mode_info.get(
+            "name", f"Unknown (0x{diagnostic_power_mode:02X})"
+        )
+
+        self.logger.info(
+            f"Entity Status Response: {node_type_name}, "
+            f"Max Sockets: {max_open_sockets}, Current Sockets: {current_open_sockets}, "
+            f"Status: {entity_status_name}, Power Mode: {diagnostic_power_mode_name}"
+        )
+
+        return header + payload
+
     def create_doip_nack(self, nack_code):
         """Create DoIP negative acknowledgment"""
         payload = struct.pack(">I", nack_code)
@@ -1131,6 +1205,12 @@ class DoIPServer:
                 if response:
                     self.udp_socket.sendto(response, addr)
                     self.logger.info(f"Sent vehicle identification response to {addr}")
+            elif payload_type == PAYLOAD_TYPE_ENTITY_STATUS_REQUEST:
+                self.logger.info("Processing DoIP entity status request")
+                response = self.create_entity_status_response()
+                if response:
+                    self.udp_socket.sendto(response, addr)
+                    self.logger.info(f"Sent entity status response to {addr}")
             else:
                 self.logger.warning(
                     f"Unsupported UDP payload type: 0x{payload_type:04X}"
