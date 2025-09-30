@@ -33,27 +33,36 @@ def main():
     print("=" * 60)
     print("DoIP Functional Addressing Test Runner")
     print("=" * 60)
-    
+
     # Get project root
     project_root = Path(__file__).parent
     os.chdir(project_root)
-    
+
     # Start DoIP server in background
     print("Starting DoIP server...")
-    server_process = subprocess.Popen([
-        sys.executable, "-m", "doip_server.main",
-        "--host", "0.0.0.0",
-        "--port", "13400",
-        "--gateway-config", "config/gateway1.yaml"
-    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
+    server_process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "doip_server.main",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "13400",
+            "--gateway-config",
+            "config/gateway1.yaml",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
     # Register cleanup
     atexit.register(cleanup_process, server_process)
-    
+
     # Wait for server to start
     print("Waiting for server to start...")
     time.sleep(3)
-    
+
     # Check if server is running
     if server_process.poll() is not None:
         stdout, stderr = server_process.communicate()
@@ -61,33 +70,35 @@ def main():
         print("STDOUT:", stdout.decode())
         print("STDERR:", stderr.decode())
         return 1
-    
+
     print("✓ Server started successfully")
-    
+
     # Run functional addressing tests
     print("\nRunning functional addressing tests...")
     test_cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable,
+        "-m",
+        "pytest",
         "tests/test_functional_addressing_e2e.py",
         "-v",
-        "--tb=short"
+        "--tb=short",
     ]
-    
+
     # Set environment variable to enable integration tests
     env = os.environ.copy()
-    env['DOIP_SERVER_RUNNING'] = 'true'
-    
+    env["DOIP_SERVER_RUNNING"] = "true"
+
     try:
         result = subprocess.run(test_cmd, env=env, cwd=project_root)
         test_exit_code = result.returncode
     except Exception as e:
         print(f"Error running tests: {e}")
         test_exit_code = 1
-    
+
     # Clean up server
     print("\nStopping server...")
     cleanup_process(server_process)
-    
+
     # Print results
     print("\n" + "=" * 60)
     if test_exit_code == 0:
@@ -95,7 +106,7 @@ def main():
     else:
         print("⚠️  Some functional addressing tests failed!")
     print("=" * 60)
-    
+
     return test_exit_code
 
 

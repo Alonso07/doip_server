@@ -24,6 +24,8 @@ class UDPDoIPClient:
     # DoIP Payload types
     PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST = 0x0001
     PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE = 0x0004
+    PAYLOAD_TYPE_ENTITY_STATUS_REQUEST = 0x4001
+    PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE = 0x4002
 
     def __init__(
         self,
@@ -73,6 +75,91 @@ class UDPDoIPClient:
         )
 
         return header
+
+    def create_entity_status_request(self) -> bytes:
+        """
+        Create a DoIP Entity Status Request message.
+
+        Returns:
+            bytes: Complete DoIP message with entity status request
+        """
+        # DoIP header: protocol_version, inverse_protocol_version, payload_type, payload_length
+        header = struct.pack(
+            ">BBHI",
+            self.DOIP_PROTOCOL_VERSION,
+            self.DOIP_INVERSE_PROTOCOL_VERSION,
+            self.PAYLOAD_TYPE_ENTITY_STATUS_REQUEST,
+            0,  # No payload for entity status request
+        )
+
+        return header
+
+    def parse_entity_status_response(self, data: bytes) -> Optional[dict]:
+        """
+        Parse a DoIP Entity Status Response message.
+
+        Args:
+            data: Raw DoIP message bytes
+
+        Returns:
+            dict: Parsed response data or None if invalid
+        """
+        if len(data) < 8:  # Minimum DoIP header size
+            self.logger.error("Response too short for DoIP header")
+            return None
+
+        # Parse DoIP header
+        protocol_version = data[0]
+        inverse_protocol_version = data[1]
+        payload_type = struct.unpack(">H", data[2:4])[0]
+        payload_length = struct.unpack(">I", data[4:8])[0]
+
+        self.logger.debug(f"Protocol Version: 0x{protocol_version:02X}")
+        self.logger.debug(f"Inverse Protocol Version: 0x{inverse_protocol_version:02X}")
+        self.logger.debug(f"Payload Type: 0x{payload_type:04X}")
+        self.logger.debug(f"Payload Length: {payload_length}")
+
+        # Validate protocol version
+        if (
+            protocol_version != self.DOIP_PROTOCOL_VERSION
+            or inverse_protocol_version != self.DOIP_INVERSE_PROTOCOL_VERSION
+        ):
+            self.logger.error(f"Invalid protocol version: 0x{protocol_version:02X}")
+            return None
+
+        # Check payload type
+        if payload_type != self.PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE:
+            self.logger.error(f"Unexpected payload type: 0x{payload_type:04X}")
+            return None
+
+        # Check payload length (should be 5 bytes for entity status response)
+        if payload_length != 5:
+            self.logger.error(f"Invalid payload length: {payload_length}, expected 5")
+            return None
+
+        if len(data) < 8 + payload_length:
+            self.logger.error("Incomplete payload data")
+            return None
+
+        # Parse payload
+        payload = data[8 : 8 + payload_length]
+
+        # Entity Status Response payload structure:
+        # Node Type (1 byte) + Max Open Sockets (1 byte) + Current Open Sockets (1 byte) +
+        # DoIP Entity Status (1 byte) + Diagnostic Power Mode (1 byte)
+        node_type = payload[0]
+        max_open_sockets = payload[1]
+        current_open_sockets = payload[2]
+        doip_entity_status = payload[3]
+        diagnostic_power_mode = payload[4]
+
+        return {
+            "node_type": node_type,
+            "max_open_sockets": max_open_sockets,
+            "current_open_sockets": current_open_sockets,
+            "doip_entity_status": doip_entity_status,
+            "diagnostic_power_mode": diagnostic_power_mode,
+        }
 
     def parse_vehicle_identification_response(self, data: bytes) -> Optional[dict]:
         """
@@ -252,6 +339,69 @@ class UDPDoIPClient:
             return None
         except Exception as e:
             self.logger.error(f"Error sending vehicle identification request: {e}")
+            return None
+
+    def send_entity_status_request(self) -> Optional[dict]:
+        """
+        Send an entity status request and wait for response.
+
+        Returns:
+            dict: Parsed response data or None if failed
+        """
+        if not self.socket:
+            self.logger.error("Client not started")
+            return None
+
+        try:
+            # Create request message
+            request = self.create_entity_status_request()
+
+            self.logger.info(
+                f"Sending entity status request to "
+                f"{self.server_host}:{self.server_port}"
+            )
+            self.logger.debug(f"Request: {request.hex()}")
+
+            # Send request
+            bytes_sent = self.socket.sendto(
+                request, (self.server_host, self.server_port)
+            )
+            self.logger.debug(f"Sent {bytes_sent} bytes")
+
+            # Wait for response
+            self.logger.info("Waiting for entity status response...")
+            data, addr = self.socket.recvfrom(1024)
+
+            self.logger.info(f"Received response from {addr} ({len(data)} bytes)")
+            self.logger.debug(f"Response: {data.hex()}")
+
+            # Parse response
+            response_data = self.parse_entity_status_response(data)
+            if response_data:
+                self.logger.info("Entity status response parsed successfully")
+                self.logger.info(f"Node Type: 0x{response_data['node_type']:02X}")
+                self.logger.info(
+                    f"Max Open Sockets: {response_data['max_open_sockets']}"
+                )
+                self.logger.info(
+                    f"Current Open Sockets: {response_data['current_open_sockets']}"
+                )
+                self.logger.info(
+                    f"DoIP Entity Status: 0x{response_data['doip_entity_status']:02X}"
+                )
+                self.logger.info(
+                    f"Diagnostic Power Mode: 0x{response_data['diagnostic_power_mode']:02X}"
+                )
+            else:
+                self.logger.error("Failed to parse entity status response")
+
+            return response_data
+
+        except socket.timeout:
+            self.logger.warning("Timeout waiting for entity status response")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error sending entity status request: {e}")
             return None
 
     def run_test(self, num_requests: int = 1, delay: float = 1.0) -> list:

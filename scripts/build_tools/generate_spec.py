@@ -8,58 +8,59 @@ import os
 import sys
 from pathlib import Path
 
+
 def generate_spec_file(project_root, output_path):
     """Generate PyInstaller spec file for DoIP Server"""
-    
+
     # Define the main entry point
-    main_script = os.path.join(project_root, 'src', 'doip_server', 'main.py')
-    
+    main_script = os.path.join(project_root, "src", "doip_server", "main.py")
+
     # Define data files to include
     config_files = [
-        (os.path.join(project_root, 'config'), 'config'),
+        (os.path.join(project_root, "config"), "config"),
     ]
-    
+
     # Define hidden imports (dependencies that PyInstaller might miss)
     hidden_imports = [
-        'yaml',
-        'doipclient',
-        'psutil',
-        'doip_server',
-        'doip_server.doip_server',
-        'doip_server.hierarchical_config_manager',
-        'doip_client',
-        'doip_client.doip_client',
-        'doip_client.debug_client',
-        'doip_client.udp_doip_client',
+        "yaml",
+        "doipclient",
+        "psutil",
+        "doip_server",
+        "doip_server.doip_server",
+        "doip_server.hierarchical_config_manager",
+        "doip_client",
+        "doip_client.doip_client",
+        "doip_client.debug_client",
+        "doip_client.udp_doip_client",
     ]
-    
+
     # Define excludes (packages to exclude to reduce size)
     excludes = [
-        'tkinter',
-        'matplotlib',
-        'numpy',
-        'pandas',
-        'scipy',
-        'PIL',
-        'PyQt5',
-        'PyQt6',
-        'PySide2',
-        'PySide6',
-        'wx',
-        'IPython',
-        'jupyter',
-        'notebook',
-        'sphinx',
-        'pytest',
-        'pytest-cov',
-        'flake8',
-        'black',
-        'bandit',
-        'safety',
-        'build',
-        'twine',
+        "tkinter",
+        "matplotlib",
+        "numpy",
+        "pandas",
+        "scipy",
+        "PIL",
+        "PyQt5",
+        "PyQt6",
+        "PySide2",
+        "PySide6",
+        "wx",
+        "IPython",
+        "jupyter",
+        "notebook",
+        "sphinx",
+        "pytest",
+        "pytest-cov",
+        "flake8",
+        "black",
+        "bandit",
+        "safety",
+        "build",
+        "twine",
     ]
-    
+
     # Generate spec file content
     spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 
@@ -135,23 +136,25 @@ exe = EXE(
     onefile=True,  # Create single executable file
 )
 '''
-    
+
     # Write spec file
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         f.write(spec_content)
-    
+
     print(f"Generated PyInstaller spec file: {output_path}")
+
 
 def main():
     """Main function"""
     if len(sys.argv) != 3:
         print("Usage: python generate_spec.py <project_root> <output_path>")
         sys.exit(1)
-    
+
     project_root = sys.argv[1]
     output_path = sys.argv[2]
-    
+
     generate_spec_file(project_root, output_path)
+
 
 if __name__ == "__main__":
     main()
