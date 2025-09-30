@@ -431,7 +431,7 @@ class DoIPServer:
             return self.create_routing_activation_response(
                 ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS,
                 0x0000,  # client_logical_address (unknown due to short payload)
-                0x1000,  # logical_address (default gateway address)
+                self._get_gateway_logical_address(),  # logical_address (gateway address from config)
             )
 
         # Extract routing activation parameters
@@ -453,7 +453,7 @@ class DoIPServer:
             return self.create_routing_activation_response(
                 ROUTING_ACTIVATION_RESPONSE_CODE_UNKNOWN_SOURCE_ADDRESS,
                 client_logical_address,  # Use the extracted client address
-                0x1000,  # logical_address (default gateway address)
+                self._get_gateway_logical_address(),  # logical_address (gateway address from config)
             )
 
         # Accept the routing activation
