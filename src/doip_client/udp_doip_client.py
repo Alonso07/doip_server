@@ -26,6 +26,8 @@ class UDPDoIPClient:
     PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE = 0x0004
     PAYLOAD_TYPE_ENTITY_STATUS_REQUEST = 0x4001
     PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE = 0x4002
+    PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST = 0x4003
+    PAYLOAD_TYPE_POWER_MODE_INFORMATION_RESPONSE = 0x4004
 
     def __init__(
         self,
@@ -93,6 +95,82 @@ class UDPDoIPClient:
         )
 
         return header
+
+    def create_power_mode_information_request(self) -> bytes:
+        """
+        Create a DoIP Power Mode Information Request message.
+
+        Returns:
+            bytes: Complete DoIP message with power mode information request
+        """
+        # DoIP header: protocol_version, inverse_protocol_version, payload_type, payload_length
+        header = struct.pack(
+            ">BBHI",
+            self.DOIP_PROTOCOL_VERSION,
+            self.DOIP_INVERSE_PROTOCOL_VERSION,
+            self.PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST,
+            0,  # No payload for power mode information request
+        )
+
+        return header
+
+    def parse_power_mode_information_response(self, data: bytes) -> Optional[dict]:
+        """
+        Parse a DoIP Power Mode Information Response message.
+
+        Args:
+            data: Raw DoIP message bytes
+
+        Returns:
+            dict: Parsed response data or None if invalid
+        """
+        if len(data) < 8:  # Minimum DoIP header size
+            self.logger.error("Response too short for DoIP header")
+            return None
+
+        # Parse DoIP header
+        protocol_version = data[0]
+        inverse_protocol_version = data[1]
+        payload_type = struct.unpack(">H", data[2:4])[0]
+        payload_length = struct.unpack(">I", data[4:8])[0]
+
+        self.logger.debug(f"Protocol Version: 0x{protocol_version:02X}")
+        self.logger.debug(f"Inverse Protocol Version: 0x{inverse_protocol_version:02X}")
+        self.logger.debug(f"Payload Type: 0x{payload_type:04X}")
+        self.logger.debug(f"Payload Length: {payload_length}")
+
+        # Validate protocol version
+        if (
+            protocol_version != self.DOIP_PROTOCOL_VERSION
+            or inverse_protocol_version != self.DOIP_INVERSE_PROTOCOL_VERSION
+        ):
+            self.logger.error(f"Invalid protocol version: 0x{protocol_version:02X}")
+            return None
+
+        # Check payload type
+        if payload_type != self.PAYLOAD_TYPE_POWER_MODE_INFORMATION_RESPONSE:
+            self.logger.error(f"Unexpected payload type: 0x{payload_type:04X}")
+            return None
+
+        # Check payload length (should be 2 bytes for power mode information response)
+        if payload_length != 2:
+            self.logger.error(f"Invalid payload length: {payload_length}, expected 2")
+            return None
+
+        if len(data) < 8 + payload_length:
+            self.logger.error("Incomplete payload data")
+            return None
+
+        # Parse payload
+        payload = data[8 : 8 + payload_length]
+
+        # Power Mode Information Response payload structure:
+        # Power Mode Status (2 bytes)
+        power_mode_status = struct.unpack(">H", payload[0:2])[0]
+
+        return {
+            "power_mode_status": power_mode_status,
+        }
 
     def parse_entity_status_response(self, data: bytes) -> Optional[dict]:
         """
@@ -402,6 +480,101 @@ class UDPDoIPClient:
             return None
         except Exception as e:
             self.logger.error(f"Error sending entity status request: {e}")
+            return None
+
+    def send_power_mode_information_request(self) -> Optional[dict]:
+        """
+        Send a power mode information request and wait for response.
+
+        Returns:
+            dict: Parsed response data or None if failed
+        """
+        if not self.socket:
+            self.logger.error("Client not started")
+            return None
+
+        try:
+            # Create request message
+            request = self.create_power_mode_information_request()
+
+            self.logger.info(
+                f"Sending power mode information request to "
+                f"{self.server_host}:{self.server_port}"
+            )
+            self.logger.debug(f"Request: {request.hex()}")
+
+            # Send request
+            bytes_sent = self.socket.sendto(
+                request, (self.server_host, self.server_port)
+            )
+            self.logger.debug(f"Sent {bytes_sent} bytes")
+
+            # Wait for response
+            self.logger.info("Waiting for power mode information response...")
+            data, addr = self.socket.recvfrom(1024)
+
+            self.logger.info(f"Received response from {addr} ({len(data)} bytes)")
+            self.logger.debug(f"Response: {data.hex()}")
+
+            # Parse response
+            response_data = self.parse_power_mode_information_response(data)
+            if response_data:
+                self.logger.info("Power mode information response parsed successfully")
+                self.logger.info(
+                    f"Power Mode Status: 0x{response_data['power_mode_status']:04X}"
+                )
+            else:
+                self.logger.error("Failed to parse power mode information response")
+
+            return response_data
+
+        except socket.timeout:
+            self.logger.warning("Timeout waiting for power mode information response")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error sending power mode information request: {e}")
+            return None
+
+    def send_raw_request(self, request_data: bytes) -> Optional[bytes]:
+        """
+        Send a raw request and wait for response.
+
+        Args:
+            request_data: Raw request bytes to send
+
+        Returns:
+            bytes: Raw response data or None if failed
+        """
+        if not self.socket:
+            self.logger.error("Client not started")
+            return None
+
+        try:
+            self.logger.info(
+                f"Sending raw request to {self.server_host}:{self.server_port}"
+            )
+            self.logger.debug(f"Request: {request_data.hex()}")
+
+            # Send request
+            bytes_sent = self.socket.sendto(
+                request_data, (self.server_host, self.server_port)
+            )
+            self.logger.debug(f"Sent {bytes_sent} bytes")
+
+            # Wait for response
+            self.logger.info("Waiting for response...")
+            data, addr = self.socket.recvfrom(1024)
+
+            self.logger.info(f"Received response from {addr} ({len(data)} bytes)")
+            self.logger.debug(f"Response: {data.hex()}")
+
+            return data
+
+        except socket.timeout:
+            self.logger.warning("Timeout waiting for response")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error sending raw request: {e}")
             return None
 
     def run_test(self, num_requests: int = 1, delay: float = 1.0) -> list:

@@ -434,6 +434,161 @@ class TestEntityStatusIntegration:
         mock_socket.sendto.assert_not_called()
 
 
+class TestPowerModeUDP:
+    """Test cases for DoIP Power Mode Information functionality over UDP"""
+
+    def test_create_power_mode_information_request(self):
+        """Test power mode information request creation"""
+        client = UDPDoIPClient()
+        request = client.create_power_mode_information_request()
+
+        # Check request format
+        assert len(request) == 8  # DoIP header only
+        assert request[0] == 0x02  # Protocol version
+        assert request[1] == 0xFD  # Inverse protocol version
+        assert struct.unpack(">H", request[2:4])[0] == 0x4003  # Payload type
+        assert struct.unpack(">I", request[4:8])[0] == 0  # Payload length
+
+    def test_parse_power_mode_information_response(self):
+        """Test power mode information response parsing"""
+        client = UDPDoIPClient()
+
+        # Create a valid response
+        power_mode_status = 0x0001  # Power On
+
+        # Create payload
+        payload = struct.pack(">H", power_mode_status)
+
+        # Create DoIP header
+        header = struct.pack(
+            ">BBHI",
+            0x02,  # Protocol version
+            0xFD,  # Inverse protocol version
+            0x4004,  # Payload type
+            len(payload),
+        )
+
+        response_data = header + payload
+
+        # Parse response
+        result = client.parse_power_mode_information_response(response_data)
+
+        assert result is not None
+        assert result["power_mode_status"] == power_mode_status
+
+    def test_parse_power_mode_information_invalid_response(self):
+        """Test parsing of invalid power mode information responses"""
+        client = UDPDoIPClient()
+
+        # Test too short response
+        result = client.parse_power_mode_information_response(b"\x02\xfd")
+        assert result is None
+
+        # Test wrong protocol version
+        invalid_response = b"\x01\xfe\x40\x04\x00\x00\x00\x02\x00\x01"
+        result = client.parse_power_mode_information_response(invalid_response)
+        assert result is None
+
+        # Test wrong payload type
+        invalid_response = b"\x02\xfd\x00\x01\x00\x00\x00\x02\x00\x01"
+        result = client.parse_power_mode_information_response(invalid_response)
+        assert result is None
+
+        # Test wrong payload length
+        invalid_response = b"\x02\xfd\x40\x04\x00\x00\x00\x01\x00"
+        result = client.parse_power_mode_information_response(invalid_response)
+        assert result is None
+
+    def test_power_mode_information_response_creation(self):
+        """Test power mode information response creation"""
+        # Mock configuration manager
+        mock_config = MagicMock()
+        mock_config.get_power_mode_config.return_value = {
+            "current_status": 0x0002,  # Power Standby
+            "available_statuses": {
+                0x0002: {
+                    "name": "Power Standby",
+                    "description": "ECU is in standby mode",
+                }
+            },
+        }
+
+        # Create server with mock config
+        server = DoIPServer()
+        server.config_manager = mock_config
+
+        # Create response
+        response = server.create_power_mode_response()
+
+        # Check response format
+        assert len(response) == 8 + 2  # Header + payload
+        assert response[0] == 0x02  # Protocol version
+        assert response[1] == 0xFD  # Inverse protocol version
+        assert struct.unpack(">H", response[2:4])[0] == 0x4004  # Payload type
+        assert struct.unpack(">I", response[4:8])[0] == 2  # Payload length
+
+        # Check payload content
+        payload = response[8:]
+        power_mode_status = struct.unpack(">H", payload[0:2])[0]
+
+        assert power_mode_status == 0x0002  # Power Standby
+
+    def test_power_mode_information_udp_message_handling(self):
+        """Test power mode information UDP message handling in server"""
+        # Create server
+        server = DoIPServer()
+
+        # Mock UDP socket
+        mock_socket = MagicMock()
+        server.udp_socket = mock_socket
+
+        # Create power mode information request
+        request = b"\x02\xfd\x40\x03\x00\x00\x00\x00"
+
+        # Test message handling
+        server.handle_udp_message(request, ("127.0.0.1", 12345))
+
+        # Verify sendto was called
+        mock_socket.sendto.assert_called_once()
+        response_data, addr = mock_socket.sendto.call_args[0]
+        assert addr == ("127.0.0.1", 12345)
+        assert len(response_data) == 10  # Should have header (8) + payload (2)
+
+    def test_power_mode_information_udp_message_handling_invalid_protocol(self):
+        """Test power mode information UDP message handling with invalid protocol version"""
+        server = DoIPServer()
+
+        # Mock UDP socket
+        mock_socket = MagicMock()
+        server.udp_socket = mock_socket
+
+        # Create invalid request (wrong protocol version)
+        request = b"\x01\xfe\x40\x03\x00\x00\x00\x00"
+
+        # Test message handling
+        server.handle_udp_message(request, ("127.0.0.1", 12345))
+
+        # Verify sendto was not called
+        mock_socket.sendto.assert_not_called()
+
+    def test_power_mode_information_udp_message_handling_unsupported_payload_type(self):
+        """Test power mode information UDP message handling with unsupported payload type"""
+        server = DoIPServer()
+
+        # Mock UDP socket
+        mock_socket = MagicMock()
+        server.udp_socket = mock_socket
+
+        # Create request with unsupported payload type
+        request = b"\x02\xfd\x40\x99\x00\x00\x00\x00"
+
+        # Test message handling
+        server.handle_udp_message(request, ("127.0.0.1", 12345))
+
+        # Verify sendto was not called
+        mock_socket.sendto.assert_not_called()
+
+
 class TestEntityStatusEndToEnd:
     """End-to-end tests for DoIP Entity Status functionality using port 13400"""
 
@@ -661,6 +816,320 @@ gateway:
             assert (
                 response == first_response
             ), f"Response {i+1} should match first response"
+
+
+class TestPowerModeEndToEnd:
+    """End-to-end tests for DoIP Power Mode Information functionality using port 13400"""
+
+    def setup_method(self):
+        """Setup test environment before each test method."""
+        self.server = None
+        self.client = None
+        self.server_thread = None
+
+    def teardown_method(self):
+        """Cleanup after each test method."""
+        if hasattr(self, "client") and self.client:
+            self.client.stop()
+        if hasattr(self, "server") and self.server:
+            self.server.stop()
+        if (
+            hasattr(self, "server_thread")
+            and self.server_thread
+            and self.server_thread.is_alive()
+        ):
+            self.server_thread.join(timeout=3)
+
+    def start_server(self, config_path=None):
+        """Start the DoIP server in a separate thread."""
+        self.server = DoIPServer(
+            host="127.0.0.1",
+            port=13400,  # Use standard port 13400
+            gateway_config_path=config_path,
+        )
+
+        def run_server():
+            try:
+                self.server.start()
+            except Exception as e:
+                print(f"Server error: {e}")
+
+        self.server_thread = threading.Thread(target=run_server, daemon=True)
+        self.server_thread.start()
+
+        # Give server time to start and verify it's running
+        time.sleep(1)
+        assert self.server.is_ready(), "Server should be ready after startup"
+
+    def start_client(self):
+        """Start the UDP DoIP client."""
+        self.client = UDPDoIPClient(
+            server_port=13400,  # Use standard port 13400
+            server_host="127.0.0.1",
+            timeout=10.0,
+        )
+        success = self.client.start()
+        assert success, "Client should start successfully"
+        return self.client
+
+    def test_power_mode_basic_e2e(self):
+        """Test basic end-to-end power mode information request/response flow using port 13400"""
+        # Start server
+        self.start_server()
+
+        # Start client
+        self.start_client()
+
+        # Send power mode information request
+        response = self.client.send_power_mode_information_request()
+
+        # Verify response
+        assert response is not None, "Should receive power mode information response"
+
+        # Verify response structure
+        assert (
+            "power_mode_status" in response
+        ), "Response should contain power_mode_status"
+
+        # Verify response values are reasonable
+        assert isinstance(
+            response["power_mode_status"], int
+        ), "Power mode status should be integer"
+        assert (
+            0 <= response["power_mode_status"] <= 0xFFFF
+        ), "Power mode status should be valid 16-bit value"
+
+    def test_power_mode_with_custom_config_e2e(self):
+        """Test power mode information with custom configuration values using port 13400"""
+        # Create custom configuration
+        config_content = """
+gateway:
+  name: "Test Gateway E2E"
+  logical_address: 0x2000
+  power_mode_status:
+    current_status: 0x0003  # Power Sleep
+    available_statuses:
+      0x0000:
+        name: "Power Off"
+        description: "ECU is powered off"
+      0x0001:
+        name: "Power On"
+        description: "ECU is powered on and ready"
+      0x0002:
+        name: "Power Standby"
+        description: "ECU is in standby mode"
+      0x0003:
+        name: "Power Sleep"
+        description: "ECU is in sleep mode"
+      0x0004:
+        name: "Power Wake"
+        description: "ECU is waking up"
+    response_cycling:
+      enabled: false
+      cycle_through: [0x0001, 0x0002, 0x0003]
+"""
+
+        # Create temporary config file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(config_content)
+            config_path = f.name
+
+        try:
+            # Start server with custom config
+            self.start_server(config_path)
+
+            # Start client
+            self.start_client()
+
+            # Send power mode information request
+            response = self.client.send_power_mode_information_request()
+
+            # Verify response matches configuration
+            assert (
+                response is not None
+            ), "Should receive power mode information response"
+            assert (
+                response["power_mode_status"] == 0x0003
+            ), f"Power mode status should be 0x0003, got 0x{response['power_mode_status']:04X}"
+
+        finally:
+            # Clean up config file
+            import os
+
+            if os.path.exists(config_path):
+                os.remove(config_path)
+
+    def test_power_mode_with_cycling_e2e(self):
+        """Test power mode information with response cycling enabled using port 13400"""
+        # Create custom configuration with cycling enabled
+        config_content = """
+gateway:
+  name: "Test Gateway E2E"
+  logical_address: 0x2000
+  power_mode_status:
+    current_status: 0x0001  # Power On
+    available_statuses:
+      0x0001:
+        name: "Power On"
+        description: "ECU is powered on and ready"
+      0x0002:
+        name: "Power Standby"
+        description: "ECU is in standby mode"
+      0x0003:
+        name: "Power Sleep"
+        description: "ECU is in sleep mode"
+    response_cycling:
+      enabled: true
+      cycle_through: [0x0001, 0x0002, 0x0003]
+"""
+
+        # Create temporary config file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(config_content)
+            config_path = f.name
+
+        try:
+            # Start server with custom config
+            self.start_server(config_path)
+
+            # Start client
+            self.start_client()
+
+            # Send multiple requests to test cycling
+            responses = []
+            for i in range(6):  # Test 2 full cycles
+                response = self.client.send_power_mode_information_request()
+                assert response is not None, f"Request {i+1} should receive response"
+                responses.append(response["power_mode_status"])
+                time.sleep(0.1)  # Small delay between requests
+
+            # Verify cycling pattern: 0x0001, 0x0002, 0x0003, 0x0001, 0x0002, 0x0003
+            expected_pattern = [0x0001, 0x0002, 0x0003, 0x0001, 0x0002, 0x0003]
+            assert (
+                responses == expected_pattern
+            ), f"Expected {expected_pattern}, got {responses}"
+
+        finally:
+            # Clean up config file
+            import os
+
+            if os.path.exists(config_path):
+                os.remove(config_path)
+
+    def test_power_mode_with_vehicle_identification_e2e(self):
+        """Test power mode information alongside vehicle identification requests using port 13400"""
+        # Start server
+        self.start_server()
+
+        # Start client
+        self.start_client()
+
+        # Send vehicle identification request
+        vin_response = self.client.send_vehicle_identification_request()
+        assert (
+            vin_response is not None
+        ), "Should receive vehicle identification response"
+
+        # Send power mode information request
+        power_response = self.client.send_power_mode_information_request()
+        assert (
+            power_response is not None
+        ), "Should receive power mode information response"
+
+        # Verify both responses are valid
+        assert "vin" in vin_response, "VIN response should contain VIN"
+        assert (
+            "logical_address" in vin_response
+        ), "VIN response should contain logical_address"
+        assert (
+            "power_mode_status" in power_response
+        ), "Power mode response should contain power_mode_status"
+
+    def test_power_mode_with_entity_status_e2e(self):
+        """Test power mode information alongside entity status requests using port 13400"""
+        # Start server
+        self.start_server()
+
+        # Start client
+        self.start_client()
+
+        # Send entity status request
+        status_response = self.client.send_entity_status_request()
+        assert status_response is not None, "Should receive entity status response"
+
+        # Send power mode information request
+        power_response = self.client.send_power_mode_information_request()
+        assert (
+            power_response is not None
+        ), "Should receive power mode information response"
+
+        # Verify both responses are valid
+        assert (
+            "node_type" in status_response
+        ), "Status response should contain node_type"
+        assert (
+            "doip_entity_status" in status_response
+        ), "Status response should contain doip_entity_status"
+        assert (
+            "power_mode_status" in power_response
+        ), "Power mode response should contain power_mode_status"
+
+    def test_power_mode_multiple_requests_e2e(self):
+        """Test multiple power mode information requests using port 13400"""
+        # Start server
+        self.start_server()
+
+        # Start client
+        self.start_client()
+
+        # Send multiple requests
+        num_requests = 5
+        responses = []
+
+        for i in range(num_requests):
+            response = self.client.send_power_mode_information_request()
+            assert response is not None, f"Request {i+1} should receive response"
+            responses.append(response["power_mode_status"])
+            time.sleep(0.1)  # Small delay between requests
+
+        # Verify all responses are identical (no state changes by default)
+        first_response = responses[0]
+        for i, response in enumerate(responses[1:], 1):
+            assert (
+                response == first_response
+            ), f"Response {i+1} should match first response (no cycling by default)"
+
+    def test_power_mode_invalid_request_e2e(self):
+        """Test power mode information with invalid request using port 13400"""
+        # Start server
+        self.start_server()
+
+        # Start client
+        self.start_client()
+
+        # Send invalid request (wrong payload type)
+        invalid_request = b"\x02\xfd\x40\x99\x00\x00\x00\x00"  # Invalid payload type
+        response = self.client.send_raw_request(invalid_request)
+
+        # Should not receive a response for invalid request
+        assert response is None, "Should not receive response for invalid request"
+
+    def test_power_mode_protocol_version_validation_e2e(self):
+        """Test power mode information with invalid protocol version using port 13400"""
+        # Start server
+        self.start_server()
+
+        # Start client
+        self.start_client()
+
+        # Send request with invalid protocol version
+        invalid_request = b"\x01\xfe\x40\x03\x00\x00\x00\x00"  # Wrong protocol version
+        response = self.client.send_raw_request(invalid_request)
+
+        # Should not receive a response for invalid protocol version
+        assert (
+            response is None
+        ), "Should not receive response for invalid protocol version"
 
 
 if __name__ == "__main__":

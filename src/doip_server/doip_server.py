@@ -17,8 +17,8 @@ DOIP_INVERSE_PROTOCOL_VERSION = 0xFD
 # DoIP Payload types
 PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST = 0x0001
 PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE = 0x0004
-PAYLOAD_TYPE_ALIVE_CHECK_REQUEST = 0x0001
-PAYLOAD_TYPE_ALIVE_CHECK_RESPONSE = 0x0002
+PAYLOAD_TYPE_ALIVE_CHECK_REQUEST = 0x0007
+PAYLOAD_TYPE_ALIVE_CHECK_RESPONSE = 0x0008
 PAYLOAD_TYPE_ROUTING_ACTIVATION_REQUEST = 0x0005
 PAYLOAD_TYPE_ROUTING_ACTIVATION_RESPONSE = 0x0006
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE = 0x8001
@@ -26,6 +26,8 @@ PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_ACK = 0x8002
 PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_NACK = 0x8003
 PAYLOAD_TYPE_ENTITY_STATUS_REQUEST = 0x4001
 PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE = 0x4002
+PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST = 0x4003
+PAYLOAD_TYPE_POWER_MODE_INFORMATION_RESPONSE = 0x4004
 
 # UDS Service IDs (now handled by configuration)
 
@@ -374,9 +376,8 @@ class DoIPServer:
         Supported Payload Types:
             - 0x0005: Routing Activation Request
             - 0x8001: Diagnostic Message (UDS) - returns list of responses
-            - 0x0001: Alive Check Request
-            - 0x0007: Alive Check Request (alternative)
-            - 0x0008: Power Mode Request
+            - 0x0007: Alive Check Request (TCP)
+            - 0x4003: Power Mode Information Request (UDP)
 
         Note:
             The method validates:
@@ -416,9 +417,7 @@ class DoIPServer:
             return self.handle_diagnostic_message(data[8:])
         if payload_type == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST:
             return self.handle_alive_check()
-        if payload_type == 0x0007:
-            return self.handle_alive_check_0007()
-        if payload_type == 0x0008:
+        if payload_type == PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST:
             return self.handle_power_mode_request(data[8:])
 
         print(f"Unsupported payload type: 0x{payload_type:04X}")
@@ -908,14 +907,9 @@ class DoIPServer:
         self.logger.info("Processing alive check request")
         return self.create_alive_check_response()
 
-    def handle_alive_check_0007(self):
-        """Handle alive check request with payload type 0x0007"""
-        self.logger.info("Processing alive check request (0x0007)")
-        return self.create_alive_check_response_0007()
-
     def handle_power_mode_request(self, _payload):
-        """Handle power mode request (payload type 0x0008)"""
-        self.logger.info("Processing power mode request")
+        """Handle power mode information request (payload type 0x4003)"""
+        self.logger.info("Processing power mode information request")
         return self.create_power_mode_response()
 
     def handle_entity_status_request(self, _payload):
@@ -986,23 +980,8 @@ class DoIPServer:
 
         return header + payload
 
-    def create_alive_check_response_0007(self):
-        """Create alive check response for payload type 0x0007"""
-        # Respond with the same payload type 0x0007
-        payload = b"\x00\x00\x00\x00\x00\x00"  # 6 bytes for alive check response
-
-        header = struct.pack(
-            ">BBHI",
-            self.protocol_version,
-            self.inverse_protocol_version,
-            0x0007,  # Same payload type as request
-            len(payload),
-        )
-
-        return header + payload
-
     def create_power_mode_response(self):
-        """Create power mode response for payload type 0x0008"""
+        """Create power mode information response for payload type 0x4004"""
         # Get power mode configuration
         power_mode_config = self.config_manager.get_power_mode_config()
 
@@ -1047,7 +1026,7 @@ class DoIPServer:
             ">BBHI",
             self.protocol_version,
             self.inverse_protocol_version,
-            0x0008,  # Same payload type as request
+            PAYLOAD_TYPE_POWER_MODE_INFORMATION_RESPONSE,  # 0x4004
             len(payload),
         )
 
@@ -1211,6 +1190,12 @@ class DoIPServer:
                 if response:
                     self.udp_socket.sendto(response, addr)
                     self.logger.info(f"Sent entity status response to {addr}")
+            elif payload_type == PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST:
+                self.logger.info("Processing power mode information request")
+                response = self.create_power_mode_response()
+                if response:
+                    self.udp_socket.sendto(response, addr)
+                    self.logger.info(f"Sent power mode information response to {addr}")
             else:
                 self.logger.warning(
                     f"Unsupported UDP payload type: 0x{payload_type:04X}"
