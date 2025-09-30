@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-01-29
+
+### Fixed
+- **BREAKING**: Corrected power mode status length from 2 bytes to 1 byte per ISO 13400-2:2025 specification
+  - Updated power mode information response payload to use 1-byte status field
+  - Modified YAML configuration to use 1-byte hex values (0x01, 0x02, etc.) instead of 2-byte values
+  - Updated server implementation to pack status as single byte using `struct.pack(">B", status)`
+  - Updated UDP client to parse 1-byte status field correctly
+  - Fixed all test cases to expect 1-byte payload length (9 bytes total instead of 10 bytes)
+
+### Changed
+- **BREAKING**: Updated DoIP payload types to comply with ISO 13400-2:2025 specification
+  - Power Mode Information Request: 0x4003 (UDP)
+  - Power Mode Information Response: 0x4004 (UDP) 
+  - Alive Check Request: 0x0007 (TCP)
+  - Alive Check Response: 0x0008 (TCP)
+  - Updated server message processing to use correct payload types
+  - Updated UDP client to support power mode information requests/responses
+  - Enhanced test coverage with comprehensive end-to-end power mode testing
+
+### Added
+- Complete power mode information functionality over UDP
+- Comprehensive test suite for power mode information (32 tests)
+- End-to-end testing for power mode with custom configurations and response cycling
+- UDP client methods for power mode information requests and responses
+- Support for power mode response cycling with configurable status sequences
+
 ## [0.4.0] - 2024-12-25
 
 ### Changed

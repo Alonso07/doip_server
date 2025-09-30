@@ -45,12 +45,12 @@ Protocol Support:
     - Functional addressing (ISO 14229-2)
 
 Author: DoIP Server Development Team
-Version: 0.4.2
+Version: 0.5.0
 License: MIT
 """
 
 # Package version
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 # Main exports
 from .doip_server import DoIPServer, start_doip_server
