@@ -7,6 +7,7 @@ import struct
 import sys
 import threading
 import time
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -566,9 +567,10 @@ gateway:
         description: "Diagnostic power is not ready"
 """
 
-        config_path = "/tmp/test_entity_status_e2e_config.yaml"
-        with open(config_path, "w") as f:
+        # Create temporary config file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(config_content)
+            config_path = f.name
 
         try:
             # Start server with custom config

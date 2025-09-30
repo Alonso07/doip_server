@@ -9,6 +9,7 @@ import struct
 import sys
 import time
 import threading
+import tempfile
 import pytest
 
 # Add the src directory to the path for imports
@@ -180,9 +181,10 @@ gateway:
     diagnostic_power_mode: 0x01
 """
 
-        config_path = "/tmp/test_gateway_config.yaml"
-        with open(config_path, "w") as f:
+        # Create temporary config file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(config_content)
+            config_path = f.name
 
         try:
             # Start server with custom config
