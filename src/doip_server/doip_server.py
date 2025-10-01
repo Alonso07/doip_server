@@ -464,7 +464,7 @@ class DoIPServer:
         return self.create_routing_activation_response(
             ROUTING_ACTIVATION_RESPONSE_CODE_SUCCESS,
             client_logical_address,
-            logical_address,
+            self._get_gateway_logical_address(),  # Use gateway logical address as source
         )
 
     def handle_diagnostic_message(self, payload):
@@ -925,10 +925,18 @@ class DoIPServer:
     def create_routing_activation_response(
         self, response_code, client_logical_address, logical_address
     ):
-        """Create routing activation response"""
+        """Create routing activation response
+
+        Args:
+            response_code: DoIP routing activation response code
+            client_logical_address: Client's logical address (target in response)
+            logical_address: Gateway's logical address (source in response)
+        """
         # Create payload according to DoIP standard: !HHBLL format
         payload = struct.pack(">H", client_logical_address)  # Client logical address
-        payload += struct.pack(">H", logical_address)  # Logical address
+        payload += struct.pack(
+            ">H", logical_address
+        )  # Gateway logical address (source)
         payload += struct.pack(">B", response_code)  # Response code
         payload += struct.pack(">I", 0x00000000)  # Reserved (4 bytes)
         payload += struct.pack(">I", 0x00000000)  # VM specific (4 bytes)
