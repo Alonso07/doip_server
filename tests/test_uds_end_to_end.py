@@ -189,6 +189,9 @@ class TestUDSEndToEnd:
             # First response should be ACK
             ack_response = tcp_client.recv(1024)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert (
+                ack_parsed is not None
+            ), f"Failed to parse ACK response: {ack_response.hex()}"
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
 
             # Second response should be UDS response
@@ -213,6 +216,9 @@ class TestUDSEndToEnd:
             # First response should be ACK
             ack_response = tcp_client.recv(1024)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            assert (
+                ack_parsed is not None
+            ), f"Failed to parse ACK response: {ack_response.hex()}"
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
 
             # Second response should be UDS response
@@ -318,7 +324,7 @@ class TestUDSEndToEnd:
         tcp_client.settimeout(10.0)
 
         try:
-            tcp_client.connect(("127.0.0.1", 13400))
+            tcp_client.connect(("127.0.0.1", server.port))
 
             # Activate routing
             routing_request = self._create_routing_activation_request()
@@ -333,14 +339,26 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C01),  # RPM
             )
             tcp_client.send(engine_request)
-            # Receive ACK first
-            ack_response = tcp_client.recv(1024)
-            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            # Receive response (may be ACK only, or ACK + UDS combined)
+            combined_response = tcp_client.recv(1024)
+            messages = self._split_combined_response(combined_response)
+
+            # First message should be ACK
+            ack_parsed = self._parse_diagnostic_message_response(messages[0])
+            assert (
+                ack_parsed is not None
+            ), f"Failed to parse ACK response: {messages[0].hex()}"
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
-            engine_response = self._parse_diagnostic_message_response(
-                tcp_client.recv(1024)
-            )
+
+            # If UDS response not in same packet, receive it separately
+            if len(messages) < 2:
+                uds_response_data = tcp_client.recv(1024)
+                engine_response = self._parse_diagnostic_message_response(
+                    uds_response_data
+                )
+            else:
+                engine_response = self._parse_diagnostic_message_response(messages[1])
+
             assert engine_response["uds_response"][0] == 0x62
             print("  ✅ Engine ECU communication successful")
 
@@ -352,14 +370,23 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C0A),  # Gear
             )
             tcp_client.send(trans_request)
-            # Receive ACK first
-            ack_response = tcp_client.recv(1024)
-            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            # Receive response (may be ACK only, or ACK + UDS combined)
+            combined_response = tcp_client.recv(1024)
+            messages = self._split_combined_response(combined_response)
+
+            # First message should be ACK
+            ack_parsed = self._parse_diagnostic_message_response(messages[0])
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
-            trans_response = self._parse_diagnostic_message_response(
-                tcp_client.recv(1024)
-            )
+
+            # If UDS response not in same packet, receive it separately
+            if len(messages) < 2:
+                uds_response_data = tcp_client.recv(1024)
+                trans_response = self._parse_diagnostic_message_response(
+                    uds_response_data
+                )
+            else:
+                trans_response = self._parse_diagnostic_message_response(messages[1])
+
             assert trans_response["uds_response"][0] == 0x62
             print("  ✅ Transmission ECU communication successful")
 
@@ -371,14 +398,23 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C0B),  # Wheel Speed
             )
             tcp_client.send(abs_request)
-            # Receive ACK first
-            ack_response = tcp_client.recv(1024)
-            ack_parsed = self._parse_diagnostic_message_response(ack_response)
+            # Receive response (may be ACK only, or ACK + UDS combined)
+            combined_response = tcp_client.recv(1024)
+            messages = self._split_combined_response(combined_response)
+
+            # First message should be ACK
+            ack_parsed = self._parse_diagnostic_message_response(messages[0])
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
-            abs_response = self._parse_diagnostic_message_response(
-                tcp_client.recv(1024)
-            )
+
+            # If UDS response not in same packet, receive it separately
+            if len(messages) < 2:
+                uds_response_data = tcp_client.recv(1024)
+                abs_response = self._parse_diagnostic_message_response(
+                    uds_response_data
+                )
+            else:
+                abs_response = self._parse_diagnostic_message_response(messages[1])
+
             assert abs_response["uds_response"][0] == 0x62
             print("  ✅ ABS ECU communication successful")
 
@@ -396,7 +432,7 @@ class TestUDSEndToEnd:
         tcp_client.settimeout(5.0)
 
         try:
-            tcp_client.connect(("127.0.0.1", 13400))
+            tcp_client.connect(("127.0.0.1", server.port))
 
             # Test invalid source address
             print("Testing invalid source address...")
@@ -410,7 +446,9 @@ class TestUDSEndToEnd:
 
             # Should receive NACK for invalid source address
             diag_response = self._parse_diagnostic_message_response(response)
-            assert diag_response is None or len(diag_response["uds_response"]) == 0
+            assert (
+                diag_response is None or diag_response["payload_type"] == 0x8003
+            )  # NACK
             print("  ✅ Invalid source address correctly rejected")
 
             # Test invalid target address
@@ -425,7 +463,9 @@ class TestUDSEndToEnd:
 
             # Should receive NACK for invalid target address
             diag_response = self._parse_diagnostic_message_response(response)
-            assert diag_response is None or len(diag_response["uds_response"]) == 0
+            assert (
+                diag_response is None or diag_response["payload_type"] == 0x8003
+            )  # NACK
             print("  ✅ Invalid target address correctly rejected")
 
             print("✅ Error handling test completed")
@@ -512,6 +552,28 @@ class TestUDSEndToEnd:
             "target_address": target_address,
             "uds_response": uds_response,
         }
+
+    def _split_combined_response(self, data):
+        """Split combined DoIP responses into individual messages"""
+        messages = []
+        offset = 0
+
+        while offset < len(data):
+            if len(data) - offset < 8:
+                break
+
+            # Parse header to get message length
+            payload_length = struct.unpack(">I", data[offset + 4 : offset + 8])[0]
+            message_length = 8 + payload_length
+
+            if offset + message_length > len(data):
+                break
+
+            message = data[offset : offset + message_length]
+            messages.append(message)
+            offset += message_length
+
+        return messages
 
     def _create_diagnostic_session_control_request(self, session_type):
         """Create UDS diagnostic session control request"""

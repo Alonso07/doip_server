@@ -793,6 +793,14 @@ gateway:
         self.logger.info("Configuration validation passed")
         return True
 
+    def get_uds_services(self) -> Dict[str, Any]:
+        """Get all UDS services configuration.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing all UDS service configurations
+        """
+        return self.uds_services
+
     def get_config_summary(self) -> str:
         """Get a summary of the current configuration"""
         summary = []

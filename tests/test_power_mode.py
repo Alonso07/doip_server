@@ -106,7 +106,7 @@ class TestPowerModeResponseGeneration:
         # Verify DoIP header
         assert response[0] == 0x02  # Protocol version
         assert response[1] == 0xFD  # Inverse protocol version
-        assert struct.unpack(">H", response[2:4])[0] == 0x0008  # Payload type
+        assert struct.unpack(">H", response[2:4])[0] == 0x4004  # Payload type
         assert struct.unpack(">I", response[4:8])[0] == 2  # Payload length
 
         # Verify power mode status (should be 0x0001 - Power On)
@@ -270,8 +270,8 @@ class TestPowerModeIntegration:
         """Test power mode request handling through TCP message processing"""
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
-        # Create a power mode request (payload type 0x0008)
-        power_mode_request = struct.pack(">BBHI", 0x02, 0xFD, 0x0008, 0)  # No payload
+        # Create a power mode request (payload type 0x4003)
+        power_mode_request = struct.pack(">BBHI", 0x02, 0xFD, 0x4003, 0)  # No payload
 
         # Process the DoIP message
         result = server.process_doip_message(power_mode_request)
@@ -281,7 +281,7 @@ class TestPowerModeIntegration:
         assert len(result) == 10  # 8 bytes header + 2 bytes payload
         assert result[0] == 0x02  # Protocol version
         assert result[1] == 0xFD  # Inverse protocol version
-        assert struct.unpack(">H", result[2:4])[0] == 0x0008  # Payload type
+        assert struct.unpack(">H", result[2:4])[0] == 0x4004  # Payload type
         assert struct.unpack(">I", result[4:8])[0] == 2  # Payload length
 
     def test_power_mode_response_cycling_state_management(self):
