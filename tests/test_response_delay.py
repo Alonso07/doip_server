@@ -215,7 +215,7 @@ class TestResponseDelay(unittest.TestCase):
 
     def _create_doip_diagnostic_message(self, uds_request, source_addr, target_addr):
         """Create a mock DoIP diagnostic message for testing."""
-        # DoIP header: version (1) + inverse_version (1) + payload_type (2) + 
+        # DoIP header: version (1) + inverse_version (1) + payload_type (2) +
         # payload_length (4)
         header = struct.pack(
             ">BBHI", 0x02, 0xFD, 0x8001, 4
@@ -229,13 +229,13 @@ class TestResponseDelay(unittest.TestCase):
 
     def _create_doip_routing_activation_message(self):
         """Create a mock DoIP routing activation message for testing."""
-        # DoIP header: version (1) + inverse_version (1) + payload_type (2) + 
+        # DoIP header: version (1) + inverse_version (1) + payload_type (2) +
         # payload_length (4)
         header = struct.pack(
             ">BBHI", 0x02, 0xFD, 0x0005, 9
         )  # Routing activation payload type
 
-        # Payload: client_logical_address (2) + logical_address (2) + 
+        # Payload: client_logical_address (2) + logical_address (2) +
         # response_code (1) + reserved (4)
         payload = struct.pack(">HHB", 0x2000, 0x1000, 0x00) + struct.pack(
             ">I", 0x00000000
