@@ -1,0 +1,69 @@
+# Engine ECU Specific UDS Services with Delay Configuration
+# This file demonstrates the new delay functionality for UDS responses
+
+specific_services:
+  Engine_RPM_Read_With_Delay:
+    request: "0x220C01"
+    responses:
+      - "0x620C018000"  # 8000 RPM - no delay
+      - "0x620C017500"  # 7500 RPM - 100ms delay
+      - "0x620C016500"  # 6500 RPM - 200ms delay
+    description: "Read engine RPM with response delays"
+    supports_functional: false
+    delay_ms: 50  # Service-level delay (applied to all responses if not overridden)
+    
+  Engine_Temperature_Read_With_Response_Delays:
+    request: "0x220C05"
+    responses:
+      - response: "0x620C0580"  # 80°C
+        delay_ms: 0  # No delay for first response
+      - response: "0x620C0590"  # 90°C
+        delay_ms: 150  # 150ms delay for second response
+      - response: "0x620C0570"  # 70°C
+        delay_ms: 300  # 300ms delay for third response
+    description: "Read engine temperature with individual response delays"
+    supports_functional: false
+    
+  Fuel_Level_Read_Service_Delay:
+    request: "0x220C2F"
+    responses:
+      - "0x620C2F80"  # 80% fuel level
+      - "0x620C2F50"  # 50% fuel level
+      - "0x620C2F20"  # 20% fuel level
+    description: "Read fuel level with service-level delay"
+    supports_functional: false
+    delay_ms: 250  # All responses delayed by 250ms
+    
+  Engine_Start_Stop_Mixed_Delays:
+    request: "0x31010001"
+    responses:
+      - response: "0x71010001"  # Engine started
+        delay_ms: 100
+      - response: "0x71010002"  # Engine stopped
+        delay_ms: 0  # No delay
+    description: "Engine start/stop control with mixed delays"
+    supports_functional: false
+    delay_ms: 75  # Service-level delay (overridden by response-level delays)
+    
+  Throttle_Position_Read_No_Delay:
+    request: "0x220C11"
+    responses:
+      - "0x620C1180"  # 80% throttle
+      - "0x620C1100"  # 0% throttle
+      - "0x620C1150"  # 50% throttle
+    description: "Read throttle position (no delays configured)"
+    supports_functional: false
+    
+  Engine_Diagnostic_Codes_With_Delays:
+    request: "0x1902"
+    responses:
+      - response: "0x5902"  # No DTCs
+        delay_ms: 50
+      - response: "0x5902P0000"  # P0000 - No fault
+        delay_ms: 100
+      - response: "0x5902P0100"  # P0100 - Mass or Volume Air Flow Circuit Malfunction
+        delay_ms: 200
+      - response: "0x5902P0200"  # P0200 - Injector Circuit Malfunction
+        delay_ms: 300
+    description: "Read engine diagnostic trouble codes with progressive delays"
+    supports_functional: true
