@@ -784,6 +784,14 @@ class DoIPServer:
             )  # Service not supported in active session
 
         if service_config:
+            # Check if this service is configured for no response
+            no_response = service_config.get("no_response", False)
+            if no_response:
+                self.logger.info(
+                    f"Service {service_config.get('name', 'Unknown')} configured for no response"
+                )
+                return None  # Return None to indicate no response should be sent
+            
             # Get responses for this service
             responses = service_config.get("responses", [])
             if responses:

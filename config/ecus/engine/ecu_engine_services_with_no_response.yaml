@@ -1,0 +1,17 @@
+# Engine ECU Specific UDS Services with No Response Examples
+# This file demonstrates the no_response feature for UDS services
+
+specific_services:
+  # Tester Present - configured for no response
+  Tester_Present_No_Response:
+    request: "0x3E80"
+    no_response: true
+    description: "Tester Present - silent acknowledgment"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  # Default Session - configured for no response  
+  Default_Session_No_Response:
+    request: "0x1081"
+    no_response: true
+    description: "Default Session Control - silent session activation"
+    supports_functional: true  # Supports both physical and functional addressing

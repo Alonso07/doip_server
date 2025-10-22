@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **No Response Service Configuration** (Issue #35)
+  - Added `no_response` configuration option for UDS services
+  - Services can now be configured to not send any UDS response back to the client
+  - DoIP acknowledgment is still sent for protocol compliance
+  - Works with both physical and functional addressing
+  - Configuration validation ensures proper setup
+  - Comprehensive documentation and examples included
+  - **Implementation Details**:
+    - Modified `process_uds_message()` in `doip_server.py` to check for `no_response` flag
+    - Enhanced `HierarchicalConfigManager` validation to handle `no_response` configuration
+    - Added boolean validation and conflict detection for `no_response` settings
+    - Created comprehensive test suite with 7 test cases covering all scenarios
+
+### Changed
+- Enhanced service validation in `HierarchicalConfigManager`
+  - Validates `no_response` is a boolean value
+  - Warns if `no_response: true` but responses are configured
+  - Warns if no responses configured and `no_response` not set
+
+### Documentation
+- Added "No Response Configuration" section to `CONFIGURATION.md`
+- Created comprehensive usage guide `EXAMPLE_NO_RESPONSE.md`
+- Added example configuration file `ecu_engine_services_with_no_response.yaml`
+- Created demonstration script `examples/demo_no_response.py`
+- Updated README with new feature announcement
+
 ## [0.5.0] - 2025-01-29
 
 ### Fixed

@@ -789,6 +789,30 @@ gateway:
         # Validate UDS services
         if not self.uds_services:
             self.logger.warning("No UDS services loaded")
+        else:
+            # Validate service configurations
+            for service_name, service_config in self.uds_services.items():
+                # Validate no_response configuration
+                no_response = service_config.get("no_response", False)
+                if no_response and not isinstance(no_response, bool):
+                    self.logger.error(f"Service '{service_name}': no_response must be a boolean value")
+                    return False
+                
+                # If no_response is True, responses should be empty or not present
+                if no_response:
+                    responses = service_config.get("responses", [])
+                    if responses:
+                        self.logger.warning(
+                            f"Service '{service_name}': no_response is True but responses are configured. "
+                            "Responses will be ignored."
+                        )
+                else:
+                    # If no_response is False or not set, validate that responses exist
+                    responses = service_config.get("responses", [])
+                    if not responses:
+                        self.logger.warning(
+                            f"Service '{service_name}': no responses configured and no_response is not set to True"
+                        )
 
         self.logger.info("Configuration validation passed")
         return True

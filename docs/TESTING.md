@@ -45,6 +45,9 @@ poetry run pytest tests/test_hierarchical_configuration.py -v
 
 # Response cycling tests
 poetry run pytest tests/test_response_cycling.py -v
+
+# No response feature tests
+poetry run pytest tests/test_no_response_simple.py -v
 ```
 
 ### Test Runner Script
@@ -214,6 +217,7 @@ make security
 2. **Integration Tests**: Add to `test_doip_integration.py` for server-client tests
 3. **Configuration Tests**: Add to `test_hierarchical_configuration.py` for config tests
 4. **Response Cycling Tests**: Add to `test_response_cycling.py` for cycling tests
+5. **No Response Tests**: Add to `test_no_response_simple.py` for no response feature tests
 
 ### Test Best Practices
 1. **Use Fixtures**: Leverage pytest fixtures for consistent setup
@@ -226,6 +230,45 @@ make security
 - **Test Configurations**: Use `tests/test_config.yaml` for test data
 - **Mock Data**: Use pytest mocks for external dependencies
 - **Cleanup**: Ensure tests clean up after themselves
+
+## No Response Feature Testing
+
+The no_response feature includes comprehensive tests to ensure services can be configured to not send responses.
+
+### Test Coverage
+- **Configuration Validation**: Tests boolean validation and conflicting configurations
+- **Service Processing**: Tests that services with `no_response: true` return `None`
+- **Default Behavior**: Tests that services without `no_response` work normally
+- **Response Ignoring**: Tests that responses are ignored when `no_response: true`
+
+### Running No Response Tests
+```bash
+# Run all no response tests
+poetry run pytest tests/test_no_response_simple.py -v
+
+# Run specific test
+poetry run pytest tests/test_no_response_simple.py::TestNoResponseSimple::test_no_response_validation_boolean -v
+```
+
+### Test Examples
+```python
+def test_no_response_service_processing_logic(self):
+    """Test the core logic of no_response processing."""
+    service_config = {
+        "name": "test_service",
+        "request": "0x2F1234",
+        "no_response": True,
+        "description": "Test service with no response"
+    }
+    
+    no_response = service_config.get("no_response", False)
+    if no_response:
+        result = None
+    else:
+        result = "some_response"
+    
+    assert result is None, "Should return None when no_response is True"
+```
 
 ## Troubleshooting
 

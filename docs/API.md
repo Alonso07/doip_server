@@ -265,6 +265,27 @@ state = server.get_response_cycling_state()
 print(f"Cycling state: {state}")
 ```
 
+### No Response Services
+```python
+# Configure service for no response
+service_config = {
+    "request": "0x3E80",
+    "no_response": True,
+    "description": "Tester Present - silent acknowledgment",
+    "supports_functional": True
+}
+
+# Service processing logic
+def process_uds_message(uds_payload, target_address):
+    service_config = config_manager.get_uds_service_by_request(uds_hex, target_address)
+    if service_config:
+        no_response = service_config.get("no_response", False)
+        if no_response:
+            return None  # No UDS response sent
+        else:
+            return generate_response(service_config)
+```
+
 ## Error Handling
 
 ### Configuration Errors

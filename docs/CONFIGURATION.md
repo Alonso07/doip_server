@@ -187,6 +187,7 @@ engine_services:
 - **Service Definitions**: Configure UDS services and responses
 - **Response Cycling**: Multiple responses per service for testing
 - **Functional Support**: Services can support functional addressing
+- **No Response Support**: Services can be configured to not send any response
 - **Service Files**: Organize services by ECU type
 
 ### Response Cycling
@@ -194,6 +195,47 @@ engine_services:
 - **Cycling Logic**: Automatically cycle through responses
 - **Per-ECU State**: Separate cycling state for each ECU-service combination
 - **Reset Capability**: Reset cycling state for testing
+
+### No Response Configuration
+
+Some UDS services may be configured to not send any response back to the client. This is useful for:
+- **Silent Services**: Services that process requests but don't require acknowledgment
+- **One-way Communication**: Services that only send data without expecting responses
+- **Testing Scenarios**: Simulating services that are temporarily unavailable
+
+#### Configuration
+
+To configure a service for no response, set the `no_response` option to `true`:
+
+```yaml
+common_services:
+  silent_data_logging:
+    request: "0x2F1234"
+    no_response: true
+    description: "Silent data logging service - no response required"
+    supports_functional: false
+    
+  one_way_notification:
+    request: "0x31050001"
+    no_response: true
+    description: "One-way notification service"
+    supports_functional: true
+```
+
+#### Important Notes
+
+- When `no_response: true` is set, the `responses` array is ignored
+- The service will still be matched and processed, but no UDS response will be sent
+- A DoIP acknowledgment is still sent to confirm message receipt
+- This feature works with both physical and functional addressing
+- Services with `no_response: true` can still support functional addressing
+
+#### Validation
+
+The configuration system validates that:
+- `no_response` must be a boolean value (`true` or `false`)
+- If `no_response: true`, any configured responses will be ignored with a warning
+- If `no_response: false` or not set, the service should have responses configured
 
 ### Request Mirroring
 - **Dynamic Responses**: Mirror parts of the request in the response

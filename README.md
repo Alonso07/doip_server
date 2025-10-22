@@ -57,6 +57,7 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ### 🚀 Advanced Features
 - **Response Cycling**: Automatic cycling through multiple responses per UDS service
+- **No Response Configuration**: Configure services that don't send responses (Issue #35)
 - **UDP Vehicle Identification**: Network discovery via UDP broadcasts
 - **Per-ECU Services**: ECU-specific UDS service definitions
 - **Comprehensive Testing**: 99.5% test pass rate with full core functionality
