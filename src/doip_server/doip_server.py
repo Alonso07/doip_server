@@ -791,7 +791,7 @@ class DoIPServer:
                     f"Service {service_config.get('name', 'Unknown')} configured for no response"
                 )
                 return None  # Return None to indicate no response should be sent
-            
+
             # Get responses for this service
             responses = service_config.get("responses", [])
             if responses:
