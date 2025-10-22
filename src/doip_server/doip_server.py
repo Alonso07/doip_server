@@ -9,7 +9,6 @@ import socket
 import struct
 import logging
 import time
-import asyncio
 from .hierarchical_config_manager import HierarchicalConfigManager
 
 # DoIP Protocol constants
@@ -350,9 +349,11 @@ class DoIPServer:
                             # Check if this response has a delay configuration
                             delay_ms = self._get_response_delay(data, i)
                             if delay_ms > 0:
-                                self.logger.info(f"Delaying response {i+1} by {delay_ms}ms")
+                                self.logger.info(
+                                    f"Delaying response {i+1} by {delay_ms}ms"
+                                )
                                 time.sleep(delay_ms / 1000.0)  # Convert ms to seconds
-                            
+
                             client_socket.send(response)
                             print(
                                 f"Sent response {i+1}/{len(responses)}: {response.hex()}"
@@ -363,7 +364,7 @@ class DoIPServer:
                         if delay_ms > 0:
                             self.logger.info(f"Delaying response by {delay_ms}ms")
                             time.sleep(delay_ms / 1000.0)  # Convert ms to seconds
-                        
+
                         client_socket.send(responses)
                         print(f"Sent response: {responses.hex()}")
         except Exception as e:
@@ -373,11 +374,11 @@ class DoIPServer:
 
     def _get_response_delay(self, data, response_index):
         """Get delay configuration for a specific response.
-        
+
         Args:
             data (bytes): Original DoIP message data
             response_index (int): Index of the response (0 for single response)
-            
+
         Returns:
             int: Delay in milliseconds, 0 if no delay configured
         """
@@ -385,39 +386,39 @@ class DoIPServer:
             # Parse DoIP header to get payload type
             if len(data) < 8:
                 return 0
-                
+
             payload_type = struct.unpack(">H", data[2:4])[0]
-            
+
             # Only apply delays to diagnostic messages (UDS)
             if payload_type != PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE:
                 return 0
-                
+
             # Extract UDS payload for service lookup
             if len(data) < 12:  # DoIP header (8) + source (2) + target (2)
                 return 0
-                
+
             uds_payload = data[8:]  # Skip DoIP header
             if len(uds_payload) < 4:
                 return 0
-                
+
             # Extract target address and UDS payload
             target_address = struct.unpack(">H", uds_payload[2:4])[0]
             uds_data = uds_payload[4:]
-            
+
             if not uds_data:
                 return 0
-                
+
             # Convert UDS payload to hex string for service matching
             uds_hex = uds_data.hex().upper()
-            
+
             # Get service configuration
             service_config = self.config_manager.get_uds_service_by_request(
                 uds_hex, target_address
             )
-            
+
             if not service_config:
                 return 0
-                
+
             # Check for response-level delay first (higher priority)
             responses = service_config.get("responses", [])
             if response_index < len(responses):
@@ -428,10 +429,10 @@ class DoIPServer:
                 elif isinstance(response, str):
                     # For string responses, fall back to service-level delay
                     return service_config.get("delay_ms", 0)
-            
+
             # Fall back to service-level delay if no response-level delay
             return service_config.get("delay_ms", 0)
-            
+
         except Exception as e:
             self.logger.warning(f"Error getting response delay: {e}")
             return 0
