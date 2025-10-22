@@ -793,14 +793,16 @@ gateway:
             # Validate service configurations
             for service_name, service_config in self.uds_services.items():
                 # Validate no_response configuration
-                no_response = service_config.get("no_response", False)
-                if "no_response" in service_config and not isinstance(no_response, bool):
-                    self.logger.error(
-                        f"Service '{service_name}': no_response must be a boolean value"
-                    )
-                    return False
+                if "no_response" in service_config:
+                    no_response = service_config.get("no_response")
+                    if not isinstance(no_response, bool):
+                        self.logger.error(
+                            f"Service '{service_name}': no_response must be a boolean value"
+                        )
+                        return False
 
                 # If no_response is True, responses should be empty or not present
+                no_response = service_config.get("no_response", False)
                 if no_response:
                     responses = service_config.get("responses", [])
                     if responses:
