@@ -35,7 +35,7 @@ class TestResponseCycling:
 
         # Test Read_VIN service for Engine ECU (has 2 responses)
         request_bytes = bytes.fromhex("22F190")
-        target_address = 0x1000
+        target_address = 0x0001
 
         # First call - should return first response
         response1 = server.process_uds_message(request_bytes, target_address)
@@ -44,7 +44,7 @@ class TestResponseCycling:
 
         # Check cycling state
         cycling_state = server.get_response_cycling_state()
-        key = "ECU_0x1000_Read_VIN"
+        key = "ECU_0x0001_Read_VIN"
         assert key in cycling_state
         assert cycling_state[key] == 1  # Next response should be index 1
 
@@ -73,15 +73,15 @@ class TestResponseCycling:
         request_bytes = bytes.fromhex("22F190")
 
         # Test Engine ECU
-        response_engine = server.process_uds_message(request_bytes, 0x1000)
+        response_engine = server.process_uds_message(request_bytes, 0x0001)
         assert response_engine is not None
 
         # Test Transmission ECU
-        response_transmission = server.process_uds_message(request_bytes, 0x1001)
+        response_transmission = server.process_uds_message(request_bytes, 0x0002)
         assert response_transmission is not None
 
         # Test ABS ECU
-        response_abs = server.process_uds_message(request_bytes, 0x1002)
+        response_abs = server.process_uds_message(request_bytes, 0x0003)
         assert response_abs is not None
 
         # All should return the first response (index 0) since they're independent
@@ -97,19 +97,19 @@ class TestResponseCycling:
 
         # Check that all have independent cycling states
         cycling_state = server.get_response_cycling_state()
-        assert "ECU_0x1000_Read_VIN" in cycling_state
-        assert "ECU_0x1001_Read_VIN" in cycling_state
-        assert "ECU_0x1002_Read_VIN" in cycling_state
+        assert "ECU_0x0001_Read_VIN" in cycling_state
+        assert "ECU_0x0002_Read_VIN" in cycling_state
+        assert "ECU_0x0003_Read_VIN" in cycling_state
 
         # All should be at index 1 (next response)
-        assert cycling_state["ECU_0x1000_Read_VIN"] == 1
-        assert cycling_state["ECU_0x1001_Read_VIN"] == 1
-        assert cycling_state["ECU_0x1002_Read_VIN"] == 1
+        assert cycling_state["ECU_0x0001_Read_VIN"] == 1
+        assert cycling_state["ECU_0x0002_Read_VIN"] == 1
+        assert cycling_state["ECU_0x0003_Read_VIN"] == 1
 
     def test_response_cycling_different_services(self):
         """Test that different services have independent cycling states"""
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
-        target_address = 0x1000  # Engine ECU
+        target_address = 0x0001  # Engine ECU
 
         # Test Read_VIN service
         vin_request = bytes.fromhex("22F190")
@@ -127,12 +127,12 @@ class TestResponseCycling:
 
         # Check that both services have independent cycling states
         cycling_state = server.get_response_cycling_state()
-        assert "ECU_0x1000_Read_VIN" in cycling_state
-        assert "ECU_0x1000_Engine_RPM_Read" in cycling_state
+        assert "ECU_0x0001_Read_VIN" in cycling_state
+        assert "ECU_0x0001_Engine_RPM_Read" in cycling_state
 
         # Both should be at index 1 (next response)
-        assert cycling_state["ECU_0x1000_Read_VIN"] == 1
-        assert cycling_state["ECU_0x1000_Engine_RPM_Read"] == 1
+        assert cycling_state["ECU_0x0001_Read_VIN"] == 1
+        assert cycling_state["ECU_0x0001_Engine_RPM_Read"] == 1
 
     def test_response_cycling_with_eight_responses(self):
         """Test response cycling with a service that has 8 responses"""
@@ -140,7 +140,7 @@ class TestResponseCycling:
 
         # Test Transmission_Gear_Read service (has 8 responses)
         request_bytes = bytes.fromhex("220C0A")
-        target_address = 0x1001  # Transmission ECU
+        target_address = 0x0002  # Transmission ECU
 
         # First call - should return first response
         response1 = server.process_uds_message(request_bytes, target_address)
@@ -189,7 +189,7 @@ class TestResponseCycling:
 
         # Check cycling state
         cycling_state = server.get_response_cycling_state()
-        key = "ECU_0x1001_Transmission_Gear_Read"
+        key = "ECU_0x0002_Transmission_Gear_Read"
         assert key in cycling_state
         assert cycling_state[key] == 1  # Next response should be index 1
 
@@ -198,7 +198,7 @@ class TestResponseCycling:
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
         request_bytes = bytes.fromhex("22F190")
-        target_address = 0x1000
+        target_address = 0x0001
 
         # Make a few calls to advance the cycling state
         server.process_uds_message(request_bytes, target_address)
@@ -206,7 +206,7 @@ class TestResponseCycling:
 
         # Check that cycling state is advanced
         cycling_state = server.get_response_cycling_state()
-        key = "ECU_0x1000_Read_VIN"
+        key = "ECU_0x0001_Read_VIN"
         assert key in cycling_state
         assert cycling_state[key] == 0  # Should be back to index 0 after cycling
 
@@ -232,9 +232,9 @@ class TestResponseCycling:
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
         # Make some calls to create cycling states
-        server.process_uds_message(bytes.fromhex("22F190"), 0x1000)
-        server.process_uds_message(bytes.fromhex("220C01"), 0x1000)
-        server.process_uds_message(bytes.fromhex("22F190"), 0x1001)
+        server.process_uds_message(bytes.fromhex("22F190"), 0x0001)
+        server.process_uds_message(bytes.fromhex("220C01"), 0x0001)
+        server.process_uds_message(bytes.fromhex("22F190"), 0x0002)
 
         # Check that cycling states exist
         cycling_state = server.get_response_cycling_state()
@@ -253,7 +253,7 @@ class TestResponseCycling:
 
         # Test Routine_calibration_start service (has 1 response)
         request_bytes = bytes.fromhex("31010202")
-        target_address = 0x1000
+        target_address = 0x0001
 
         # Multiple calls should return the same response
         response1 = server.process_uds_message(request_bytes, target_address)
@@ -272,7 +272,7 @@ class TestResponseCycling:
 
         # Check cycling state (should cycle between 0 and 0)
         cycling_state = server.get_response_cycling_state()
-        key = "ECU_0x1000_Routine_calibration_start"
+        key = "ECU_0x0001_Routine_calibration_start"
         assert key in cycling_state
         assert cycling_state[key] == 0  # Should stay at index 0
 

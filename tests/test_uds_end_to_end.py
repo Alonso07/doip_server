@@ -182,7 +182,7 @@ class TestUDSEndToEnd:
             # Send diagnostic session control request (extended session)
             session_request = self._create_diagnostic_session_control_request(0x03)
             diag_request = self._create_diagnostic_message_request(
-                0x0E00, 0x1000, session_request
+                0x0E00, 0x0001, session_request
             )
             tcp_client.send(diag_request)
 
@@ -206,7 +206,7 @@ class TestUDSEndToEnd:
             # Send VIN read request
             vin_request = self._create_read_data_by_identifier_request(0xF190)
             diag_request = self._create_diagnostic_message_request(
-                0x0E00, 0x1000, vin_request
+                0x0E00, 0x0001, vin_request
             )
             tcp_client.send(diag_request)
 
@@ -243,7 +243,7 @@ class TestUDSEndToEnd:
                     service_id
                 )
                 diag_request = self._create_diagnostic_message_request(
-                    0x0E00, 0x1000, service_request
+                    0x0E00, 0x0001, service_request
                 )
                 tcp_client.send(diag_request)
 
@@ -266,7 +266,7 @@ class TestUDSEndToEnd:
             for i in range(3):
                 vin_request = self._create_read_data_by_identifier_request(0xF190)
                 diag_request = self._create_diagnostic_message_request(
-                    0x0E00, 0x1000, vin_request
+                    0x0E00, 0x0001, vin_request
                 )
                 tcp_client.send(diag_request)
 
@@ -288,7 +288,7 @@ class TestUDSEndToEnd:
             # Send tester present to keep session alive
             tester_present = self._create_tester_present_request()
             diag_request = self._create_diagnostic_message_request(
-                0x0E00, 0x1000, tester_present
+                0x0E00, 0x0001, tester_present
             )
             tcp_client.send(diag_request)
 
@@ -326,11 +326,11 @@ class TestUDSEndToEnd:
             tcp_client.send(routing_request)
             tcp_client.recv(1024)  # Consume response
 
-            # Test Engine ECU (0x1000)
-            print("Testing Engine ECU (0x1000)...")
+            # Test Engine ECU (0x0001)
+            print("Testing Engine ECU (0x0001)...")
             engine_request = self._create_diagnostic_message_request(
                 0x0E00,
-                0x1000,
+                0x0001,
                 self._create_read_data_by_identifier_request(0x220C01),  # RPM
             )
             tcp_client.send(engine_request)
@@ -345,11 +345,11 @@ class TestUDSEndToEnd:
             assert engine_response["uds_response"][0] == 0x62
             print("  ✅ Engine ECU communication successful")
 
-            # Test Transmission ECU (0x1001)
-            print("Testing Transmission ECU (0x1001)...")
+            # Test Transmission ECU (0x0002)
+            print("Testing Transmission ECU (0x0002)...")
             trans_request = self._create_diagnostic_message_request(
                 0x0E00,
-                0x1001,
+                0x0002,
                 self._create_read_data_by_identifier_request(0x220C0A),  # Gear
             )
             tcp_client.send(trans_request)
@@ -364,11 +364,11 @@ class TestUDSEndToEnd:
             assert trans_response["uds_response"][0] == 0x62
             print("  ✅ Transmission ECU communication successful")
 
-            # Test ABS ECU (0x1002)
-            print("Testing ABS ECU (0x1002)...")
+            # Test ABS ECU (0x0003)
+            print("Testing ABS ECU (0x0003)...")
             abs_request = self._create_diagnostic_message_request(
                 0x0E00,
-                0x1002,
+                0x0003,
                 self._create_read_data_by_identifier_request(0x220C0B),  # Wheel Speed
             )
             tcp_client.send(abs_request)
@@ -403,7 +403,7 @@ class TestUDSEndToEnd:
             print("Testing invalid source address...")
             invalid_request = self._create_diagnostic_message_request(
                 0x9999,
-                0x1000,  # Invalid source address
+                0x0001,  # Invalid source address
                 self._create_read_data_by_identifier_request(0xF190),
             )
             tcp_client.send(invalid_request)
@@ -443,7 +443,7 @@ class TestUDSEndToEnd:
 
         # Routing activation payload
         payload = struct.pack(
-            ">HHB", 0x0E00, 0x1000, 0x00
+            ">HHB", 0x0E00, 0x0001, 0x00
         )  # Client, target, response code
         payload += struct.pack(">I", 0x00000000)  # Reserved
 
@@ -625,7 +625,7 @@ class TestUDSEndToEndIntegration:
             # Diagnostic session control
             session_request = bytes([0x10, 0x03])  # Extended session
             diag_request = self._create_diagnostic_message_request(
-                0x0E00, 0x1000, session_request
+                0x0E00, 0x0001, session_request
             )
             tcp_client.send(diag_request)
             tcp_client.recv(1024)
@@ -634,7 +634,7 @@ class TestUDSEndToEndIntegration:
             # Read VIN
             vin_request = bytes([0x22, 0xF1, 0x90])
             diag_request = self._create_diagnostic_message_request(
-                0x0E00, 0x1000, vin_request
+                0x0E00, 0x0001, vin_request
             )
             tcp_client.send(diag_request)
             vin_response = tcp_client.recv(1024)
@@ -650,7 +650,7 @@ class TestUDSEndToEndIntegration:
     def _create_routing_activation_request(self):
         """Create DoIP routing activation request"""
         header = struct.pack(">BBHI", 0x02, 0xFD, 0x0005, 7)
-        payload = struct.pack(">HHB", 0x0E00, 0x1000, 0x00) + struct.pack(
+        payload = struct.pack(">HHB", 0x0E00, 0x0001, 0x00) + struct.pack(
             ">I", 0x00000000
         )
         return header + payload

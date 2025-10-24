@@ -275,10 +275,15 @@ class TestDoIPConfiguration:
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
         ecu_addresses = server.config_manager.get_all_ecu_addresses()
-        assert len(ecu_addresses) == 3
+        assert len(ecu_addresses) == 8
         assert 0x0001 in ecu_addresses  # Engine ECU
         assert 0x0002 in ecu_addresses  # Transmission ECU
         assert 0x0003 in ecu_addresses  # ABS ECU
+        assert 0x0004 in ecu_addresses  # ESP ECU
+        assert 0x0005 in ecu_addresses  # Steering ECU
+        assert 0x0006 in ecu_addresses  # BCM ECU
+        assert 0x0007 in ecu_addresses  # Gateway ECU
+        assert 0x0008 in ecu_addresses  # HVAC ECU
 
     def test_hierarchical_uds_services(self):
         """Test that UDS services are loaded correctly in hierarchical configuration"""

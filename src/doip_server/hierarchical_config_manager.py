@@ -305,7 +305,9 @@ gateway:
                 "config", "ecus", "transmission", service_file
             ),  # Transmission services
             os.path.join("config", "ecus", "esp", service_file),  # ESP services
-            os.path.join("config", "ecus", "steering", service_file),  # Steering services
+            os.path.join(
+                "config", "ecus", "steering", service_file
+            ),  # Steering services
             os.path.join("config", "ecus", "bcm", service_file),  # BCM services
             os.path.join("config", "ecus", "gateway", service_file),  # Gateway services
             os.path.join("config", "ecus", "hvac", service_file),  # HVAC services
