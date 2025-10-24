@@ -2,11 +2,12 @@
 # This file contains the ECU-specific configuration including addresses and UDS services
 
 ecu:
-  name: "ABS_ECU"
-  description: "Anti-lock Braking System Control Unit"
-  target_address: 0x1002
-  functional_address: 0x1FFF  # Functional address for broadcast diagnostics
+  name: "ABS"
+  description: "Anti-lock Braking System"
+  target_address: 0x03  # Match doip_tester_yaml logical address
+  functional_address: 0x0000  # Match doip_tester_yaml functional address
   tester_addresses:
+    - 0x0E80  # Match doip_tester_yaml tester address
     - 0x0E00  # Primary tester
     - 0x0E01  # Backup tester
     - 0x0E02  # Diagnostic tool

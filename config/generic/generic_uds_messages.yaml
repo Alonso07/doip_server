@@ -13,6 +13,15 @@ common_services:
     supports_functional: true  # Supports both physical and functional addressing
     delay_ms: 100  # Service-level delay for VIN reading
     
+  ReadDataById_VIN:
+    request: "0x220102"
+    responses:  
+      - "0x620102313847424834314A584D4E313039313836"
+      - "0x620102313847424834314A584D4E313039313837"
+    description: "Read Vehicle Identification Number (Alternative format)"
+    supports_functional: true  # Supports both physical and functional addressing
+    delay_ms: 100  # Service-level delay for VIN reading
+    
   Read_Vehicle_Type:
     request: "0x22F191"
     responses:  

@@ -1,10 +1,10 @@
-# ECU Configuration - Transmission Control Unit
+# ECU Configuration - Electric Power Steering
 # This file contains the ECU-specific configuration including addresses and UDS services
 
 ecu:
-  name: "Transmission_TCU"
-  description: "Transmission Control Unit"
-  target_address: 0x02  # Match doip_tester_yaml logical address
+  name: "Steering_EPS"
+  description: "Electric Power Steering"
+  target_address: 0x05  # Match doip_tester_yaml logical address
   functional_address: 0x0000  # Match doip_tester_yaml functional address
   tester_addresses:
     - 0x0E80  # Match doip_tester_yaml tester address
@@ -30,7 +30,7 @@ ecu:
     # Service files to load for this ECU
     service_files:
       - "config/generic/generic_uds_messages.yaml"  # Common services
-      - "ecu_transmission_services.yaml"            # Transmission-specific services
+      - "ecu_steering_services.yaml"                # Steering-specific services
     
     # Service categories (for backward compatibility)
     common_services:
@@ -45,16 +45,13 @@ ecu:
     
     # ECU-specific services (only available for this ECU)
     specific_services:
-      - "Transmission_Gear_Read"
-      - "Transmission_Temperature_Read"
-      - "Transmission_Fluid_Level_Read"
-      - "Transmission_Shift_Control"
-      - "Transmission_Diagnostic_Codes"
-      - "Transmission_Adaptation_Reset"
-      - "Transmission_Torque_Converter_Status"
-      - "Transmission_Shift_Pressure_Read"
-      - "Transmission_Clutch_Status"
-      - "Transmission_Learning_Status"
-      - "Transmission_Valve_Body_Test"
-      - "Transmission_Pump_Test"
-      - "Transmission_Calibration_Reset"
+      - "Steering_Angle_Read"
+      - "Steering_Torque_Read"
+      - "Steering_System_Status_Read"
+      - "Steering_Diagnostic_Codes"
+      - "Steering_Calibration_Reset"
+      - "Steering_Motor_Test"
+      - "Steering_Sensor_Test"
+      - "Steering_System_Voltage_Read"
+      - "Steering_Learning_Procedure"
+      - "Steering_System_Reset"

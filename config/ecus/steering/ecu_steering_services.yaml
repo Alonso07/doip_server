@@ -1,0 +1,90 @@
+# Steering ECU Specific UDS Services
+# This file contains UDS services specific to the Electric Power Steering Control Unit
+
+specific_services:
+  Steering_Angle_Read:
+    request: "0x220E0E"
+    responses:
+      - "0x620E0E0000"  # 0 degrees
+      - "0x620E0E0032"  # 50 degrees
+      - "0x620E0E0064"  # 100 degrees
+    description: "Read steering angle"
+    supports_functional: false  # Physical addressing only
+    
+  Steering_Torque_Read:
+    request: "0x220E0F"
+    responses:
+      - "0x620E0F0000"  # 0 Nm
+      - "0x620E0F0032"  # 5 Nm
+      - "0x620E0F0064"  # 10 Nm
+    description: "Read steering torque"
+    supports_functional: false  # Physical addressing only
+    
+  Steering_System_Status_Read:
+    request: "0x220E10"
+    responses:
+      - "0x620E1000"  # System OK
+      - "0x620E1001"  # System warning
+      - "0x620E1002"  # System error
+    description: "Read steering system status"
+    supports_functional: false  # Physical addressing only
+    
+  Steering_Diagnostic_Codes:
+    request: "0x1902"
+    responses:
+      - "0x5902"  # No DTCs
+      - "0x5902C0000"  # C0000 - No fault
+      - "0x5902C0001"  # C0001 - Steering angle sensor fault
+      - "0x5902C0002"  # C0002 - Torque sensor fault
+      - "0x5902C0003"  # C0003 - Motor fault
+    description: "Read steering diagnostic trouble codes"
+    supports_functional: true  # Supports both physical and functional addressing
+    
+  Steering_Calibration_Reset:
+    request: "0x31060001"
+    responses:
+      - "0x71060001"  # Calibration reset successful
+    description: "Reset steering calibration"
+    supports_functional: false  # Physical addressing only
+
+  Steering_Motor_Test:
+    request: "0x31040001"
+    responses:
+      - "0x71040001"  # Test passed
+      - "0x71040002"  # Test failed
+    description: "Steering motor test"
+    supports_functional: false  # Physical addressing only
+
+  Steering_Sensor_Test:
+    request: "0x220E11"
+    responses:
+      - "0x620E1100"  # All sensors OK
+      - "0x620E1101"  # Angle sensor fault
+      - "0x620E1102"  # Torque sensor fault
+    description: "Test steering sensors"
+    supports_functional: false  # Physical addressing only
+
+  Steering_System_Voltage_Read:
+    request: "0x220E12"
+    responses:
+      - "0x620E120C"  # 12V
+      - "0x620E1214"  # 14V
+      - "0x620E1216"  # 16V
+    description: "Read steering system voltage"
+    supports_functional: false  # Physical addressing only
+
+  Steering_Learning_Procedure:
+    request: "0x31070001"
+    responses:
+      - "0x71070001"  # Learning procedure started
+      - "0x71070002"  # Learning procedure complete
+      - "0x71070003"  # Learning procedure failed
+    description: "Start steering learning procedure"
+    supports_functional: false  # Physical addressing only
+
+  Steering_System_Reset:
+    request: "0x31090001"
+    responses:
+      - "0x71090001"  # System reset successful
+    description: "Reset steering system"
+    supports_functional: false  # Physical addressing only

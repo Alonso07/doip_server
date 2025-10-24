@@ -1,9 +1,9 @@
-# Gateway Configuration - TCP/IP Network Settings
-# This file contains the network configuration for a DoIP gateway
+# Test Gateway Configuration - Optimized for doip_tester_yaml
+# This file contains the network configuration for testing with doip_tester_yaml
 
 gateway:
-  name: "Gateway1"
-  description: "Primary DoIP Gateway"
+  name: "TestGateway"
+  description: "Test DoIP Gateway for doip_tester_yaml"
   logical_address: 0x1000  # Gateway logical address (DoIP server address)
   
   # Vehicle Information
@@ -16,7 +16,7 @@ gateway:
   network:
     host: "0.0.0.0"  # Listen on all interfaces
     port: 13400
-    max_connections: 10
+    max_connections: 20
     timeout: 60
     keep_alive: true
     tcp_nodelay: true
@@ -33,7 +33,7 @@ gateway:
     enable_security: false
     allow_multiple_sessions: true
     
-  # ECU References - List of ECU configuration files
+  # ECU References - List of ECU configuration files for testing
   ecus:
     - "ecus/engine/ecu_engine.yaml"
     - "ecus/transmission/ecu_transmission.yaml" 
@@ -43,6 +43,7 @@ gateway:
     - "ecus/bcm/ecu_bcm.yaml"
     - "ecus/gateway/ecu_gateway.yaml"
     - "ecus/hvac/ecu_hvac.yaml"
+    - "ecus/airbag/ecu_airbag.yaml"
     
   # Response Codes Configuration
   response_codes:
@@ -99,10 +100,10 @@ gateway:
   entity_status:
     description: "DoIP Entity Status Response configuration (payload type 0x4002)"
     node_type: 0x01  # Node type: 0x01 = Vehicle Gateway, 0x02 = Node
-    max_open_sockets: 10  # Maximum number of concurrent diagnostic connections
+    max_open_sockets: 20  # Maximum number of concurrent diagnostic connections
     current_open_sockets: 0  # Current number of active diagnostic connections
     doip_entity_status: 0x00  # Entity status: 0x00 = Ready, 0x01 = Not ready
-    diagnostic_power_mode: 0x02  # Diagnostic power mode: 0x01 = Power on, 0x02 = Power off, 0x03 = Not ready
+    diagnostic_power_mode: 0x01  # Diagnostic power mode: 0x01 = Power on, 0x02 = Power off, 0x03 = Not ready
     # Available node types
     available_node_types:
       0x01:
@@ -135,7 +136,7 @@ gateway:
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: "doip_server.log"
+  file: "doip_server_test.log"
   console: true
   max_file_size: "10MB"
   backup_count: 5

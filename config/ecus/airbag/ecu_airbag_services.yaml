@@ -1,0 +1,17 @@
+# Airbag ECU Specific UDS Services - Minimal Configuration
+# This file contains minimal UDS services for testing
+
+specific_services:
+  Airbag_System_Status_Read:
+    request: "0x22120E"
+    responses:
+      - "0x62120E00"  # System OK
+    description: "Read airbag system status"
+    supports_functional: false
+
+  Airbag_Diagnostic_Codes:
+    request: "0x1902"
+    responses:
+      - "0x5902"  # No DTCs
+    description: "Read airbag diagnostic trouble codes"
+    supports_functional: true

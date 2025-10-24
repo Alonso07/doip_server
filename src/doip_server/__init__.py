@@ -50,7 +50,7 @@ License: MIT
 """
 
 # Package version
-__version__ = "0.5.0"
+__version__ = "0.5.2"
 
 # Main exports
 from .doip_server import DoIPServer, start_doip_server
