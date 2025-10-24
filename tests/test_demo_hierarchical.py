@@ -4,9 +4,10 @@ Test module for the hierarchical DoIP configuration
 Tests the new configuration structure with multiple ECUs
 """
 
-import sys
 import os
+import sys
 import time
+
 import pytest
 
 # Add the src directory to the path for imports

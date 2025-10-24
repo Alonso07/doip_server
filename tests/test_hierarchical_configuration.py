@@ -4,18 +4,19 @@ Tests for the new hierarchical configuration system.
 Tests the HierarchicalConfigManager and its integration with the DoIP server.
 """
 
-import pytest
-import sys
 import os
-import time
+import sys
 import threading
+import time
 from pathlib import Path
+
+import pytest
 
 # Add the src directory to the path so we can import the modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from doip_server.hierarchical_config_manager import HierarchicalConfigManager
 from doip_server.doip_server import DoIPServer
+from doip_server.hierarchical_config_manager import HierarchicalConfigManager
 
 
 class TestHierarchicalConfigurationManager:
@@ -66,49 +67,54 @@ class TestHierarchicalConfigurationManager:
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
         ecu_addresses = config_manager.get_all_ecu_addresses()
 
-        # Should have 3 ECUs loaded
-        assert len(ecu_addresses) == 3
-        assert 0x1000 in ecu_addresses  # Engine ECU
-        assert 0x1001 in ecu_addresses  # Transmission ECU
-        assert 0x1002 in ecu_addresses  # ABS ECU
+        # Should have 8 ECUs loaded (updated configuration)
+        assert len(ecu_addresses) == 8
+        assert 0x0001 in ecu_addresses  # Engine ECU
+        assert 0x0002 in ecu_addresses  # Transmission ECU
+        assert 0x0003 in ecu_addresses  # ABS ECU
+        assert 0x0004 in ecu_addresses  # ESP ECU
+        assert 0x0005 in ecu_addresses  # Steering ECU
+        assert 0x0006 in ecu_addresses  # BCM ECU
+        assert 0x0007 in ecu_addresses  # Gateway ECU
+        assert 0x0008 in ecu_addresses  # HVAC ECU
 
     def test_ecu_config_loading(self):
         """Test individual ECU configuration loading"""
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
 
         # Test Engine ECU
-        engine_config = config_manager.get_ecu_config(0x1000)
+        engine_config = config_manager.get_ecu_config(0x0001)
         assert engine_config is not None
         ecu_info = engine_config.get("ecu", {})
-        assert ecu_info["name"] == "Engine_ECU"
-        assert ecu_info["target_address"] == 0x1000
+        assert ecu_info["name"] == "Engine_ECM"
+        assert ecu_info["target_address"] == 0x0001
 
         # Test Transmission ECU
-        transmission_config = config_manager.get_ecu_config(0x1001)
+        transmission_config = config_manager.get_ecu_config(0x0002)
         assert transmission_config is not None
         ecu_info = transmission_config.get("ecu", {})
-        assert ecu_info["name"] == "Transmission_ECU"
-        assert ecu_info["target_address"] == 0x1001
+        assert ecu_info["name"] == "Transmission_TCU"
+        assert ecu_info["target_address"] == 0x0002
 
         # Test ABS ECU
-        abs_config = config_manager.get_ecu_config(0x1002)
+        abs_config = config_manager.get_ecu_config(0x0003)
         assert abs_config is not None
         ecu_info = abs_config.get("ecu", {})
-        assert ecu_info["name"] == "ABS_ECU"
-        assert ecu_info["target_address"] == 0x1002
+        assert ecu_info["name"] == "ABS"
+        assert ecu_info["target_address"] == 0x0003
 
     def test_ecu_tester_addresses(self):
         """Test ECU tester addresses"""
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
 
         # Test Engine ECU tester addresses
-        engine_testers = config_manager.get_ecu_tester_addresses(0x1000)
+        engine_testers = config_manager.get_ecu_tester_addresses(0x0001)
         assert 0x0E00 in engine_testers
         assert 0x0E01 in engine_testers
         assert 0x0E02 in engine_testers
 
         # Test Transmission ECU tester addresses
-        transmission_testers = config_manager.get_ecu_tester_addresses(0x1001)
+        transmission_testers = config_manager.get_ecu_tester_addresses(0x0002)
         assert 0x0E00 in transmission_testers
         assert 0x0E01 in transmission_testers
         assert 0x0E02 in transmission_testers
@@ -118,18 +124,18 @@ class TestHierarchicalConfigurationManager:
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
 
         # Test valid source addresses for specific ECUs
-        assert config_manager.is_source_address_allowed(0x0E00, 0x1000) is True
-        assert config_manager.is_source_address_allowed(0x0E01, 0x1001) is True
-        assert config_manager.is_source_address_allowed(0x0E02, 0x1002) is True
+        assert config_manager.is_source_address_allowed(0x0E00, 0x0001) is True
+        assert config_manager.is_source_address_allowed(0x0E01, 0x0002) is True
+        assert config_manager.is_source_address_allowed(0x0E02, 0x0003) is True
 
         # Test invalid source addresses
-        assert config_manager.is_source_address_allowed(0x9999, 0x1000) is False
+        assert config_manager.is_source_address_allowed(0x9999, 0x0001) is False
         assert config_manager.is_source_address_allowed(0x0E00, 0x9999) is False
 
         # Test target address validation
-        assert config_manager.is_target_address_valid(0x1000) is True
-        assert config_manager.is_target_address_valid(0x1001) is True
-        assert config_manager.is_target_address_valid(0x1002) is True
+        assert config_manager.is_target_address_valid(0x0001) is True
+        assert config_manager.is_target_address_valid(0x0002) is True
+        assert config_manager.is_target_address_valid(0x0003) is True
         assert config_manager.is_target_address_valid(0x9999) is False
 
     def test_uds_services_loading(self):
@@ -137,7 +143,7 @@ class TestHierarchicalConfigurationManager:
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
 
         # Test Engine ECU services
-        engine_services = config_manager.get_ecu_uds_services(0x1000)
+        engine_services = config_manager.get_ecu_uds_services(0x0001)
         assert len(engine_services) > 0
         assert "Read_VIN" in engine_services  # Common service
         assert "Engine_RPM_Read" in engine_services  # Engine-specific service
@@ -146,7 +152,7 @@ class TestHierarchicalConfigurationManager:
         )  # Not available for Engine ECU
 
         # Test Transmission ECU services
-        transmission_services = config_manager.get_ecu_uds_services(0x1001)
+        transmission_services = config_manager.get_ecu_uds_services(0x0002)
         assert len(transmission_services) > 0
         assert "Read_VIN" in transmission_services  # Common service
         assert (
@@ -157,7 +163,7 @@ class TestHierarchicalConfigurationManager:
         )  # Not available for Transmission ECU
 
         # Test ABS ECU services
-        abs_services = config_manager.get_ecu_uds_services(0x1002)
+        abs_services = config_manager.get_ecu_uds_services(0x0003)
         assert len(abs_services) > 0
         assert "Read_VIN" in abs_services  # Common service
         assert "ABS_Wheel_Speed_Read" in abs_services  # ABS-specific service
@@ -168,43 +174,43 @@ class TestHierarchicalConfigurationManager:
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
 
         # Test common service lookup for Engine ECU
-        service = config_manager.get_uds_service_by_request("0x22F190", 0x1000)
+        service = config_manager.get_uds_service_by_request("0x22F190", 0x0001)
         assert service is not None
         assert service["name"] == "Read_VIN"
-        assert service["ecu_address"] == 0x1000
+        assert service["ecu_address"] == 0x0001
 
         # Test common service lookup for Transmission ECU
-        service = config_manager.get_uds_service_by_request("0x22F190", 0x1001)
+        service = config_manager.get_uds_service_by_request("0x22F190", 0x0002)
         assert service is not None
         assert service["name"] == "Read_VIN"
-        assert service["ecu_address"] == 0x1001
+        assert service["ecu_address"] == 0x0002
 
         # Test Engine-specific service lookup
-        service = config_manager.get_uds_service_by_request("0x220C01", 0x1000)
+        service = config_manager.get_uds_service_by_request("0x220C01", 0x0001)
         assert service is not None
         assert service["name"] == "Engine_RPM_Read"
-        assert service["ecu_address"] == 0x1000
+        assert service["ecu_address"] == 0x0001
 
         # Test Transmission-specific service lookup
-        service = config_manager.get_uds_service_by_request("0x220C0A", 0x1001)
+        service = config_manager.get_uds_service_by_request("0x220C0A", 0x0002)
         assert service is not None
         assert service["name"] == "Transmission_Gear_Read"
-        assert service["ecu_address"] == 0x1001
+        assert service["ecu_address"] == 0x0002
 
         # Test ABS-specific service lookup
-        service = config_manager.get_uds_service_by_request("0x220C0B", 0x1002)
+        service = config_manager.get_uds_service_by_request("0x220C0B", 0x0003)
         assert service is not None
         assert service["name"] == "ABS_Wheel_Speed_Read"
-        assert service["ecu_address"] == 0x1002
+        assert service["ecu_address"] == 0x0003
 
         # Test service not available for ECU
         service = config_manager.get_uds_service_by_request(
-            "0x220C01", 0x1001
+            "0x220C01", 0x0002
         )  # Engine service for Transmission ECU
         assert service is None
 
         # Test non-existent service
-        service = config_manager.get_uds_service_by_request("0x999999", 0x1000)
+        service = config_manager.get_uds_service_by_request("0x999999", 0x0001)
         assert service is None
 
     def test_routine_activation_config(self):
@@ -212,12 +218,12 @@ class TestHierarchicalConfigurationManager:
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
 
         # Test Engine ECU routine activation
-        engine_routine = config_manager.get_routine_activation_config(0x1000)
+        engine_routine = config_manager.get_routine_activation_config(0x0001)
         assert "active_type" in engine_routine
         assert engine_routine["active_type"] == 0x00
 
         # Test Transmission ECU routine activation
-        transmission_routine = config_manager.get_routine_activation_config(0x1001)
+        transmission_routine = config_manager.get_routine_activation_config(0x0002)
         assert "active_type" in transmission_routine
         assert transmission_routine["active_type"] == 0x00
 
@@ -245,10 +251,10 @@ class TestHierarchicalConfigurationManager:
 
         assert "Hierarchical DoIP Configuration Summary" in summary
         assert "Gateway: Gateway1" in summary
-        assert "Configured ECUs: 3" in summary
-        assert "0x1000: Engine_ECU" in summary
-        assert "0x1001: Transmission_ECU" in summary
-        assert "0x1002: ABS_ECU" in summary
+        assert "Configured ECUs: 8" in summary
+        assert "0x0001: Engine_ECM" in summary
+        assert "0x0002: Transmission_TCU" in summary
+        assert "0x0003: ABS" in summary
 
 
 class TestHierarchicalDoIPServer:
@@ -268,21 +274,21 @@ class TestHierarchicalDoIPServer:
 
         # Test that ECUs are loaded
         ecu_addresses = server.config_manager.get_all_ecu_addresses()
-        assert len(ecu_addresses) == 3
-        assert 0x1000 in ecu_addresses
-        assert 0x1001 in ecu_addresses
-        assert 0x1002 in ecu_addresses
+        assert len(ecu_addresses) == 8
+        assert 0x0001 in ecu_addresses
+        assert 0x0002 in ecu_addresses
+        assert 0x0003 in ecu_addresses
 
     def test_server_address_validation(self):
         """Test server address validation with hierarchical config"""
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
         # Test valid addresses
-        assert server.config_manager.is_source_address_allowed(0x0E00, 0x1000) is True
-        assert server.config_manager.is_target_address_valid(0x1000) is True
+        assert server.config_manager.is_source_address_allowed(0x0E00, 0x0001) is True
+        assert server.config_manager.is_target_address_valid(0x0001) is True
 
         # Test invalid addresses
-        assert server.config_manager.is_source_address_allowed(0x9999, 0x1000) is False
+        assert server.config_manager.is_source_address_allowed(0x9999, 0x0001) is False
         assert server.config_manager.is_target_address_valid(0x9999) is False
 
     def test_server_uds_service_processing(self):
@@ -290,18 +296,18 @@ class TestHierarchicalDoIPServer:
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
         # Test common service for Engine ECU
-        service = server.config_manager.get_uds_service_by_request("0x22F190", 0x1000)
+        service = server.config_manager.get_uds_service_by_request("0x22F190", 0x0001)
         assert service is not None
         assert service["name"] == "Read_VIN"
 
         # Test Engine-specific service
-        service = server.config_manager.get_uds_service_by_request("0x220C01", 0x1000)
+        service = server.config_manager.get_uds_service_by_request("0x220C01", 0x0001)
         assert service is not None
         assert service["name"] == "Engine_RPM_Read"
 
         # Test service not available for ECU (using a pattern that doesn't match any regex)
         service = server.config_manager.get_uds_service_by_request(
-            "0x9999", 0x1000
+            "0x9999", 0x0001
         )  # Non-existent service for Engine ECU
         assert service is None
 
@@ -425,7 +431,7 @@ class TestHierarchicalDoIPServer:
 
         # Test that regex services from generic config can be found
         service = config_manager.get_uds_service_by_request(
-            "22F190", 0x1000
+            "22F190", 0x0001
         )  # Engine ECU
         assert service is not None
         assert (
@@ -435,7 +441,7 @@ class TestHierarchicalDoIPServer:
 
         # Test that regex services from engine config can be found
         service = config_manager.get_uds_service_by_request(
-            "220C01", 0x1000
+            "220C01", 0x0001
         )  # Engine ECU
         assert service is not None
         # Should match either exact or regex pattern
@@ -480,10 +486,10 @@ class TestHierarchicalConfigurationIntegration:
     def test_ecu_loading_in_server(self, server):
         """Test that ECUs are loaded correctly in the server"""
         ecu_addresses = server.config_manager.get_all_ecu_addresses()
-        assert len(ecu_addresses) == 3
-        assert 0x1000 in ecu_addresses  # Engine ECU
-        assert 0x1001 in ecu_addresses  # Transmission ECU
-        assert 0x1002 in ecu_addresses  # ABS ECU
+        assert len(ecu_addresses) == 8
+        assert 0x0001 in ecu_addresses  # Engine ECU
+        assert 0x0002 in ecu_addresses  # Transmission ECU
+        assert 0x0003 in ecu_addresses  # ABS ECU
 
 
 if __name__ == "__main__":

@@ -1,90 +1,10 @@
-# HVAC ECU Specific UDS Services
-# This file contains UDS services specific to the HVAC Control Unit
+# HVAC ECU Services Configuration
+# Heating, Ventilation, and Air Conditioning Control Unit
 
 specific_services:
-  HVAC_Temperature_Read:
-    request: "0x22110E"
-    responses:
-      - "0x62110E14"  # 20°C
-      - "0x62110E1E"  # 30°C
-      - "0x62110E28"  # 40°C
-    description: "Read HVAC temperature"
-    supports_functional: false  # Physical addressing only
-    
-  HVAC_Fan_Speed_Read:
-    request: "0x22110F"
-    responses:
-      - "0x62110F00"  # Fan off
-      - "0x62110F32"  # Fan speed 50%
-      - "0x62110F64"  # Fan speed 100%
-    description: "Read HVAC fan speed"
-    supports_functional: false  # Physical addressing only
-    
-  HVAC_System_Status_Read:
-    request: "0x221110"
-    responses:
-      - "0x62111000"  # System OK
-      - "0x62111001"  # System warning
-      - "0x62111002"  # System error
-    description: "Read HVAC system status"
-    supports_functional: false  # Physical addressing only
-    
-  HVAC_Diagnostic_Codes:
+  ReadDTCInformation_StatusOfDTC:
     request: "0x1902"
     responses:
-      - "0x5902"  # No DTCs
-      - "0x5902C0000"  # C0000 - No fault
-      - "0x5902C0001"  # C0001 - Temperature sensor fault
-      - "0x5902C0002"  # C0002 - Fan fault
-      - "0x5902C0003"  # C0003 - Blower fault
-    description: "Read HVAC diagnostic trouble codes"
-    supports_functional: true  # Supports both physical and functional addressing
-    
-  HVAC_Calibration_Reset:
-    request: "0x31060001"
-    responses:
-      - "0x71060001"  # Calibration reset successful
-    description: "Reset HVAC calibration"
-    supports_functional: false  # Physical addressing only
-
-  HVAC_Blower_Test:
-    request: "0x31040001"
-    responses:
-      - "0x71040001"  # Test passed
-      - "0x71040002"  # Test failed
-    description: "HVAC blower test"
-    supports_functional: false  # Physical addressing only
-
-  HVAC_Sensor_Test:
-    request: "0x221111"
-    responses:
-      - "0x62111100"  # All sensors OK
-      - "0x62111101"  # Temperature sensor fault
-      - "0x62111102"  # Pressure sensor fault
-    description: "Test HVAC sensors"
-    supports_functional: false  # Physical addressing only
-
-  HVAC_System_Voltage_Read:
-    request: "0x221112"
-    responses:
-      - "0x6211120C"  # 12V
-      - "0x62111214"  # 14V
-      - "0x62111216"  # 16V
-    description: "Read HVAC system voltage"
-    supports_functional: false  # Physical addressing only
-
-  HVAC_Learning_Procedure:
-    request: "0x31070001"
-    responses:
-      - "0x71070001"  # Learning procedure started
-      - "0x71070002"  # Learning procedure complete
-      - "0x71070003"  # Learning procedure failed
-    description: "Start HVAC learning procedure"
-    supports_functional: false  # Physical addressing only
-
-  HVAC_System_Reset:
-    request: "0x31090001"
-    responses:
-      - "0x71090001"  # System reset successful
-    description: "Reset HVAC system"
-    supports_functional: false  # Physical addressing only
+      - "0x5902"
+    description: "Read DTC Information Status of DTC"
+    supports_functional: true

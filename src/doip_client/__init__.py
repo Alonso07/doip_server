@@ -7,8 +7,8 @@ from .udp_doip_client import UDPDoIPClient
 
 # Try to import other clients (may have external dependencies)
 try:
-    from .doip_client import DoIPClientWrapper, start_doip_client, create_doip_request
     from .debug_client import DebugDoIPClient
+    from .doip_client import DoIPClientWrapper, create_doip_request, start_doip_client
 
     __all__ = [
         "DoIPClientWrapper",

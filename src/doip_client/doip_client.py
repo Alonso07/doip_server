@@ -5,6 +5,7 @@ This provides a higher-level interface for DoIP communication.
 """
 
 import time
+
 from doipclient import DoIPClient
 
 

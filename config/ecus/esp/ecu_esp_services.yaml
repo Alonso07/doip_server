@@ -1,100 +1,10 @@
-# ESP ECU Specific UDS Services
-# This file contains UDS services specific to the Electronic Stability Program Control Unit
+# ESP ECU Services Configuration
+# Electronic Stability Program Control Unit
 
 specific_services:
-  ESP_System_Status_Read:
-    request: "0x220D0E"
-    responses:
-      - "0x620D0E00"  # System OK
-      - "0x620D0E01"  # System warning
-      - "0x620D0E02"  # System error
-    description: "Read ESP system status"
-    supports_functional: false  # Physical addressing only
-    
-  ESP_Yaw_Rate_Read:
-    request: "0x220D0F"
-    responses:
-      - "0x620D0F0000"  # 0 deg/s
-      - "0x620D0F0032"  # 50 deg/s
-      - "0x620D0F0064"  # 100 deg/s
-    description: "Read yaw rate"
-    supports_functional: false  # Physical addressing only
-    
-  ESP_Lateral_Acceleration_Read:
-    request: "0x220D10"
-    responses:
-      - "0x620D100000"  # 0 m/s²
-      - "0x620D100032"  # 5 m/s²
-      - "0x620D100064"  # 10 m/s²
-    description: "Read lateral acceleration"
-    supports_functional: false  # Physical addressing only
-    
-  ESP_Steering_Angle_Read:
-    request: "0x220D11"
-    responses:
-      - "0x620D110000"  # 0 degrees
-      - "0x620D110032"  # 50 degrees
-      - "0x620D110064"  # 100 degrees
-    description: "Read steering angle"
-    supports_functional: false  # Physical addressing only
-    
-  ESP_Diagnostic_Codes:
+  ReadDTCInformation_StatusOfDTC:
     request: "0x1902"
     responses:
-      - "0x5902"  # No DTCs
-      - "0x5902C0000"  # C0000 - No fault
-      - "0x5902C0001"  # C0001 - Yaw rate sensor fault
-      - "0x5902C0002"  # C0002 - Lateral acceleration sensor fault
-      - "0x5902C0003"  # C0003 - Steering angle sensor fault
-    description: "Read ESP diagnostic trouble codes"
-    supports_functional: true  # Supports both physical and functional addressing
-    
-  ESP_Calibration_Reset:
-    request: "0x31060001"
-    responses:
-      - "0x71060001"  # Calibration reset successful
-    description: "Reset ESP calibration"
-    supports_functional: false  # Physical addressing only
-
-  ESP_Sensor_Test:
-    request: "0x220D12"
-    responses:
-      - "0x620D1200"  # All sensors OK
-      - "0x620D1201"  # Yaw rate sensor fault
-      - "0x620D1202"  # Lateral acceleration sensor fault
-      - "0x620D1203"  # Steering angle sensor fault
-    description: "Test ESP sensors"
-    supports_functional: false  # Physical addressing only
-
-  ESP_Valve_Test:
-    request: "0x31040001"
-    responses:
-      - "0x71040001"  # Test passed
-      - "0x71040002"  # Test failed
-    description: "ESP valve test"
-    supports_functional: false  # Physical addressing only
-
-  ESP_System_Voltage_Read:
-    request: "0x220D13"
-    responses:
-      - "0x620D130C"  # 12V
-      - "0x620D1314"  # 14V
-      - "0x620D1316"  # 16V
-    description: "Read ESP system voltage"
-    supports_functional: false  # Physical addressing only
-
-  ESP_Learning_Procedure:
-    request: "0x31070001"
-    responses:
-      - "0x71070001"  # Learning procedure started
-      - "0x71070002"  # Learning procedure complete
-      - "0x71070003"  # Learning procedure failed
-    description: "Start ESP learning procedure"
-    supports_functional: false  # Physical addressing only
-
-  ESP_System_Reset:
-    request: "0x31090001"
-    responses:
-      - "0x71090001"  # System reset successful
-    description: "Reset ESP system"
-    supports_functional: false  # Physical addressing only
+      - "0x5902"
+    description: "Read DTC Information Status of DTC"
+    supports_functional: true

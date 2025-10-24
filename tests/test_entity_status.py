@@ -7,16 +7,17 @@ This module contains pytest tests for entity status message handling.
 import os
 import struct
 import sys
-import time
-import threading
 import tempfile
+import threading
+import time
+
 import pytest
 
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from doip_server.doip_server import DoIPServer
 from doip_client.udp_doip_client import UDPDoIPClient
+from doip_server.doip_server import DoIPServer
 
 
 class TestDoIPEntityStatus:
@@ -301,8 +302,8 @@ class TestDoIPEntityStatusIntegration:
 
     def test_entity_status_server_logging(self):
         """Test that server logs entity status requests and responses."""
-        import logging
         import io
+        import logging
 
         # Capture log output
         log_capture = io.StringIO()

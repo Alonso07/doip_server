@@ -9,15 +9,16 @@ This test demonstrates the complete DoIP workflow including:
 5. Response Cycling
 """
 
-import pytest
+import os
 import socket
 import struct
-import time
-import threading
 import sys
-import os
+import threading
+import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

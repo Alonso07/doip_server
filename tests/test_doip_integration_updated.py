@@ -112,7 +112,7 @@ class TestDoIPIntegrationHierarchical:
 
         try:
             client.connect()
-            # Test VIN reading for Engine ECU (0x1000)
+            # Test VIN reading for Engine ECU (0x0001)
             response = client.send_read_data_by_identifier(0xF190)
             # Response may or may not exist depending on server configuration
             assert response is None or isinstance(response, bytes)
@@ -126,7 +126,7 @@ class TestDoIPIntegrationHierarchical:
 
         try:
             client.connect()
-            # Test VIN reading for Transmission ECU (0x1001)
+            # Test VIN reading for Transmission ECU (0x0002)
             response = client.send_read_data_by_identifier(0xF190)
             # Response may or may not exist depending on server configuration
             assert response is None or isinstance(response, bytes)
@@ -140,7 +140,7 @@ class TestDoIPIntegrationHierarchical:
 
         try:
             client.connect()
-            # Test VIN reading for ABS ECU (0x1002)
+            # Test VIN reading for ABS ECU (0x0003)
             response = client.send_read_data_by_identifier(0xF190)
             # Response may or may not exist depending on server configuration
             assert response is None or isinstance(response, bytes)
@@ -191,8 +191,9 @@ class TestDoIPMessageFormats:
     def test_routine_activation_message_format(self):
         """Test routine activation message construction"""
         # Test message creation using our server's method
-        from src.doip_server.doip_server import DoIPServer
         import struct
+
+        from src.doip_server.doip_server import DoIPServer
 
         server = DoIPServer()
 
@@ -202,13 +203,13 @@ class TestDoIPMessageFormats:
 
         # Create payload manually (routing activation format)
         payload = struct.pack(">H", 0x0E00)  # Client logical address
-        payload += struct.pack(">H", 0x1000)  # Logical address
+        payload += struct.pack(">H", 0x0001)  # Logical address
         payload += struct.pack(">B", 0x00)  # Response code
         payload += struct.pack(">I", 0x00000000)  # Reserved
 
         assert len(payload) == 9  # 2 + 2 + 1 + 4 = 9 bytes
         assert payload[0:2] == b"\x0e\x00"  # Client address
-        assert payload[2:4] == b"\x10\x00"  # Logical address
+        assert payload[2:4] == b"\x00\x01"  # Logical address
         assert payload[4] == 0x00  # Response code
 
     def test_uds_message_format(self):
@@ -217,7 +218,7 @@ class TestDoIPMessageFormats:
 
         data_identifier = 0xF187
         source_addr = 0x0E00
-        target_addr = 0x1000
+        target_addr = 0x0001
 
         # Create UDS payload manually
         uds_payload = struct.pack(">B", 0x22)  # UDS service ID
@@ -275,22 +276,22 @@ class TestDoIPConfiguration:
 
         ecu_addresses = server.config_manager.get_all_ecu_addresses()
         assert len(ecu_addresses) == 3
-        assert 0x1000 in ecu_addresses  # Engine ECU
-        assert 0x1001 in ecu_addresses  # Transmission ECU
-        assert 0x1002 in ecu_addresses  # ABS ECU
+        assert 0x0001 in ecu_addresses  # Engine ECU
+        assert 0x0002 in ecu_addresses  # Transmission ECU
+        assert 0x0003 in ecu_addresses  # ABS ECU
 
     def test_hierarchical_uds_services(self):
         """Test that UDS services are loaded correctly in hierarchical configuration"""
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")
 
         # Test Engine ECU services
-        engine_services = server.config_manager.get_ecu_uds_services(0x1000)
+        engine_services = server.config_manager.get_ecu_uds_services(0x0001)
         assert len(engine_services) > 0
         assert "Read_VIN" in engine_services  # Common service
         assert "Engine_RPM_Read" in engine_services  # Engine-specific service
 
         # Test Transmission ECU services
-        transmission_services = server.config_manager.get_ecu_uds_services(0x1001)
+        transmission_services = server.config_manager.get_ecu_uds_services(0x0002)
         assert len(transmission_services) > 0
         assert "Read_VIN" in transmission_services  # Common service
         assert (
@@ -298,7 +299,7 @@ class TestDoIPConfiguration:
         )  # Transmission-specific service
 
         # Test ABS ECU services
-        abs_services = server.config_manager.get_ecu_uds_services(0x1002)
+        abs_services = server.config_manager.get_ecu_uds_services(0x0003)
         assert len(abs_services) > 0
         assert "Read_VIN" in abs_services  # Common service
         assert "ABS_Wheel_Speed_Read" in abs_services  # ABS-specific service

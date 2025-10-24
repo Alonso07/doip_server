@@ -3,18 +3,19 @@
 Extended test module for DoIPClientWrapper
 """
 
-import pytest
-import sys
 import os
-from unittest.mock import Mock, patch, MagicMock
+import sys
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from doip_client.doip_client import (
     DoIPClientWrapper,
-    start_doip_client,
     create_doip_request,
+    start_doip_client,
 )
 
 

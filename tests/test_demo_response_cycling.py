@@ -4,12 +4,13 @@ Test module for response cycling functionality
 Tests how the server cycles through different responses for the same UDS service
 """
 
-import sys
 import os
-import time
+import sys
 import threading
-import pytest
+import time
 from pathlib import Path
+
+import pytest
 
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))

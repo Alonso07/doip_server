@@ -1,89 +1,10 @@
-# BCM ECU Specific UDS Services
-# This file contains UDS services specific to the Body Control Module
+# BCM ECU Services Configuration
+# Body Control Module
 
 specific_services:
-  BCM_Light_Status_Read:
-    request: "0x220F0E"
-    responses:
-      - "0x620F0E00"  # All lights OK
-      - "0x620F0E01"  # Headlight fault
-      - "0x620F0E02"  # Taillight fault
-    description: "Read light status"
-    supports_functional: false  # Physical addressing only
-    
-  BCM_Door_Status_Read:
-    request: "0x220F0F"
-    responses:
-      - "0x620F0F00"  # All doors closed
-      - "0x620F0F01"  # Front left door open
-      - "0x620F0F02"  # Front right door open
-    description: "Read door status"
-    supports_functional: false  # Physical addressing only
-    
-  BCM_Window_Status_Read:
-    request: "0x220F10"
-    responses:
-      - "0x620F1000"  # All windows closed
-      - "0x620F1001"  # Front left window open
-      - "0x620F1002"  # Front right window open
-    description: "Read window status"
-    supports_functional: false  # Physical addressing only
-    
-  BCM_Diagnostic_Codes:
+  ReadDTCInformation_StatusOfDTC:
     request: "0x1902"
     responses:
-      - "0x5902"  # No DTCs
-      - "0x5902C0000"  # C0000 - No fault
-      - "0x5902C0001"  # C0001 - Light fault
-      - "0x5902C0002"  # C0002 - Door fault
-      - "0x5902C0003"  # C0003 - Window fault
-    description: "Read BCM diagnostic trouble codes"
-    supports_functional: true  # Supports both physical and functional addressing
-    
-  BCM_Calibration_Reset:
-    request: "0x31060001"
-    responses:
-      - "0x71060001"  # Calibration reset successful
-    description: "Reset BCM calibration"
-    supports_functional: false  # Physical addressing only
-
-  BCM_Light_Test:
-    request: "0x31040001"
-    responses:
-      - "0x71040001"  # Test passed
-      - "0x71040002"  # Test failed
-    description: "BCM light test"
-    supports_functional: false  # Physical addressing only
-
-  BCM_Door_Test:
-    request: "0x31050001"
-    responses:
-      - "0x71050001"  # Test passed
-      - "0x71050002"  # Test failed
-    description: "BCM door test"
-    supports_functional: false  # Physical addressing only
-
-  BCM_System_Voltage_Read:
-    request: "0x220F11"
-    responses:
-      - "0x620F110C"  # 12V
-      - "0x620F1114"  # 14V
-      - "0x620F1116"  # 16V
-    description: "Read BCM system voltage"
-    supports_functional: false  # Physical addressing only
-
-  BCM_Learning_Procedure:
-    request: "0x31070001"
-    responses:
-      - "0x71070001"  # Learning procedure started
-      - "0x71070002"  # Learning procedure complete
-      - "0x71070003"  # Learning procedure failed
-    description: "Start BCM learning procedure"
-    supports_functional: false  # Physical addressing only
-
-  BCM_System_Reset:
-    request: "0x31090001"
-    responses:
-      - "0x71090001"  # System reset successful
-    description: "Reset BCM system"
-    supports_functional: false  # Physical addressing only
+      - "0x5902"
+    description: "Read DTC Information Status of DTC"
+    supports_functional: true

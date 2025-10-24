@@ -6,10 +6,10 @@ Handles loading and parsing of multiple YAML configuration files with ECU hierar
 
 import logging
 import os
+import re
 from typing import Any, Dict, List, Optional
 
 import yaml
-import re
 
 
 class HierarchicalConfigManager:
@@ -304,6 +304,12 @@ gateway:
             os.path.join(
                 "config", "ecus", "transmission", service_file
             ),  # Transmission services
+            os.path.join("config", "ecus", "esp", service_file),  # ESP services
+            os.path.join("config", "ecus", "steering", service_file),  # Steering services
+            os.path.join("config", "ecus", "bcm", service_file),  # BCM services
+            os.path.join("config", "ecus", "gateway", service_file),  # Gateway services
+            os.path.join("config", "ecus", "hvac", service_file),  # HVAC services
+            os.path.join("config", "ecus", "airbag", service_file),  # Airbag services
         ]
 
         for path in possible_paths:

@@ -4,10 +4,10 @@ UDP DoIP Client for Vehicle Identification Testing
 This client broadcasts vehicle identification requests over UDP and receives responses.
 """
 
+import logging
 import socket
 import struct
 import time
-import logging
 from typing import Optional
 
 

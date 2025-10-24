@@ -6,10 +6,10 @@ This module tests the new delay configuration feature that allows
 configuring response delays in milliseconds for UDS services.
 """
 
+import struct
 import time
 import unittest
 from unittest.mock import Mock, patch
-import struct
 
 from src.doip_server.doip_server import DoIPServer
 from src.doip_server.hierarchical_config_manager import HierarchicalConfigManager

@@ -14,13 +14,13 @@ Key test areas:
 - Physical vs functional addressing comparison
 """
 
-import unittest
-import time
+import os
 import socket
 import struct
 import sys
-import os
 import threading
+import time
+import unittest
 from unittest.mock import Mock, patch
 
 # Add the src directory to the path

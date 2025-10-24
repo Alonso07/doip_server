@@ -4,8 +4,8 @@ Simple test runner for DoIP tests.
 Provides easy access to different test categories.
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 
