@@ -1,6 +1,6 @@
 [project]
 name = "doip-server"
-version = "0.5.2"
+version = "0.5.3"
 description = "DoIP Server and Client implementation with YAML configuration"
 authors = [
     {name = "Alonso Ramirez", email = "alonsoram07@gmail.com"}
