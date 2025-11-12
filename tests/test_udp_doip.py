@@ -28,9 +28,10 @@ class TestUDPDoIPClient:
         request = client.create_vehicle_identification_request()
 
         # Check request format
+        # Vehicle identification requests use 0xFF/0x00 per ISO 13400-2:2019
         assert len(request) == 8  # DoIP header only
-        assert request[0] == 0x02  # Protocol version
-        assert request[1] == 0xFD  # Inverse protocol version
+        assert request[0] == 0xFF  # Protocol version (ISO 13400-2:2019)
+        assert request[1] == 0x00  # Inverse protocol version (ISO 13400-2:2019)
         assert struct.unpack(">H", request[2:4])[0] == 0x0001  # Payload type
         assert struct.unpack(">I", request[4:8])[0] == 0  # Payload length
 
@@ -196,7 +197,7 @@ class TestUDPDoIPIntegration:
     """Integration tests for UDP DoIP functionality"""
 
     def test_udp_message_handling(self):
-        """Test UDP message handling in server"""
+        """Test UDP message handling in server with 0xFF/0x00 (ISO 13400-2:2019)"""
         # Create server
         server = DoIPServer()
 
@@ -204,13 +205,34 @@ class TestUDPDoIPIntegration:
         mock_socket = MagicMock()
         server.udp_socket = mock_socket
 
-        # Create vehicle identification request
-        request = b"\x02\xfd\x00\x01\x00\x00\x00\x00"
+        # Create vehicle identification request with 0xFF/0x00 (ISO 13400-2:2019)
+        request = b"\xff\x00\x00\x01\x00\x00\x00\x00"
 
         # Test message handling
         server.handle_udp_message(request, ("127.0.0.1", 12345))
 
         # Verify sendto was called
+        mock_socket.sendto.assert_called_once()
+        response_data, addr = mock_socket.sendto.call_args[0]
+        assert addr == ("127.0.0.1", 12345)
+        assert len(response_data) > 8  # Should have header + payload
+
+    def test_udp_message_handling_backward_compatibility(self):
+        """Test UDP message handling with backward compatible 0x02/0xFD version"""
+        # Create server
+        server = DoIPServer()
+
+        # Mock UDP socket
+        mock_socket = MagicMock()
+        server.udp_socket = mock_socket
+
+        # Create vehicle identification request with 0x02/0xFD (backward compatibility)
+        request = b"\x02\xfd\x00\x01\x00\x00\x00\x00"
+
+        # Test message handling
+        server.handle_udp_message(request, ("127.0.0.1", 12345))
+
+        # Verify sendto was called (server should accept both versions)
         mock_socket.sendto.assert_called_once()
         response_data, addr = mock_socket.sendto.call_args[0]
         assert addr == ("127.0.0.1", 12345)
