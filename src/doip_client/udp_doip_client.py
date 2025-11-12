@@ -64,14 +64,18 @@ class UDPDoIPClient:
         """
         Create a DoIP Vehicle Identification Request message.
 
+        According to ISO 13400-2:2019, vehicle identification requests should use
+        protocol version 0xFF and inverse protocol version 0x00.
+
         Returns:
             bytes: Complete DoIP message with vehicle identification request
         """
         # DoIP header: protocol_version, inverse_protocol_version, payload_type, payload_length
+        # For vehicle identification requests, use 0xFF/0x00 per ISO 13400-2:2019
         header = struct.pack(
             ">BBHI",
-            self.DOIP_PROTOCOL_VERSION,
-            self.DOIP_INVERSE_PROTOCOL_VERSION,
+            0xFF,  # Protocol version for vehicle identification (ISO 13400-2:2019)
+            0x00,  # Inverse protocol version for vehicle identification
             self.PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST,
             0,  # No payload for vehicle identification request
         )

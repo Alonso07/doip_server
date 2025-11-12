@@ -1270,36 +1270,74 @@ class DoIPServer:
             self.logger.info(f"UDP Payload Type: 0x{payload_type:04X}")
             self.logger.info(f"UDP Payload Length: {payload_length}")
 
-            # Validate protocol version
-            if (
-                protocol_version != self.protocol_version
-                or inverse_protocol_version != self.inverse_protocol_version
-            ):
-                self.logger.warning(
-                    f"Invalid UDP protocol version: 0x{protocol_version:02X}"
-                )
-                return
-
             # Handle vehicle identification request
             if payload_type == PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST:
+                # For vehicle identification requests, accept both:
+                # - 0xFF/0x00 (ISO 13400-2:2019 default for vehicle identification)
+                # - 0x02/0xFD (standard DoIP protocol version)
+                is_valid_vehicle_id_version = (
+                    protocol_version == 0xFF and inverse_protocol_version == 0x00
+                ) or (
+                    protocol_version == self.protocol_version
+                    and inverse_protocol_version == self.inverse_protocol_version
+                )
+
+                if not is_valid_vehicle_id_version:
+                    self.logger.warning(
+                        f"Invalid protocol version for vehicle identification: "
+                        f"0x{protocol_version:02X}/0x{inverse_protocol_version:02X}"
+                    )
+                    return
                 self.logger.info("Processing vehicle identification request")
                 response = self.create_vehicle_identification_response()
                 if response:
                     self.udp_socket.sendto(response, addr)
                     self.logger.info(f"Sent vehicle identification response to {addr}")
             elif payload_type == PAYLOAD_TYPE_ENTITY_STATUS_REQUEST:
+                # Validate protocol version for entity status requests
+                if (
+                    protocol_version != self.protocol_version
+                    or inverse_protocol_version != self.inverse_protocol_version
+                ):
+                    self.logger.warning(
+                        f"Invalid UDP protocol version for entity status: "
+                        f"0x{protocol_version:02X}"
+                    )
+                    return
+
                 self.logger.info("Processing DoIP entity status request")
                 response = self.create_entity_status_response()
                 if response:
                     self.udp_socket.sendto(response, addr)
                     self.logger.info(f"Sent entity status response to {addr}")
             elif payload_type == PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST:
+                # Validate protocol version for power mode information requests
+                if (
+                    protocol_version != self.protocol_version
+                    or inverse_protocol_version != self.inverse_protocol_version
+                ):
+                    self.logger.warning(
+                        f"Invalid UDP protocol version for power mode: "
+                        f"0x{protocol_version:02X}"
+                    )
+                    return
+
                 self.logger.info("Processing power mode information request")
                 response = self.create_power_mode_response()
                 if response:
                     self.udp_socket.sendto(response, addr)
                     self.logger.info(f"Sent power mode information response to {addr}")
             else:
+                # Validate protocol version for other payload types
+                if (
+                    protocol_version != self.protocol_version
+                    or inverse_protocol_version != self.inverse_protocol_version
+                ):
+                    self.logger.warning(
+                        f"Invalid UDP protocol version: 0x{protocol_version:02X}"
+                    )
+                    return
+
                 self.logger.warning(
                     f"Unsupported UDP payload type: 0x{payload_type:04X}"
                 )
