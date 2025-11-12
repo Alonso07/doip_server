@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
     "PyYAML>=6.0,<7.0",
     "doipclient>=1.1.7,<2.0.0",
-    "psutil>=7.0.0,<8.0.0"
+    "psutil>=7.1.3,<8.0.0"
 ]
 
 # Project URLs for PyPI
@@ -45,9 +45,9 @@ packages = [{include = "doip_server", from = "src"}]
 pytest = "^9.0.0"
 pytest-cov = ">=7.0.0"
 flake8 = "^7.0.0"
-black = "^25.9.0"
+black = "^25.11.0"
 bandit = "^1.7.0"
-safety = ">=3.6.1"
+safety = ">=3.7.0"
 build = "^1.3.0"
 twine = "^6.2.0"
 pyinstaller = "^6.16.0"
