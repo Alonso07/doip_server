@@ -42,7 +42,7 @@ Documentation = "https://github.com/Alonso07/doip_server/tree/main/docs"
 packages = [{include = "doip_server", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^9.0.0"
+pytest = "^9.0.1"
 pytest-cov = ">=7.0.0"
 flake8 = "^7.0.0"
 black = "^25.11.0"
