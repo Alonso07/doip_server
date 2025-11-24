@@ -137,14 +137,14 @@ testing = ["jaraco.test", "pytest (!=8.0.*)", "pytest (>=6,!=8.1.*)", "pytest-ch
 
 [[package]]
 name = "bandit"
-version = "1.8.6"
+version = "1.9.2"
 description = "Security oriented static analyser for python code."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "bandit-1.8.6-py3-none-any.whl", hash = "sha256:3348e934d736fcdb68b6aa4030487097e23a501adf3e7827b63658df464dddd0"},
-    {file = "bandit-1.8.6.tar.gz", hash = "sha256:dbfe9c25fc6961c2078593de55fd19f2559f9e45b99f1272341f5b95dea4e56b"},
+    {file = "bandit-1.9.2-py3-none-any.whl", hash = "sha256:bda8d68610fc33a6e10b7a8f1d61d92c8f6c004051d5e946406be1fb1b16a868"},
+    {file = "bandit-1.9.2.tar.gz", hash = "sha256:32410415cd93bf9c8b91972159d5cf1e7f063a9146d70345641cd3877de348ce"},
 ]
 
 [package.dependencies]
@@ -439,7 +439,7 @@ description = "Cross-platform colored terminal text."
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 groups = ["dev"]
-markers = "sys_platform == \"win32\" or platform_system == \"Windows\" or os_name == \"nt\""
+markers = "platform_system == \"Windows\" or os_name == \"nt\" or sys_platform == \"win32\""
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
@@ -2329,4 +2329,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.15"
-content-hash = "fc07edc73e9f0103dd9d43a0c62acaa220ad9519e6ef2bb68922a9695614ceb9"
+content-hash = "02cd27fb3a03726d66e179f13b0d95b9ae6f6443ac113daa7014bc62e93c1b86"
