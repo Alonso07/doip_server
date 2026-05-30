@@ -290,8 +290,6 @@ class DoIPServer:
         )
         self.logger.info(self.config_manager.get_config_summary())
 
-        print(f"DoIP server listening on {self.host}:{self.port} (TCP and UDP)")
-
         # Signal that server is ready for connections
         self.logger.info("DoIP server is ready to accept connections")
 
@@ -311,7 +309,7 @@ class DoIPServer:
                 try:
                     self.server_socket.settimeout(0.1)  # Short timeout for TCP check
                     client_socket, client_address = self.server_socket.accept()
-                    print(f"TCP connection from {client_address}")
+                    self.logger.info(f"TCP connection from {client_address}")
                     self.handle_client(client_socket)
                 except socket.timeout:
                     pass  # No TCP connection, continue loop
@@ -319,7 +317,7 @@ class DoIPServer:
                     self.logger.error(f"Error handling TCP connection: {e}")
 
         except KeyboardInterrupt:
-            print("\nShutting down server...")
+            self.logger.info("Shutting down server...")
         finally:
             self.stop()
 
@@ -339,37 +337,23 @@ class DoIPServer:
                 if not data:
                     break
 
-                print(f"Received data: {data.hex()}")
+                self.logger.debug(f"Received data: {data.hex()}")
                 responses = self.process_doip_message(data)
 
-                # Handle both single response and list of responses
                 if responses:
-                    if isinstance(responses, list):
-                        # Send multiple responses with delay support
-                        for i, response in enumerate(responses):
-                            # Check if this response has a delay configuration
-                            delay_ms = self._get_response_delay(data, i)
-                            if delay_ms > 0:
-                                self.logger.info(
-                                    f"Delaying response {i+1} by {delay_ms}ms"
-                                )
-                                time.sleep(delay_ms / 1000.0)  # Convert ms to seconds
-
-                            client_socket.send(response)
-                            print(
-                                f"Sent response {i+1}/{len(responses)}: {response.hex()}"
-                            )
-                    else:
-                        # Single response (backward compatibility)
-                        delay_ms = self._get_response_delay(data, 0)
+                    for i, response in enumerate(responses):
+                        delay_ms = self._get_response_delay(data, i)
                         if delay_ms > 0:
-                            self.logger.info(f"Delaying response by {delay_ms}ms")
-                            time.sleep(delay_ms / 1000.0)  # Convert ms to seconds
-
-                        client_socket.send(responses)
-                        print(f"Sent response: {responses.hex()}")
+                            self.logger.info(
+                                f"Delaying response {i+1} by {delay_ms}ms"
+                            )
+                            time.sleep(delay_ms / 1000.0)
+                        client_socket.send(response)
+                        self.logger.debug(
+                            f"Sent response {i+1}/{len(responses)}: {response.hex()}"
+                        )
         except Exception as e:
-            print(f"Error handling client: {e}")
+            self.logger.error(f"Error handling client: {e}")
         finally:
             client_socket.close()
 
@@ -474,10 +458,10 @@ class DoIPServer:
         payload_type = struct.unpack(">H", data[2:4])[0]
         payload_length = struct.unpack(">I", data[4:8])[0]
 
-        print(f"Protocol Version: 0x{protocol_version:02X}")
-        print(f"Inverse Protocol Version: 0x{inverse_protocol_version:02X}")
-        print(f"Payload Type: 0x{payload_type:04X}")
-        print(f"Payload Length: {payload_length}")
+        self.logger.debug(f"Protocol Version: 0x{protocol_version:02X}")
+        self.logger.debug(f"Inverse Protocol Version: 0x{inverse_protocol_version:02X}")
+        self.logger.debug(f"Payload Type: 0x{payload_type:04X}")
+        self.logger.debug(f"Payload Length: {payload_length}")
 
         # Validate protocol version
         if (
@@ -488,19 +472,25 @@ class DoIPServer:
                 f"Invalid protocol version: 0x{protocol_version:02X}, "
                 f"expected 0x{self.protocol_version:02X}"
             )
-            return self.create_doip_nack(0x02)  # Invalid protocol version
+            return [self.create_doip_nack(0x02)]  # Invalid protocol version
 
         # Process based on payload type
         if payload_type == PAYLOAD_TYPE_ROUTING_ACTIVATION_REQUEST:
-            return self.handle_routing_activation(data[8:])
+            result = self.handle_routing_activation(data[8:])
+            return [result] if result else None
         if payload_type == PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE:
             return self.handle_diagnostic_message(data[8:])
         if payload_type == PAYLOAD_TYPE_ALIVE_CHECK_REQUEST:
-            return self.handle_alive_check()
+            result = self.handle_alive_check()
+            return [result] if result else None
         if payload_type == PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST:
-            return self.handle_power_mode_request(data[8:])
+            result = self.handle_power_mode_request(data[8:])
+            return [result] if result else None
+        if payload_type == PAYLOAD_TYPE_ENTITY_STATUS_REQUEST:
+            result = self.handle_entity_status_request(data[8:])
+            return [result] if result else None
 
-        print(f"Unsupported payload type: 0x{payload_type:04X}")
+        self.logger.warning(f"Unsupported payload type: 0x{payload_type:04X}")
         return None
 
     def handle_routing_activation(self, payload):
@@ -725,94 +715,6 @@ class DoIPServer:
 
         return responses
 
-    def handle_functional_diagnostic_message_multiple_responses(
-        self, source_address, functional_address, uds_payload, target_ecus
-    ):
-        """
-        Handle functional diagnostic message and return multiple responses from different ECUs.
-        This is an enhanced version that can return multiple responses.
-
-        Args:
-            source_address: Source logical address
-            functional_address: Functional address (e.g., 0x1FFF)
-            uds_payload: UDS service payload
-            target_ecus: List of ECU addresses that use this functional address
-
-        Returns:
-            List of response messages from different ECUs
-        """
-        self.logger.info(
-            f"Handling functional diagnostic message with multiple responses "
-            f"to 0x{functional_address:04X}"
-        )
-
-        # Convert UDS payload to hex string for matching
-        uds_hex = uds_payload.hex().upper()
-
-        # Find ECUs that support this UDS service with functional addressing
-        responding_ecus = []
-        for ecu_address in target_ecus:
-            # Check if source address is allowed for this ECU
-            if not self.config_manager.is_source_address_allowed(
-                source_address, ecu_address
-            ):
-                self.logger.warning(
-                    f"Source address 0x{source_address:04X} not allowed for ECU 0x{ecu_address:04X}"
-                )
-                continue
-
-            # Check if this ECU supports the UDS service with functional addressing
-            service_config = self.config_manager.get_uds_service_by_request(
-                uds_hex, ecu_address
-            )
-            if service_config and service_config.get("supports_functional", False):
-                responding_ecus.append(ecu_address)
-                self.logger.info(
-                    f"ECU 0x{ecu_address:04X} supports functional addressing for this service"
-                )
-            else:
-                self.logger.debug(
-                    f"ECU 0x{ecu_address:04X} does not support functional "
-                    f"addressing for this service"
-                )
-
-        if not responding_ecus:
-            self.logger.warning(
-                f"No ECUs support functional addressing for UDS request: {uds_hex}"
-            )
-            return []
-
-        # Process the UDS message for each responding ECU and collect all responses
-        all_responses = []
-        for ecu_address in responding_ecus:
-            uds_response = self.process_uds_message(uds_payload, ecu_address)
-            if uds_response:
-                # Create individual response for this ECU
-                response = self.create_diagnostic_message_response(
-                    functional_address, source_address, uds_response
-                )
-                all_responses.append(
-                    {
-                        "ecu_address": ecu_address,
-                        "response": response,
-                        "uds_response": uds_response,
-                    }
-                )
-                self.logger.info(f"Generated response from ECU 0x{ecu_address:04X}")
-
-        self.logger.info(
-            f"Functional addressing with multiple responses: {len(all_responses)} ECUs responded"
-        )
-
-        # Log all responses for debugging
-        for i, resp in enumerate(all_responses):
-            self.logger.info(
-                f"Response {i+1} from ECU 0x{resp['ecu_address']:04X}: "
-                f"{resp['response'].hex()}"
-            )
-
-        return all_responses
-
     def process_uds_message(self, uds_payload, target_address):
         """Process UDS message and return response for specific ECU.
 
@@ -850,12 +752,7 @@ class DoIPServer:
         service_config = self.config_manager.get_uds_service_by_request(
             uds_hex, target_address
         )
-        if service_config:
-            self.logger.info(
-                f"Processing UDS service: {service_config.get('name', 'Unknown')} "
-                f"for ECU 0x{target_address:04X}"
-            )
-        else:
+        if not service_config:
             self.logger.warning(
                 f"Unsupported UDS request: {uds_hex} for ECU 0x{target_address:04X}"
             )
@@ -863,84 +760,86 @@ class DoIPServer:
                 0x7F, 0x7F
             )  # Service not supported in active session
 
-        if service_config:
-            # Check if this service is configured for no response
-            no_response = service_config.get("no_response", False)
-            if no_response:
-                self.logger.info(
-                    f"Service {service_config.get('name', 'Unknown')} configured for no response"
+        self.logger.info(
+            f"Processing UDS service: {service_config.get('name', 'Unknown')} "
+            f"for ECU 0x{target_address:04X}"
+        )
+
+        # Check if this service is configured for no response
+        no_response = service_config.get("no_response", False)
+        if no_response:
+            self.logger.info(
+                f"Service {service_config.get('name', 'Unknown')} configured for no response"
+            )
+            return None  # Return None to indicate no response should be sent
+
+        # Get responses for this service
+        responses = service_config.get("responses", [])
+        if responses:
+            # Get service name for cycling
+            service_name = service_config.get("name", "Unknown")
+
+            # Create unique key for this ECU-service combination
+            cycle_key = (target_address, service_name)
+
+            # Get current response index for this service-ECU combination
+            current_index = self.response_cycle_state.get(cycle_key, 0)
+
+            # Select response based on current index
+            response_template = responses[current_index]
+
+            # Handle both string and dictionary response formats
+            if isinstance(response_template, dict):
+                # New format: {"response": "0x...", "delay_ms": 100}
+                response_hex = self.config_manager.process_response_with_mirroring(
+                    response_template.get("response", ""), uds_hex
                 )
-                return None  # Return None to indicate no response should be sent
-
-            # Get responses for this service
-            responses = service_config.get("responses", [])
-            if responses:
-                # Get service name for cycling
-                service_name = service_config.get("name", "Unknown")
-
-                # Create unique key for this ECU-service combination
-                cycle_key = (target_address, service_name)
-
-                # Get current response index for this service-ECU combination
-                current_index = self.response_cycle_state.get(cycle_key, 0)
-
-                # Select response based on current index
-                response_template = responses[current_index]
-
-                # Handle both string and dictionary response formats
-                if isinstance(response_template, dict):
-                    # New format: {"response": "0x...", "delay_ms": 100}
-                    response_hex = self.config_manager.process_response_with_mirroring(
-                        response_template.get("response", ""), uds_hex
-                    )
-                else:
-                    # Legacy format: "0x..." string
-                    response_hex = self.config_manager.process_response_with_mirroring(
-                        response_template, uds_hex
-                    )
-
-                # Update index for next time (cycle back to 0 when reaching end)
-                next_index = (current_index + 1) % len(responses)
-                self.response_cycle_state[cycle_key] = next_index
-
-                self.logger.info(
-                    f"Returning response {current_index + 1}/{len(responses)} "
-                    f"for service {service_name}: {response_hex}"
-                )
-                self.logger.debug(f"Next response will be index {next_index}")
-
-                # Convert hex string back to bytes
-                try:
-                    # Strip "0x" prefix if present
-                    hex_str = (
-                        response_hex[2:]
-                        if response_hex.startswith("0x")
-                        else response_hex
-                    )
-                    self.logger.debug(
-                        f"Processing hex string: '{hex_str}' (length: {len(hex_str)})"
-                    )
-                    response_bytes = bytes.fromhex(hex_str)
-                    return response_bytes
-                except ValueError as e:
-                    self.logger.error(
-                        f"Invalid response hex format: {response_hex} - {e}"
-                    )
-                    self.logger.error(
-                        f"Processed hex string: '{hex_str}' (length: {len(hex_str)})"
-                    )
-                    return self.create_uds_negative_response(
-                        0x7F, 0x72
-                    )  # General programming failure
             else:
-                self.logger.warning(
-                    f"No responses configured for service: {service_config.get('name', 'Unknown')}"
+                # Legacy format: "0x..." string
+                response_hex = self.config_manager.process_response_with_mirroring(
+                    response_template, uds_hex
+                )
+
+            # Update index for next time (cycle back to 0 when reaching end)
+            next_index = (current_index + 1) % len(responses)
+            self.response_cycle_state[cycle_key] = next_index
+
+            self.logger.info(
+                f"Returning response {current_index + 1}/{len(responses)} "
+                f"for service {service_name}: {response_hex}"
+            )
+            self.logger.debug(f"Next response will be index {next_index}")
+
+            # Convert hex string back to bytes
+            try:
+                # Strip "0x" prefix if present
+                hex_str = (
+                    response_hex[2:]
+                    if response_hex.startswith("0x")
+                    else response_hex
+                )
+                self.logger.debug(
+                    f"Processing hex string: '{hex_str}' (length: {len(hex_str)})"
+                )
+                response_bytes = bytes.fromhex(hex_str)
+                return response_bytes
+            except ValueError as e:
+                self.logger.error(
+                    f"Invalid response hex format: {response_hex} - {e}"
+                )
+                self.logger.error(
+                    f"Processed hex string: '{hex_str}' (length: {len(hex_str)})"
                 )
                 return self.create_uds_negative_response(
                     0x7F, 0x72
                 )  # General programming failure
-
-        return None
+        else:
+            self.logger.warning(
+                f"No responses configured for service: {service_config.get('name', 'Unknown')}"
+            )
+            return self.create_uds_negative_response(
+                0x7F, 0x72
+            )  # General programming failure
 
     def reset_response_cycling(self, ecu_address=None, service_name=None):
         """Reset response cycling state for a specific ECU-service combination or all states

@@ -69,6 +69,7 @@ class HierarchicalConfigManager:
         self.gateway_config = {}
         self.ecu_configs = {}  # target_address -> ecu_config
         self.uds_services = {}  # service_name -> service_config
+        self._ecu_service_cache: Dict[int, Dict[str, Any]] = {}  # ecu_addr -> services
         self.logger = logging.getLogger(__name__)
         self._load_all_configs()
 
@@ -237,7 +238,7 @@ gateway:
         return None
 
     def _load_uds_services(self):
-        """Load UDS services configuration from multiple files"""
+        """Load UDS services configuration from multiple files and build ECU service cache"""
         try:
             # Load services from each ECU configuration
             for ecu_addr, ecu_config in self.ecu_configs.items():
@@ -247,14 +248,30 @@ gateway:
                 # Get service files for this ECU
                 service_files = uds_config.get("service_files", [])
 
-                # Load services from each file
+                # Build per-ECU cache from service files
+                ecu_services: Dict[str, Any] = {}
                 for service_file in service_files:
                     self._load_services_from_file(service_file, ecu_addr)
+                    file_services = self._get_services_from_file(service_file, ecu_addr)
+                    ecu_services.update(file_services)
 
                 # Also load from the old single file for backward compatibility
                 uds_services_path = self._find_uds_services_path()
                 if uds_services_path and os.path.exists(uds_services_path):
                     self._load_services_from_file(uds_services_path, ecu_addr)
+                    file_services = self._get_services_from_file(
+                        uds_services_path, ecu_addr
+                    )
+                    ecu_services.update(file_services)
+
+                # Also add services referenced by name for backward compatibility
+                common_names = uds_config.get("common_services", [])
+                specific_names = uds_config.get("specific_services", [])
+                for name in common_names + specific_names:
+                    if name in self.uds_services and name not in ecu_services:
+                        ecu_services[name] = self.uds_services[name]
+
+                self._ecu_service_cache[ecu_addr] = ecu_services
 
             self.logger.info(f"UDS services loaded: {len(self.uds_services)} services")
         except Exception as e:
@@ -512,32 +529,27 @@ gateway:
         return target_addr in self.ecu_configs
 
     def get_ecu_uds_services(self, target_address: int) -> Dict[str, Any]:
-        """Get UDS services available for a specific ECU"""
+        """Get UDS services available for a specific ECU (uses cache built at init)"""
+        if target_address in self._ecu_service_cache:
+            return self._ecu_service_cache[target_address]
+
+        # Fallback: build on demand if cache is missing (e.g. services injected after init)
         ecu_config = self.get_ecu_config(target_address)
         if not ecu_config:
             return {}
 
         ecu_info = ecu_config.get("ecu", {})
         uds_config = ecu_info.get("uds_services", {})
-
-        # Get service files for this ECU
         service_files = uds_config.get("service_files", [])
-
-        # Load services from the specified files for this ECU
         ecu_services = {}
 
-        # Load from service files
         for service_file in service_files:
             file_services = self._get_services_from_file(service_file, target_address)
             ecu_services.update(file_services)
 
-        # Also load from the old method for backward compatibility
         common_services = uds_config.get("common_services", [])
         specific_services = uds_config.get("specific_services", [])
-        all_service_names = common_services + specific_services
-
-        # Get actual service configurations
-        for service_name in all_service_names:
+        for service_name in common_services + specific_services:
             if service_name in self.uds_services:
                 ecu_services[service_name] = self.uds_services[service_name]
             else:
@@ -596,6 +608,8 @@ gateway:
                         "supports_functional": service_config.get(
                             "supports_functional", False
                         ),
+                        "no_response": service_config.get("no_response", False),
+                        "delay_ms": service_config.get("delay_ms", 0),
                     }
         else:
             # Search in all services
@@ -611,6 +625,8 @@ gateway:
                         "supports_functional": service_config.get(
                             "supports_functional", False
                         ),
+                        "no_response": service_config.get("no_response", False),
+                        "delay_ms": service_config.get("delay_ms", 0),
                     }
         return None
 
@@ -738,6 +754,7 @@ gateway:
 
     def reload_configs(self):
         """Reload all configuration files"""
+        self._ecu_service_cache.clear()
         self._load_all_configs()
         self.logger.info("All configurations reloaded")
 
