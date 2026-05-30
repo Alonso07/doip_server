@@ -1,23 +1,34 @@
 name: Publish to PyPI
 
-# Runs on every merge to main after all CI checks pass.
+# Triggered when the CI workflow completes on main.
+# Only publishes if CI succeeded on a push event — never on a failed or
+# manually-triggered run. Checks out the exact SHA CI validated so the
+# published artifact matches what was tested.
 # Requires the PYPI_TOKEN repository secret to be set.
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+
     permissions:
       contents: write  # needed to push the version tag
 
     steps:
-    - name: Checkout (full history for commit count)
+    - name: Checkout CI-validated commit (full history for commit count)
       uses: actions/checkout@v6
       with:
+        ref: ${{ github.event.workflow_run.head_sha }}
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
