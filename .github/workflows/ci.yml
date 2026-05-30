@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -29,6 +31,9 @@ jobs:
 
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
+
+    - name: Validate version script (dry-run)
+      run: python scripts/set_version.py --dry-run
 
     - name: Run linting
       run: |
@@ -64,6 +69,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -137,6 +144,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -201,6 +210,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5

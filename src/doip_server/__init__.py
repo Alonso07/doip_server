@@ -45,11 +45,15 @@ Protocol Support:
     - Functional addressing (ISO 14229-2)
 
 Author: DoIP Server Development Team
-Version: 0.5.4
 License: MIT
+
+Version format: YYYY.MM.DD.<git-short-hash>
+  Set automatically by scripts/set_version.py at CI build time.
+  Example: 2026.05.30.49f2dd5
 """
 
-# Package version
+# Version is set by scripts/set_version.py on every merge to main.
+# Format: YYYY.MM.DD.<git-short-hash>  (display)
 __version__ = "0.5.4"
 
 # Main exports

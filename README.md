@@ -24,6 +24,29 @@ python -m pytest tests/test_hierarchical_configuration.py -v
 poetry run pytest tests/ -v
 ```
 
+## 🌐 Web Dashboard
+
+A **FastAPI** web dashboard is included for managing and testing the server from a browser — no code required.
+
+```bash
+# Start the web dashboard (starts the DoIP server automatically)
+poetry run doip_web --gateway-config config/gateway1.yaml
+
+# Or run directly
+poetry run python -m web.app --gateway-config config/gateway1.yaml --port 8080
+```
+
+Open `http://localhost:8080` to access:
+
+- **Dashboard** — live server status, gateway config, ECU overview
+- **ECU Management** (`/ecus`) — add/edit/delete ECUs at runtime
+- **Services** (`/ecus/{address}/services`) — manage UDS services per ECU
+- **DoIP Client Tester** (`/client`) — send UDS requests from the browser over WebSocket
+
+Interactive API docs are available at `http://localhost:8080/docs`.
+
+See **[docs/WEB_APP.md](docs/WEB_APP.md)** for the full reference including all REST endpoints, the `?persist` flag, and troubleshooting.
+
 ## 📚 Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
@@ -32,6 +55,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[🚀 Getting Started](docs/README.md)** - Detailed project overview and setup
 - **[⚙️ Configuration Guide](docs/CONFIGURATION.md)** - Complete configuration guide
 - **[🔧 API Reference](docs/API.md)** - API reference and examples
+- **[🌐 Web Dashboard](docs/WEB_APP.md)** - Web UI reference and REST API
 - **[🧪 Testing Guide](docs/TESTING.md)** - Testing guide and results
 - **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Deployment and CI/CD guide
 - **[🤝 Contributing](docs/CONTRIBUTING.md)** - How to contribute to this project
