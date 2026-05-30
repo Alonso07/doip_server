@@ -24,10 +24,15 @@ def get_gateway():
 
 
 @router.put("")
-def update_gateway(body: GatewayUpdate):
+def update_gateway(body: GatewayUpdate, persist: bool = False):
     cm = _require_cm()
     updates = body.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(400, "No fields to update")
     result = cm.update_gateway(updates)
-    return {"gateway": result}
+    if persist:
+        try:
+            cm.persist_gateway(updates)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Saved in memory but file write failed: {exc}")
+    return {"gateway": result, "persisted": persist}

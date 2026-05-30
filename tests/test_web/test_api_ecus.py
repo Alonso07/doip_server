@@ -51,7 +51,8 @@ def test_create_and_delete_ecu(web_client):
 
     # Delete
     r3 = web_client.delete(f"/api/ecus/{new_ecu['target_address']}")
-    assert r3.status_code == 204
+    assert r3.status_code == 200
+    assert r3.json()["deleted"] is True
 
     # After delete, 404
     r4 = web_client.get(f"/api/ecus/{new_ecu['target_address']}")

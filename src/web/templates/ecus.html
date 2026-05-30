@@ -4,41 +4,12 @@
 {% block content %}
 <h1 class="text-xl font-bold text-amber-400 mb-6">ECU Management</h1>
 
-<!-- Add ECU form -->
-<section class="mb-8" x-data="{ open: false }">
-  <button @click="open = !open"
-          class="text-xs px-3 py-1 bg-green-700 hover:bg-green-600 rounded mb-3">
+<!-- Add ECU -->
+<section class="mb-6">
+  <button onclick="newEcu()"
+          class="text-xs px-3 py-1 bg-green-700 hover:bg-green-600 rounded">
     + Add ECU
   </button>
-
-  <form x-show="open" x-cloak
-        hx-post="/api/ecus"
-        hx-target="#ecu-table"
-        hx-swap="outerHTML"
-        @htmx:after-request="open = false"
-        class="bg-gray-800 border border-gray-700 rounded p-4 grid grid-cols-2 gap-3 mb-4">
-    <label class="flex flex-col gap-1 text-xs">
-      Target Address (decimal)
-      <input name="target_address" type="number" required
-             class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
-    </label>
-    <label class="flex flex-col gap-1 text-xs">
-      Name
-      <input name="name" type="text" required
-             class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
-    </label>
-    <label class="flex flex-col gap-1 text-xs col-span-2">
-      Tester Addresses (comma-separated decimal)
-      <input name="tester_addresses" type="text" placeholder="3584,3585"
-             class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
-    </label>
-    <div class="col-span-2 flex gap-2">
-      <button type="submit"
-              class="px-3 py-1 bg-green-700 hover:bg-green-600 rounded text-xs">Save</button>
-      <button type="button" @click="open = false"
-              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs">Cancel</button>
-    </div>
-  </form>
 </section>
 
 <!-- ECU table -->

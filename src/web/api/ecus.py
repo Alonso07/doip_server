@@ -42,17 +42,22 @@ def get_ecu(address: int):
 
 
 @router.post("", status_code=201)
-def create_ecu(body: ECUCreate):
+def create_ecu(body: ECUCreate, persist: bool = False):
     cm = _require_cm()
     try:
         addr = cm.add_ecu(body.model_dump())
     except ValueError as exc:
         raise HTTPException(409, str(exc))
+    if persist:
+        try:
+            cm.persist_new_ecu(addr)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Saved in memory but file write failed: {exc}")
     return _ecu_summary(cm, addr)
 
 
 @router.put("/{address}")
-def update_ecu(address: int, body: ECUUpdate):
+def update_ecu(address: int, body: ECUUpdate, persist: bool = False):
     cm = _require_cm()
     updates = body.model_dump(exclude_none=True)
     if not updates:
@@ -61,11 +66,22 @@ def update_ecu(address: int, body: ECUUpdate):
         cm.update_ecu(address, updates)
     except KeyError as exc:
         raise HTTPException(404, str(exc))
+    if persist:
+        try:
+            cm.persist_ecu_update(address, updates)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Saved in memory but file write failed: {exc}")
     return _ecu_summary(cm, address)
 
 
-@router.delete("/{address}", status_code=204)
-def delete_ecu(address: int):
+@router.delete("/{address}")
+def delete_ecu(address: int, persist: bool = False):
     cm = _require_cm()
     if not cm.delete_ecu(address):
         raise HTTPException(404, f"ECU 0x{address:04X} not found")
+    if persist:
+        try:
+            cm.persist_delete_ecu(address)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Deleted in memory but file write failed: {exc}")
+    return {"deleted": True, "persisted": persist}
