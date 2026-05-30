@@ -1,96 +1,114 @@
 # Dependency PR Review and Auto-Merge
 
-Review all open dependency-update PRs on `alonso07/doip_server`, run the test suite
-against each one, and merge any PR whose CI checks have fully passed.
+Review **all** open dependency-update PRs on `alonso07/doip_server` in a single session.
+Run the test suite, and squash-merge every PR that passes. Keep going until no more
+mergeable PRs remain in this run.
 
 ## Steps
 
-### 1. List open dependency PRs
+### 1. Collect all open dependency PRs
 
-Use `mcp__github__list_pull_requests` (state=open) on repo `alonso07/doip_server`.
-Keep only PRs whose title matches one of these patterns (case-insensitive):
+Call `mcp__github__list_pull_requests` (state=`open`) on repo `alonso07/doip_server`.
+
+Build a **work queue** of PRs whose title matches any of these patterns (case-insensitive):
 - starts with `chore(deps`
 - starts with `chore: bump`
 - starts with `ci(`
 - contains `bump … from … to`
-- label `dependencies` or `github_actions`
+- has label `dependencies` or `github_actions`
 
-If no matching PRs are found, report "No open dependency PRs found." and stop.
+If the queue is empty, print "No open dependency PRs found." and stop.
 
-### 2. For each dependency PR (process one at a time)
+### 2. Main loop — repeat until the queue is empty
+
+Pick the next PR from the queue and execute steps 2a–2g.
+**Do not stop between PRs.** Continue until every PR has been processed.
 
 #### 2a. Fetch PR details
 
-Call `mcp__github__pull_request_read` with the PR number to get the head SHA,
-branch name, and merge status.
+Call `mcp__github__pull_request_read` with the PR number.
+Record: head SHA, branch name, mergeable state, draft status.
 
-#### 2b. Check CI status
+Skip immediately (mark `skipped — draft`) if the PR is a draft.
 
-Use `mcp__github__search_pull_requests` or `mcp__github__get_commit` on the head SHA
-to determine check-run conclusions. Classify the PR as one of:
+#### 2b. Classify CI status
 
-| State | Meaning |
-|-------|---------|
-| **all_passed** | Every required check is `success` or `skipped` |
-| **pending** | At least one check is still `queued` or `in_progress` |
-| **failed** | At least one check is `failure` or `cancelled` |
-| **no_checks** | No CI checks have been registered yet |
+Call `mcp__github__get_commit` on the head SHA and inspect check-run conclusions:
 
-#### 2c. If state is `pending`
+| Classification | Condition |
+|----------------|-----------|
+| `all_passed`   | Every check is `success` or `skipped` |
+| `pending`      | At least one check is `queued` or `in_progress` |
+| `failed`       | At least one check is `failure` or `cancelled` |
+| `no_checks`    | No check runs registered yet |
 
-Report the PR as still running and skip it (do NOT merge).
+#### 2c. `pending` → skip
 
-#### 2d. If state is `failed`
+Record `CI pending — skipped`. Move to next PR.
 
-Report which checks failed and skip (do NOT merge).
+#### 2d. `failed` → skip
 
-#### 2e. If state is `all_passed`
+Record which checks failed. Record `CI failed — skipped`. Move to next PR.
 
-Run the local test suite to double-check before merging:
+#### 2e. `all_passed` or `no_checks` → run local tests
 
 ```bash
-cd /home/user/doip_server
 poetry install --no-interaction --no-root
-poetry run pytest tests/ -v --tb=short -q 2>&1 | tail -30
+poetry run pytest tests/ -v --tb=short -q 2>&1 | tail -40
 ```
 
-- If **tests pass** (exit code 0): proceed to merge (step 2f).
-- If **tests fail**: report the failures, add a comment on the PR explaining
-  why auto-merge was skipped, and do NOT merge.
+- Exit code **0** → proceed to 2f (merge).
+- Non-zero → post a comment on the PR:
 
-#### 2f. Merge the PR
+  > `[auto-merge] Skipped: local test suite failed. See workflow logs.`
 
-Call `mcp__github__merge_pull_request` with:
+  Record `local tests failed — skipped`. Move to next PR.
+
+#### 2f. Merge
+
+Call `mcp__github__merge_pull_request`:
 - `repo`: `alonso07/doip_server`
-- `pull_number`: the PR number
+- `pull_number`: PR number
 - `merge_method`: `"squash"`
-- `commit_title`: the PR title
-- `commit_message`: `"Auto-merged after all CI checks passed and local tests verified."`
+- `commit_title`: PR title (verbatim)
+- `commit_message`: `"Auto-merged: all CI checks passed and local tests verified."`
 
-After merging, report: `✓ PR #<N> merged: <title>`
+On success → record `merged ✓`.
 
-#### 2g. If state is `no_checks`
+On conflict or error → post a comment:
 
-Run the local test suite (same commands as 2e).
+  > `[auto-merge] Merge failed: <error message>.`
 
-- If **tests pass**: merge (step 2f) and note that CI had not yet run.
-- If **tests fail**: skip and report the failures.
+  Record `merge conflict — skipped`. Move to next PR.
 
-### 3. Summary
+#### 2g. After each merge — refresh the queue
 
-After processing all dependency PRs, print a table:
+Re-call `mcp__github__list_pull_requests` (state=`open`) and rebuild the queue
+with the same filter. This picks up any PRs that Dependabot rebased onto the
+freshly-merged commit. Continue the loop with the refreshed queue.
+
+### 3. Final summary
+
+After the queue is exhausted, print:
 
 ```
-PR   | Title                          | Action
------|--------------------------------|------------------
-#32  | chore(deps): bump X from 1→2   | merged ✓
-#34  | chore(deps): bump Y from 3→4   | CI pending — skipped
-#36  | chore(deps): bump Z from 5→6   | tests failed — skipped
+========================================
+  Dependency PR Auto-Merge — Summary
+========================================
+PR    | Title                                | Action
+------|--------------------------------------|----------------------
+#32   | chore(deps): bump X 1.0→1.1          | merged ✓
+#34   | chore(deps-dev): bump Y 2.0→2.1      | merged ✓
+#36   | chore(deps): bump Z 3.0→4.0          | CI failed — skipped
+#38   | ci(deps): bump actions/checkout v5→v6 | CI pending — skipped
+========================================
+Merged: 2   Skipped: 2   Total: 4
 ```
 
-## Notes
+## Safety rules
 
-- Never merge a PR that has any failed or pending CI check **and** failing local tests.
-- Never force-push or close a PR that you did not merge.
-- If `mcp__github__merge_pull_request` returns a conflict error, report it and skip.
-- The squash merge method keeps the main branch history clean.
+- **Never** merge a PR with `pending` or `failed` CI checks.
+- **Never** merge a PR when local tests exit non-zero.
+- **Never** force-push, close, or delete any PR branch.
+- If `mergeable` is `"conflicting"` in step 2a, skip immediately — record `conflict — skipped`.
+- The squash merge keeps main history linear and clean.
