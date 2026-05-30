@@ -22,10 +22,14 @@
 <section class="mb-8">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-bold text-gray-300">Gateway Configuration</h2>
-    <button class="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-500 rounded"
-            hx-get="/api/gateway"
-            hx-target="#gateway-data"
-            hx-swap="innerHTML">Refresh</button>
+    <div class="flex gap-2">
+      <button class="text-xs px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded"
+              onclick="editGateway()">Edit</button>
+      <button class="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+              hx-get="/api/gateway"
+              hx-target="#gateway-data"
+              hx-swap="innerHTML">Refresh</button>
+    </div>
   </div>
   <div id="gateway-data"
        hx-get="/api/gateway"

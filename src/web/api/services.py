@@ -33,19 +33,29 @@ def get_service(address: int, service_name: str):
 
 
 @router.post("", status_code=201)
-def create_service(address: int, service_name: str, body: ServiceCreate):
+def create_service(
+    address: int, service_name: str, body: ServiceCreate, persist: bool = False
+):
     cm = _require_cm()
+    payload = body.model_dump()
     try:
-        cm.add_service(address, service_name, body.model_dump())
+        cm.add_service(address, service_name, payload)
     except KeyError as exc:
         raise HTTPException(404, str(exc))
     except ValueError as exc:
         raise HTTPException(409, str(exc))
-    return {"name": service_name, **body.model_dump()}
+    if persist:
+        try:
+            cm.persist_new_service(address, service_name, payload)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Saved in memory but file write failed: {exc}")
+    return {"name": service_name, **payload, "persisted": persist}
 
 
 @router.put("/{service_name}")
-def update_service(address: int, service_name: str, body: ServiceUpdate):
+def update_service(
+    address: int, service_name: str, body: ServiceUpdate, persist: bool = False
+):
     cm = _require_cm()
     updates = body.model_dump(exclude_none=True)
     if not updates:
@@ -54,13 +64,24 @@ def update_service(address: int, service_name: str, body: ServiceUpdate):
         result = cm.update_service(address, service_name, updates)
     except KeyError as exc:
         raise HTTPException(404, str(exc))
-    return {"name": service_name, **result}
+    if persist:
+        try:
+            cm.persist_service_update(address, service_name, updates)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Saved in memory but file write failed: {exc}")
+    return {"name": service_name, **result, "persisted": persist}
 
 
-@router.delete("/{service_name}", status_code=204)
-def delete_service(address: int, service_name: str):
+@router.delete("/{service_name}")
+def delete_service(address: int, service_name: str, persist: bool = False):
     cm = _require_cm()
     if not cm.delete_service(address, service_name):
         raise HTTPException(
             404, f"Service '{service_name}' not found on ECU 0x{address:04X}"
         )
+    if persist:
+        try:
+            cm.persist_delete_service(address, service_name)
+        except Exception as exc:  # pragma: no cover - surfaced to client
+            raise HTTPException(500, f"Deleted in memory but file write failed: {exc}")
+    return {"deleted": True, "persisted": persist}

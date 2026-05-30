@@ -8,9 +8,10 @@ import logging
 import os
 import re
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
+from ruamel.yaml import YAML
 
 
 class HierarchicalConfigManager:
@@ -71,6 +72,10 @@ class HierarchicalConfigManager:
         self.ecu_configs = {}  # target_address -> ecu_config
         self.uds_services = {}  # service_name -> service_config
         self._ecu_service_cache: Dict[int, Dict[str, Any]] = {}  # ecu_addr -> services
+        # Origin tracking for write-back persistence
+        self._ecu_file_paths: Dict[int, str] = {}  # target_address -> source file
+        # (ecu_addr, service_name) -> (file_path, section)
+        self._service_source: Dict[Tuple[int, str], Tuple[str, str]] = {}
         self._lock = threading.RLock()
         self.logger = logging.getLogger(__name__)
         self._load_all_configs()
@@ -213,6 +218,7 @@ gateway:
 
                     if target_address is not None:
                         self.ecu_configs[target_address] = ecu_config
+                        self._ecu_file_paths[target_address] = ecu_path
                         self.logger.info(
                             f"ECU configuration loaded: {ecu_file} -> 0x{target_address:04X}"
                         )
@@ -585,6 +591,19 @@ gateway:
             specific_services = service_config.get("specific_services", {})
             services.update(specific_services)
 
+            # Record provenance so edits can be written back to the right file/section
+            if ecu_address is not None:
+                for service_name in common_services:
+                    self._service_source[(ecu_address, service_name)] = (
+                        actual_path,
+                        "common_services",
+                    )
+                for service_name in specific_services:
+                    self._service_source[(ecu_address, service_name)] = (
+                        actual_path,
+                        "specific_services",
+                    )
+
             return services
 
         except Exception as e:
@@ -757,6 +776,8 @@ gateway:
     def reload_configs(self):
         """Reload all configuration files"""
         self._ecu_service_cache.clear()
+        self._ecu_file_paths.clear()
+        self._service_source.clear()
         self._load_all_configs()
         self.logger.info("All configurations reloaded")
 
@@ -1027,6 +1048,265 @@ gateway:
                 "Service '%s' deleted from ECU 0x%04X", service_name, target_address
             )
             return True
+
+    # -------------------------------------------------------------------------
+    # Permanent persistence (write-back to YAML files via ruamel round-trip)
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def _rt_yaml() -> YAML:
+        """Return a round-trip YAML handler that preserves comments and quotes."""
+        y = YAML()
+        y.preserve_quotes = True
+        y.width = 4096
+        return y
+
+    def _read_rt(self, path: str):
+        """Load a YAML file in round-trip mode, returning (data, yaml_handler)."""
+        y = self._rt_yaml()
+        with open(path, "r") as f:
+            return y.load(f), y
+
+    def _write_rt(self, path: str, data: Any, y: YAML) -> None:
+        with open(path, "w") as f:
+            y.dump(data, f)
+
+    @staticmethod
+    def _overlay(target: Any, updates: Dict[str, Any]) -> None:
+        """Recursively apply *updates* onto a (possibly ruamel) mapping in place.
+
+        Only the changed leaves are touched, so comments and formatting on
+        untouched nodes are preserved.
+        """
+        for key, value in updates.items():
+            if isinstance(value, dict) and isinstance(target.get(key), dict):
+                HierarchicalConfigManager._overlay(target[key], value)
+            else:
+                target[key] = value
+
+    @staticmethod
+    def _slug(name: str, fallback: str) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "_", (name or "").lower()).strip("_")
+        return slug or fallback
+
+    def _config_dir(self) -> str:
+        return os.path.dirname(self.gateway_config_path) or "."
+
+    def persist_gateway(self, updates: Dict[str, Any]) -> None:
+        """Write gateway *updates* back to the gateway config file."""
+        with self._lock:
+            data, y = self._read_rt(self.gateway_config_path)
+            gateway = data.get("gateway")
+            if gateway is None:
+                gateway = data["gateway"] = {}
+            self._overlay(gateway, updates)
+            self._write_rt(self.gateway_config_path, data, y)
+            self.logger.info("Gateway config persisted to %s", self.gateway_config_path)
+
+    def persist_ecu_update(self, target_address: int, updates: Dict[str, Any]) -> None:
+        """Write ECU *updates* back to that ECU's source file."""
+        with self._lock:
+            path = self._ecu_file_paths.get(target_address)
+            if not path or not os.path.exists(path):
+                raise KeyError(f"No source file tracked for ECU 0x{target_address:04X}")
+            data, y = self._read_rt(path)
+            ecu = data.get("ecu")
+            if ecu is None:
+                ecu = data["ecu"] = {}
+            self._overlay(ecu, updates)
+            self._write_rt(path, data, y)
+            self.logger.info("ECU 0x%04X persisted to %s", target_address, path)
+
+    def persist_new_ecu(self, target_address: int) -> str:
+        """Create a new ECU file from the in-memory config and reference it."""
+        with self._lock:
+            ecu_cfg = self.ecu_configs.get(target_address)
+            if ecu_cfg is None:
+                raise KeyError(f"ECU 0x{target_address:04X} not found in memory")
+            name = ecu_cfg.get("ecu", {}).get("name", "")
+            slug = self._slug(name, f"ecu_{target_address:04x}")
+            rel = f"ecus/{slug}/ecu_{slug}.yaml"
+            full = os.path.join(self._config_dir(), rel)
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+
+            y = self._rt_yaml()
+            with open(full, "w") as f:
+                y.dump(_to_plain(ecu_cfg), f)
+            self._ecu_file_paths[target_address] = full
+
+            # Reference the new ECU file from the gateway config
+            data, gy = self._read_rt(self.gateway_config_path)
+            gateway = data.get("gateway")
+            if gateway is None:
+                gateway = data["gateway"] = {}
+            ecus = gateway.get("ecus")
+            if ecus is None:
+                ecus = gateway["ecus"] = []
+            if rel not in list(ecus):
+                ecus.append(rel)
+            self._write_rt(self.gateway_config_path, data, gy)
+            self.logger.info("New ECU 0x%04X persisted to %s", target_address, full)
+            return full
+
+    def persist_delete_ecu(self, target_address: int) -> None:
+        """Remove an ECU's gateway reference and delete its source file."""
+        with self._lock:
+            path = self._ecu_file_paths.get(target_address)
+            data, gy = self._read_rt(self.gateway_config_path)
+            gateway = data.get("gateway") or {}
+            ecus = gateway.get("ecus")
+            if path and isinstance(ecus, list):
+                rel = os.path.relpath(path, self._config_dir())
+                base = os.path.basename(path)
+                gateway["ecus"] = [
+                    e
+                    for e in ecus
+                    if os.path.normpath(str(e)) != os.path.normpath(rel)
+                    and os.path.basename(str(e)) != base
+                ]
+                self._write_rt(self.gateway_config_path, data, gy)
+            if path and os.path.exists(path):
+                os.remove(path)
+            self._ecu_file_paths.pop(target_address, None)
+            for key in [k for k in self._service_source if k[0] == target_address]:
+                self._service_source.pop(key, None)
+            self.logger.info("ECU 0x%04X removed from disk", target_address)
+
+    def _ecu_specific_service_file(self, target_address: int) -> Tuple[str, str]:
+        """Return (full_path, relative_ref) of the ECU's specific-service file.
+
+        Picks the first non-generic service file referenced by the ECU; if none
+        exists, a new ``ecu_<slug>_services.yaml`` file is created.
+        """
+        ecu_cfg = self.ecu_configs.get(target_address, {})
+        uds = ecu_cfg.get("ecu", {}).get("uds_services", {})
+        for sf in uds.get("service_files", []):
+            actual = self._find_service_file_path(sf)
+            if actual and "generic" not in actual.replace("\\", "/").lower():
+                return actual, sf
+
+        # No specific file yet: create one alongside the ECU file.
+        name = ecu_cfg.get("ecu", {}).get("name", "")
+        slug = self._slug(name, f"ecu_{target_address:04x}")
+        rel = f"ecus/{slug}/ecu_{slug}_services.yaml"
+        full = os.path.join(self._config_dir(), rel)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        if not os.path.exists(full):
+            y = self._rt_yaml()
+            with open(full, "w") as f:
+                y.dump({"specific_services": {}}, f)
+        return full, rel
+
+    def persist_service_update(
+        self, target_address: int, service_name: str, updates: Dict[str, Any]
+    ) -> None:
+        """Write service *updates* back to its source file/section."""
+        with self._lock:
+            src = self._service_source.get((target_address, service_name))
+            if src is None:
+                path, _rel = self._ecu_specific_service_file(target_address)
+                section = "specific_services"
+            else:
+                path, section = src
+            data, y = self._read_rt(path)
+            sect = data.get(section)
+            if sect is None:
+                sect = data[section] = {}
+            if service_name not in sect:
+                sect[service_name] = {}
+            self._overlay(sect[service_name], updates)
+            self._write_rt(path, data, y)
+            self._service_source[(target_address, service_name)] = (path, section)
+            self.logger.info(
+                "Service '%s' (ECU 0x%04X) persisted to %s",
+                service_name,
+                target_address,
+                path,
+            )
+
+    def persist_new_service(
+        self, target_address: int, service_name: str, service_data: Dict[str, Any]
+    ) -> None:
+        """Write a brand-new service into the ECU's specific-service file."""
+        with self._lock:
+            path, rel = self._ecu_specific_service_file(target_address)
+            data, y = self._read_rt(path)
+            sect = data.get("specific_services")
+            if sect is None:
+                sect = data["specific_services"] = {}
+            sect[service_name] = _to_plain(service_data)
+            self._write_rt(path, data, y)
+            self._service_source[(target_address, service_name)] = (
+                path,
+                "specific_services",
+            )
+
+            # Make sure the ECU file references the service + file
+            ecu_path = self._ecu_file_paths.get(target_address)
+            if ecu_path and os.path.exists(ecu_path):
+                edata, ey = self._read_rt(ecu_path)
+                uds = edata.get("ecu", {}).get("uds_services")
+                if uds is None:
+                    uds = edata.setdefault("ecu", {})["uds_services"] = {}
+                spec = uds.get("specific_services")
+                if spec is None:
+                    spec = uds["specific_services"] = []
+                if service_name not in list(spec):
+                    spec.append(service_name)
+                sfiles = uds.get("service_files")
+                if sfiles is None:
+                    sfiles = uds["service_files"] = []
+                existing = [os.path.basename(str(x)) for x in sfiles]
+                if os.path.basename(rel) not in existing:
+                    sfiles.append(rel)
+                self._write_rt(ecu_path, edata, ey)
+            self.logger.info(
+                "New service '%s' (ECU 0x%04X) persisted to %s",
+                service_name,
+                target_address,
+                path,
+            )
+
+    def persist_delete_service(self, target_address: int, service_name: str) -> None:
+        """Remove a service entry from its source file and ECU references."""
+        with self._lock:
+            src = self._service_source.get((target_address, service_name))
+            if src is not None:
+                path, section = src
+                if os.path.exists(path):
+                    data, y = self._read_rt(path)
+                    sect = data.get(section, {})
+                    if service_name in sect:
+                        del sect[service_name]
+                        self._write_rt(path, data, y)
+            self._service_source.pop((target_address, service_name), None)
+
+            ecu_path = self._ecu_file_paths.get(target_address)
+            if ecu_path and os.path.exists(ecu_path):
+                edata, ey = self._read_rt(ecu_path)
+                uds = edata.get("ecu", {}).get("uds_services", {})
+                changed = False
+                for key in ("specific_services", "common_services"):
+                    lst = uds.get(key)
+                    if isinstance(lst, list) and service_name in lst:
+                        lst.remove(service_name)
+                        changed = True
+                if changed:
+                    self._write_rt(ecu_path, edata, ey)
+            self.logger.info(
+                "Service '%s' (ECU 0x%04X) removed from disk",
+                service_name,
+                target_address,
+            )
+
+
+def _to_plain(obj: Any) -> Any:
+    """Recursively convert nested mappings/sequences into plain dict/list."""
+    if isinstance(obj, dict):
+        return {k: _to_plain(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_plain(v) for v in obj]
+    return obj
 
 
 def _deep_merge(base: dict, updates: dict) -> None:

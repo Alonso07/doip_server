@@ -67,7 +67,8 @@ def test_create_and_delete_service(web_client):
 
     # Delete
     r3 = web_client.delete(f"/api/ecus/{addr}/services/{svc_name}")
-    assert r3.status_code == 204
+    assert r3.status_code == 200
+    assert r3.json()["deleted"] is True
 
     r4 = web_client.get(f"/api/ecus/{addr}/services/{svc_name}")
     assert r4.status_code == 404

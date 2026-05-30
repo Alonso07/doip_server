@@ -54,24 +54,24 @@ app.include_router(doip_client.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.get("/ecus", response_class=HTMLResponse)
 async def ecus_page(request: Request):
-    return templates.TemplateResponse("ecus.html", {"request": request})
+    return templates.TemplateResponse(request, "ecus.html")
 
 
 @app.get("/ecus/{address}/services", response_class=HTMLResponse)
 async def services_page(request: Request, address: int):
     return templates.TemplateResponse(
-        "services.html", {"request": request, "ecu_address": address}
+        request, "services.html", {"ecu_address": address}
     )
 
 
 @app.get("/client", response_class=HTMLResponse)
 async def client_page(request: Request):
-    return templates.TemplateResponse("client.html", {"request": request})
+    return templates.TemplateResponse(request, "client.html")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
