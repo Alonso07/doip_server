@@ -38,7 +38,11 @@ def test_send_success(web_client):
 
 @pytest.mark.unit
 def test_send_timeout(web_client):
-    mock_result = {"ok": False, "response": None, "log": [{"ts": 0, "event": "timeout", "detail": ""}]}
+    mock_result = {
+        "ok": False,
+        "response": None,
+        "log": [{"ts": 0, "event": "timeout", "detail": ""}],
+    }
     with patch(_TARGET, return_value=mock_result):
         r = web_client.post(
             "/api/client/send",
@@ -78,13 +82,15 @@ def test_ws_send_and_receive(web_client):
     }
     with patch(_TARGET, return_value=mock_result):
         with web_client.websocket_connect("/api/client/ws") as ws:
-            ws.send_json({
-                "host": "127.0.0.1",
-                "port": 13400,
-                "source_address": 0x0E00,
-                "target_address": 0x0001,
-                "uds_message": "22F190",
-            })
+            ws.send_json(
+                {
+                    "host": "127.0.0.1",
+                    "port": 13400,
+                    "source_address": 0x0E00,
+                    "target_address": 0x0001,
+                    "uds_message": "22F190",
+                }
+            )
             events = []
             while True:
                 msg = ws.receive_json()

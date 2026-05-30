@@ -928,7 +928,9 @@ gateway:
             self.logger.info("ECU 0x%04X added at runtime", target_address)
             return target_address
 
-    def update_ecu(self, target_address: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+    def update_ecu(
+        self, target_address: int, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Merge *updates* into the ECU config for *target_address*.
 
         Returns:
@@ -942,7 +944,9 @@ gateway:
                 raise KeyError(f"ECU 0x{target_address:04X} not found")
             ecu_info = self.ecu_configs[target_address].setdefault("ecu", {})
             _deep_merge(ecu_info, updates)
-            self.logger.info("ECU 0x%04X updated: %s", target_address, list(updates.keys()))
+            self.logger.info(
+                "ECU 0x%04X updated: %s", target_address, list(updates.keys())
+            )
             return dict(ecu_info)
 
     def delete_ecu(self, target_address: int) -> bool:

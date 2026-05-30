@@ -23,9 +23,7 @@ class ServerState:
                 return
 
             self.config_manager = HierarchicalConfigManager(gateway_config_path)
-            self.doip_server = DoIPServer(
-                gateway_config_path=gateway_config_path
-            )
+            self.doip_server = DoIPServer(gateway_config_path=gateway_config_path)
             # Share the same config_manager instance so web mutations are picked up
             self.doip_server.config_manager = self.config_manager
 

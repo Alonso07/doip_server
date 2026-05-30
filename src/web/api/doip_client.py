@@ -67,7 +67,9 @@ def _send_diagnostic_sync(req: DoIPSendRequest) -> dict:
 
     try:
         note("connecting", f"{req.host}:{req.port}")
-        with socket.create_connection((req.host, req.port), timeout=req.timeout) as sock:
+        with socket.create_connection(
+            (req.host, req.port), timeout=req.timeout
+        ) as sock:
             sock.settimeout(req.timeout)
             note("connected")
 
@@ -91,7 +93,9 @@ def _send_diagnostic_sync(req: DoIPSendRequest) -> dict:
                 note("unexpected_frame", f"type=0x{frame['type']:04X}")
 
             # Diagnostic message
-            diag = _build_diagnostic_message(req.source_address, req.target_address, uds_bytes)
+            diag = _build_diagnostic_message(
+                req.source_address, req.target_address, uds_bytes
+            )
             sock.sendall(diag)
             note(
                 "sent_diagnostic",
