@@ -20,27 +20,27 @@ gateway:
   name: "DoIP Gateway"
   description: "Main DoIP gateway server"
   logical_address: 0x1000
-  
+
   network:
     host: "0.0.0.0"
     port: 13400
     max_connections: 10
     timeout: 60
-    
+
   protocol:
     version: 0x02
     inverse_version: 0xFD
-    
+
   ecus:
     - "ecu_engine.yaml"
     - "ecu_transmission.yaml"
     - "ecu_abs.yaml"
-    
+
   logging:
     level: "INFO"
     format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     file: "logs/doip_server.log"
-    
+
   vehicle:
     vin: "1HGBH41JXMN109186"
     eid: "123456789ABC"
@@ -55,21 +55,21 @@ ecu:
   target_address: 0x1000
   functional_address: 0x1FFF
   tester_addresses: [0x0E00, 0x0E01]
-  
+
   uds_services:
     service_files:
       - "ecu_engine_services.yaml"
       - "generic_uds_messages.yaml"
-      
+
     common_services:
       - "read_vin"
       - "read_vehicle_type"
       - "diagnostic_session_control"
-      
+
     specific_services:
       - "read_engine_data"
       - "engine_routine_control"
-      
+
   routine_activation:
     supported_routines:
       0x0202:
@@ -87,13 +87,13 @@ common_services:
     responses: ["62F1901020011223344556677889BBCC12121211"]
     description: "Read Vehicle Identification Number"
     supports_functional: true
-    
+
   read_vehicle_type:
     request: "22F191"
     responses: ["62F1911020011223344556677889BBCC12121211"]
     description: "Read Vehicle Type"
     supports_functional: true
-    
+
   diagnostic_session_control:
     request: "1003"
     responses: ["5003"]
@@ -106,7 +106,7 @@ engine_services:
     responses: ["62F1861020011223344556677889BBCC12121211"]
     description: "Read Engine Data"
     supports_functional: false
-    
+
   engine_routine_control:
     request: "31F186"
     responses: ["71F1861020011223344556677889BBCC12121211"]
@@ -150,12 +150,12 @@ engine_services:
     request: "regex:^220C[0-9A-F]{2}$"  # Matches any 220CXX request
     responses: ["0x620C0080"]
     description: "Read any engine data identifier"
-    
+
   diagnostic_session_any:
     request: "regex:^10[0-9A-F]{2}$"  # Matches any 10XX request
     responses: ["0x500300001212"]
     description: "Any diagnostic session control request"
-    
+
   security_access_any:
     request: "regex:^27[0-9A-F]{2}$"  # Matches any 27XX request
     responses: ["0x6701"]
@@ -214,7 +214,7 @@ common_services:
     no_response: true
     description: "Silent data logging service - no response required"
     supports_functional: false
-    
+
   one_way_notification:
     request: "0x31050001"
     no_response: true
@@ -250,7 +250,7 @@ The request mirroring feature allows you to include parts of the original reques
 ```yaml
 responses:
   - "0x620C{request[2:4]}"     # Mirror characters 2-3 from request
-  - "0x620C{request[2:6]}"     # Mirror characters 2-5 from request  
+  - "0x620C{request[2:6]}"     # Mirror characters 2-5 from request
   - "0x620C{request[2]}"       # Mirror single character at position 2
   - "0x620C{request[2:4]}{request[6:8]}"  # Mirror multiple parts
 ```

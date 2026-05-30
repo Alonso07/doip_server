@@ -364,7 +364,7 @@ gateway:
         return {
             "gateway": {
                 "name": "FallbackGateway",
-                "network": {"host": "0.0.0.0", "port": 13400},
+                "network": {"host": "0.0.0.0", "port": 13400},  # nosec B104
                 "protocol": {"version": 0x02, "inverse_version": 0xFD},
                 "ecus": [],
             }
@@ -408,7 +408,7 @@ gateway:
                 - port: Server port number (default: 13400)
         """
         network_config = self.get_network_config()
-        host = network_config.get("host", "0.0.0.0")
+        host = network_config.get("host", "0.0.0.0")  # nosec B104
         port = network_config.get("port", 13400)
         return host, port
 

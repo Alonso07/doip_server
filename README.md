@@ -84,13 +84,13 @@ config/
 graph LR
     subgraph "Configuration File Structure"
         GW["gateway1.yaml<br/>Gateway Configuration<br/>Network Settings<br/>Protocol Config<br/>ECU References<br/>Logging & Security"]
-        
+
         subgraph "ECU Configuration Files"
             ECU1["ecu_engine.yaml<br/>Engine ECU (0x1000)<br/>Target Address<br/>Functional Address<br/>Tester Addresses<br/>Service References"]
             ECU2["ecu_transmission.yaml<br/>Transmission ECU (0x1001)<br/>Target Address<br/>Functional Address<br/>Tester Addresses<br/>Service References"]
             ECU3["ecu_abs.yaml<br/>ABS ECU (0x1002)<br/>Target Address<br/>Functional Address<br/>Tester Addresses<br/>Service References"]
         end
-        
+
         subgraph "Service Configuration Files"
             COMMON["generic_uds_messages.yaml<br/>Common UDS Services<br/>Read VIN<br/>Session Control<br/>Tester Present<br/>Vehicle Type"]
             ENGINE["ecu_engine_services.yaml<br/>Engine-Specific Services<br/>Engine Diagnostics<br/>Engine Parameters<br/>Engine Controls"]
@@ -98,24 +98,24 @@ graph LR
             ABS["ecu_abs_services.yaml<br/>ABS Services<br/>ABS Diagnostics<br/>Wheel Speed<br/>Brake Controls"]
         end
     end
-    
+
     %% Relationships
     GW --> ECU1
     GW --> ECU2
     GW --> ECU3
-    
+
     ECU1 --> COMMON
     ECU1 --> ENGINE
     ECU2 --> COMMON
     ECU2 --> TRANS
     ECU3 --> COMMON
     ECU3 --> ABS
-    
+
     %% Styling
     classDef gatewayClass fill:#e3f2fd,stroke:#0277bd,stroke-width:3px
     classDef ecuClass fill:#f1f8e9,stroke:#388e3c,stroke-width:2px
     classDef serviceClass fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    
+
     class GW gatewayClass
     class ECU1,ECU2,ECU3 ecuClass
     class COMMON,ENGINE,TRANS,ABS serviceClass
@@ -148,42 +148,42 @@ graph TB
     subgraph "DoIP Server Architecture"
         subgraph "Configuration Layer"
             GW["Gateway Configuration<br/>gateway1.yaml<br/>Network Settings<br/>Protocol Config<br/>ECU References<br/>Logging & Security"]
-            
+
             subgraph "ECU Configurations"
                 ECU1["Engine ECU<br/>0x1000<br/>Target Address<br/>Functional Address<br/>Tester Addresses"]
                 ECU2["Transmission ECU<br/>0x1001<br/>Target Address<br/>Functional Address<br/>Tester Addresses"]
                 ECU3["ABS ECU<br/>0x1002<br/>Target Address<br/>Functional Address<br/>Tester Addresses"]
             end
-            
+
             subgraph "UDS Services"
                 COMMON["Common Services<br/>Read VIN<br/>Session Control<br/>Tester Present<br/>Vehicle Type"]
                 SPECIFIC["ECU-Specific Services<br/>Engine Services<br/>Transmission Services<br/>ABS Services"]
             end
         end
-        
+
         subgraph "DoIP Server Core"
             UDP["UDP Handler<br/>Vehicle Identification<br/>VIN Requests<br/>Entity Status<br/>Power Mode"]
             TCP["TCP Handler<br/>Diagnostic Sessions<br/>Routing Activation<br/>Connection Management<br/>Keep-Alive"]
             UDS["UDS Message Handler<br/>Diagnostic Processing<br/>Service Routing<br/>Response Generation<br/>Error Handling"]
         end
-        
+
         subgraph "Communication Layer"
             PHYSICAL["Physical Addressing<br/>Direct ECU Communication<br/>Single ECU Response<br/>Specific Target Address"]
             FUNCTIONAL["Functional Addressing<br/>Broadcast Communication<br/>Multiple ECU Response<br/>Service Filtering<br/>0x1FFF Address"]
         end
-        
+
         subgraph "Client Interface"
             CLIENT["DoIP Client<br/>Connection Management<br/>Message Sending<br/>Response Handling"]
         end
     end
-    
+
     %% Configuration Flow
     GW --> ECU1
     GW --> ECU2
     GW --> ECU3
     GW --> COMMON
     GW --> SPECIFIC
-    
+
     %% Service Assignment
     COMMON --> ECU1
     COMMON --> ECU2
@@ -191,25 +191,25 @@ graph TB
     SPECIFIC --> ECU1
     SPECIFIC --> ECU2
     SPECIFIC --> ECU3
-    
+
     %% Server Processing
     UDP --> UDS
     TCP --> UDS
     UDS --> PHYSICAL
     UDS --> FUNCTIONAL
-    
+
     %% Client Communication
     CLIENT --> UDP
     CLIENT --> TCP
     CLIENT --> PHYSICAL
     CLIENT --> FUNCTIONAL
-    
+
     %% Styling
     classDef configClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef serverClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef commClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef clientClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    
+
     class GW,ECU1,ECU2,ECU3,COMMON,SPECIFIC configClass
     class UDP,TCP,UDS serverClass
     class PHYSICAL,FUNCTIONAL commClass
@@ -227,17 +227,17 @@ sequenceDiagram
     participant ECU1 as Engine ECU
     participant ECU2 as Transmission ECU
     participant ECU3 as ABS ECU
-    
+
     Note over Client,ECU3: Vehicle Identification (UDP)
     Client->>UDP: Vehicle Identification Request
     UDP->>Client: VIN + Entity Status Response
-    
+
     Note over Client,ECU3: Diagnostic Session Setup (TCP)
     Client->>TCP: TCP Connection Request
     TCP->>Client: Connection Established
     Client->>TCP: Routing Activation Request
     TCP->>Client: Routing Activation Response
-    
+
     Note over Client,ECU3: Physical Addressing (Single ECU)
     Client->>TCP: UDS Request (Target: 0x1000)
     TCP->>UDS: Route to Engine ECU
@@ -245,7 +245,7 @@ sequenceDiagram
     ECU1->>UDS: UDS Response
     UDS->>TCP: Forward Response
     TCP->>Client: UDS Response
-    
+
     Note over Client,ECU3: Functional Addressing (Multiple ECUs)
     Client->>TCP: UDS Request (Target: 0x1FFF)
     TCP->>UDS: Route to All ECUs
@@ -257,7 +257,7 @@ sequenceDiagram
     ECU3->>UDS: UDS Response (if supported)
     UDS->>TCP: Aggregate Responses
     TCP->>Client: Multiple UDS Responses
-    
+
     Note over Client,ECU3: Session Maintenance
     Client->>TCP: Tester Present
     TCP->>UDS: Keep-Alive Processing

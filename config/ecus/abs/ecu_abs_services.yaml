@@ -11,7 +11,7 @@ specific_services:
       - "0x620C0B0096"  # 150 km/h
     description: "Read wheel speed"
     supports_functional: false  # Physical addressing only
-    
+
   ABS_System_Status_Read:
     request: "0x220C0E"
     responses:
@@ -20,7 +20,7 @@ specific_services:
       - "0x620C0E02"  # System error
     description: "Read ABS system status"
     supports_functional: false  # Physical addressing only
-    
+
   ABS_Valve_Test:
     request: "0x31040001"
     responses:
@@ -28,7 +28,7 @@ specific_services:
       - "0x71040002"  # Test failed
     description: "ABS valve test"
     supports_functional: false  # Physical addressing only
-    
+
   ABS_Pump_Test:
     request: "0x31050001"
     responses:
@@ -36,7 +36,7 @@ specific_services:
       - "0x71050002"  # Test failed
     description: "ABS pump test"
     supports_functional: false  # Physical addressing only
-    
+
   ABS_Diagnostic_Codes:
     request: "0x1902"
     responses:
@@ -48,7 +48,7 @@ specific_services:
       - "0x5902C0004"  # C0004 - Right rear wheel speed sensor
     description: "Read ABS diagnostic trouble codes"
     supports_functional: true  # Supports both physical and functional addressing
-    
+
   ABS_Calibration_Reset:
     request: "0x31060001"
     responses:

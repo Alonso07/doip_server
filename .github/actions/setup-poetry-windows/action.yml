@@ -7,7 +7,7 @@ runs:
       shell: powershell
       run: |
         echo "=== Setting up Poetry PATH for Windows ==="
-        
+
         # Try multiple common Poetry installation paths
         $poetryPaths = @(
           "$env:APPDATA\Python\Scripts",
@@ -15,7 +15,7 @@ runs:
           "$env:USERPROFILE\AppData\Roaming\Python\Scripts",
           "$env:LOCALAPPDATA\Programs\Python\Scripts"
         )
-        
+
         $poetryFound = $false
         foreach ($path in $poetryPaths) {
           if (Test-Path $path) {
@@ -25,7 +25,7 @@ runs:
             break
           }
         }
-        
+
         if (-not $poetryFound) {
           echo "Poetry not found in common paths, will use python -m poetry"
         }
@@ -34,7 +34,7 @@ runs:
       shell: powershell
       run: |
         echo "=== Fallback Poetry Installation ==="
-        
+
         # Check if Poetry is already working
         try {
           poetry --version | Out-Null
@@ -43,19 +43,19 @@ runs:
         } catch {
           echo "Poetry not working, attempting fallback installation..."
         }
-        
+
         # Try installing Poetry via pip
         try {
           echo "Installing Poetry via pip..."
           python -m pip install poetry --user --upgrade
           $env:PATH = "$env:APPDATA\Python\Scripts;$env:PATH"
-          
+
           # Verify installation
           python -m poetry --version
           echo "Poetry installed successfully via pip"
         } catch {
           echo "Pip installation failed, trying alternative method..."
-          
+
           # Try installing via get-poetry.py
           try {
             $poetryInstaller = "$env:TEMP\get-poetry.py"
@@ -74,7 +74,7 @@ runs:
       shell: powershell
       run: |
         echo "=== Configuring Poetry ==="
-        
+
         # Try multiple methods to configure Poetry
         $poetryCommands = @(
           { poetry config virtualenvs.create true },
@@ -82,7 +82,7 @@ runs:
           { python -m poetry config virtualenvs.create true },
           { python -m poetry config virtualenvs.in-project true }
         )
-        
+
         foreach ($cmd in $poetryCommands) {
           try {
             & $cmd
@@ -98,7 +98,7 @@ runs:
       shell: powershell
       run: |
         echo "=== Poetry Installation Verification ==="
-        
+
         # Check if poetry command is available
         try {
           $poetryVersion = poetry --version
@@ -115,7 +115,7 @@ runs:
             echo "Environment will continue with available methods"
           }
         }
-        
+
         echo "=== Environment Information ==="
         echo "Python version: $(python --version)"
         echo "Pip version: $(python -m pip --version)"

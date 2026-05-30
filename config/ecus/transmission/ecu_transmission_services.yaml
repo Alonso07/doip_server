@@ -15,7 +15,7 @@ specific_services:
       - "0x620C0AFF"  # Reverse
     description: "Read current gear"
     supports_functional: false  # Physical addressing only
-    
+
   Transmission_Temperature_Read:
     request: "0x220C0C"
     responses:
@@ -24,7 +24,7 @@ specific_services:
       - "0x620C0C90"  # 90°C
     description: "Read transmission temperature"
     supports_functional: false  # Physical addressing only
-    
+
   Transmission_Fluid_Level_Read:
     request: "0x220C0D"
     responses:
@@ -33,7 +33,7 @@ specific_services:
       - "0x620C0D70"  # 70% fluid level
     description: "Read transmission fluid level"
     supports_functional: false  # Physical addressing only
-    
+
   Transmission_Shift_Control:
     request: "0x31020001"
     responses:
@@ -41,7 +41,7 @@ specific_services:
       - "0x71020002"  # Shift command rejected
     description: "Transmission shift control"
     supports_functional: false  # Physical addressing only
-    
+
   Transmission_Diagnostic_Codes:
     request: "0x1902"
     responses:
@@ -51,7 +51,7 @@ specific_services:
       - "0x5902P0702"  # P0702 - Transmission control system electrical
     description: "Read transmission diagnostic trouble codes"
     supports_functional: true  # Supports both physical and functional addressing
-    
+
   Transmission_Adaptation_Reset:
     request: "0x31030001"
     responses:

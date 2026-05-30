@@ -127,10 +127,10 @@ case $choice in
         print_status "Publishing to TestPyPI first..."
         poetry run twine upload --repository testpypi dist/*
         print_success "Published to TestPyPI!"
-        
+
         echo ""
         read -p "Test the package from TestPyPI first. Press Enter when ready to publish to PyPI..."
-        
+
         print_warning "Publishing to PyPI (production)..."
         poetry run twine upload dist/*
         print_success "Published to PyPI! Install with: pip install doip-server"

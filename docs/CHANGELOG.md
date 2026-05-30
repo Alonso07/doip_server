@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **BREAKING**: Updated DoIP payload types to comply with ISO 13400-2:2025 specification
   - Power Mode Information Request: 0x4003 (UDP)
-  - Power Mode Information Response: 0x4004 (UDP) 
+  - Power Mode Information Response: 0x4004 (UDP)
   - Alive Check Request: 0x0007 (TCP)
   - Alive Check Response: 0x0008 (TCP)
   - Updated server message processing to use correct payload types

@@ -22,38 +22,38 @@ docker run --rm -it \
     python:3.11-windowsservercore \
     powershell -Command "
         Write-Host '🐍 Setting up Python environment...'
-        
+
         # Install Poetry
         (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-        
+
         # Add Poetry to PATH
         `$env:PATH += ';C:\Users\ContainerUser\AppData\Roaming\Python\Scripts'
-        
+
         # Verify Poetry installation
         poetry --version
-        
+
         # Install dependencies
         Write-Host '📦 Installing dependencies...'
         poetry install --no-interaction --no-root
-        
+
         # Show environment info
         Write-Host '🔍 Environment Information:'
         python --version
         poetry --version
         Get-Location
         poetry show
-        
+
         # Run tests
         Write-Host '🧪 Running tests...'
         poetry run pytest tests/test_doip_unit.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing
-        
+
         # Run integration tests
         Write-Host '🔗 Running integration tests...'
         poetry run pytest tests/test_doip_integration.py -v --cov=doip_server --cov-report=xml --cov-report=term-missing
-        
+
         # Validate configuration
         Write-Host '⚙️ Validating configuration...'
         poetry run validate_config
-        
+
         Write-Host '✅ Windows CI simulation completed!'
     "

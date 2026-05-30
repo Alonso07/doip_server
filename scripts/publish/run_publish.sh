@@ -18,14 +18,14 @@ find_poetry() {
         "/usr/local/bin/poetry"
         "$(which poetry 2>/dev/null)"
     )
-    
+
     for path in "${poetry_paths[@]}"; do
         if [ -x "$path" ] && [ -f "$path" ]; then
             echo "$path"
             return 0
         fi
     done
-    
+
     return 1
 }
 
@@ -37,7 +37,7 @@ setup_environment() {
         "/opt/homebrew/bin"
         "/usr/local/bin"
     )
-    
+
     for path in "${additional_paths[@]}"; do
         if [[ ":$PATH:" != *":$path:"* ]]; then
             export PATH="$path:$PATH"

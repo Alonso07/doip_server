@@ -103,13 +103,13 @@ specific_services:
     responses:
       - "0x620C018000"
     description: "Read engine RPM"
-    
+
   # Silent logging service
   Engine_Data_Logging:
     request: "0x2F1234"
     no_response: true
     description: "Silent engine data logging"
-    
+
   # One-way notification
   Engine_Status_Notification:
     request: "0x31050001"

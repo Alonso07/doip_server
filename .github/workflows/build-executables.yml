@@ -71,7 +71,7 @@ jobs:
       run: |
         # Create build directory
         mkdir -p dist/executables
-        
+
         # Generate PyInstaller spec file dynamically
         echo "Generating PyInstaller spec file..."
         chmod +x scripts/build_tools/generate_spec.py
@@ -162,7 +162,7 @@ jobs:
             echo ")" >> doip_server.spec
             echo "Fallback spec file created successfully"
           }
-        
+
         # Build with PyInstaller
         python -m PyInstaller \
           --clean \
@@ -170,7 +170,7 @@ jobs:
           --distpath dist/executables \
           --workpath build \
           doip_server.spec
-        
+
         # Clean up generated spec file
         rm -f doip_server.spec
 
@@ -180,7 +180,7 @@ jobs:
       run: |
         # Create build directory
         New-Item -ItemType Directory -Force -Path "dist/executables"
-        
+
         # Generate PyInstaller spec file dynamically
         Write-Host "Generating PyInstaller spec file..."
         try {
@@ -272,7 +272,7 @@ jobs:
             ")" | Out-File -FilePath "doip_server.spec" -Append -Encoding UTF8
             Write-Host "Fallback spec file created successfully"
           }
-        
+
         # Build with PyInstaller
         python -m PyInstaller `
           --clean `
@@ -280,7 +280,7 @@ jobs:
           --distpath dist/executables `
           --workpath build `
           doip_server.spec
-        
+
         # Clean up generated spec file
         Remove-Item -Force doip_server.spec -ErrorAction SilentlyContinue
 
@@ -329,7 +329,7 @@ jobs:
         DIST_NAME="doip_server_${{ matrix.platform }}_$(date +%Y%m%d_%H%M%S)"
         DIST_PATH="dist/executables/$DIST_NAME"
         mkdir -p "$DIST_PATH"
-        
+
         # Copy executable and config
         if [ -f "dist/executables/${{ matrix.executable_name }}" ]; then
           cp "dist/executables/${{ matrix.executable_name }}" "$DIST_PATH/"
@@ -340,15 +340,15 @@ jobs:
         cp -r "config" "$DIST_PATH/"
         cp "README.md" "$DIST_PATH/"
         cp "LICENSE" "$DIST_PATH/"
-        
+
         # Create run script
         cat > "$DIST_PATH/run_doip_server.sh" << 'EOF'
         #!/bin/bash
         # DoIP Server Runner Script
-        
+
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         cd "$SCRIPT_DIR"
-        
+
         # Check if executable exists
         if [ -f "./${{ matrix.executable_name }}" ]; then
           ./${{ matrix.executable_name }} --gateway-config config/gateway1.yaml "$@"
@@ -357,16 +357,16 @@ jobs:
           exit 1
         fi
         EOF
-        
+
         chmod +x "$DIST_PATH/run_doip_server.sh"
-        
+
         # Create Windows batch file
         cat > "$DIST_PATH/run_doip_server.bat" << 'EOF'
         @echo off
         REM DoIP Server Runner Script for Windows
-        
+
         cd /d "%~dp0"
-        
+
         REM Check if executable exists
         if exist "${{ matrix.executable_name }}" (
           ${{ matrix.executable_name }} --gateway-config config\gateway1.yaml %*
@@ -375,14 +375,14 @@ jobs:
           exit /b 1
         )
         EOF
-        
+
         # Create archive
         cd "dist/executables"
         if command -v tar &> /dev/null; then
           tar -czf "${DIST_NAME}.tar.gz" "$DIST_NAME"
           echo "Created: ${DIST_NAME}.tar.gz"
         fi
-        
+
         if command -v zip &> /dev/null; then
           zip -r "${DIST_NAME}.zip" "$DIST_NAME"
           echo "Created: ${DIST_NAME}.zip"
@@ -396,7 +396,7 @@ jobs:
         $DIST_NAME = "doip_server_${{ matrix.platform }}_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
         $DIST_PATH = "dist/executables/$DIST_NAME"
         New-Item -ItemType Directory -Force -Path $DIST_PATH
-        
+
         # Copy executable and config
         if (Test-Path "dist/executables/${{ matrix.executable_name }}") {
           Copy-Item "dist/executables/${{ matrix.executable_name }}" "$DIST_PATH/"
@@ -407,15 +407,15 @@ jobs:
         Copy-Item -Recurse "config" "$DIST_PATH/"
         Copy-Item "README.md" "$DIST_PATH/"
         Copy-Item "LICENSE" "$DIST_PATH/"
-        
+
         # Create run script
         $runScriptContent = @"
         #!/bin/bash
         # DoIP Server Runner Script
-        
+
         SCRIPT_DIR=`$(cd `$(dirname `"`${BASH_SOURCE[0]}`")` && pwd)
         cd `"`$SCRIPT_DIR`"
-        
+
         # Check if executable exists
         if [ -f `"./${{ matrix.executable_name }}`" ]; then
           ./${{ matrix.executable_name }} --gateway-config config/gateway1.yaml `"`$@`"
@@ -425,14 +425,14 @@ jobs:
         fi
         "@
         $runScriptContent | Out-File -FilePath "$DIST_PATH/run_doip_server.sh" -Encoding UTF8
-        
+
         # Create Windows batch file
         $batchContent = @"
         @echo off
         REM DoIP Server Runner Script for Windows
-        
+
         cd /d `"%~dp0`"
-        
+
         REM Check if executable exists
         if exist `"${{ matrix.executable_name }}`" (
           ${{ matrix.executable_name }} --gateway-config config\gateway1.yaml %*
@@ -442,14 +442,14 @@ jobs:
         )
         "@
         $batchContent | Out-File -FilePath "$DIST_PATH/run_doip_server.bat" -Encoding ASCII
-        
+
         # Create archive
         Set-Location "dist/executables"
         if (Get-Command tar -ErrorAction SilentlyContinue) {
           tar -czf "${DIST_NAME}.tar.gz" "$DIST_NAME"
           Write-Host "Created: ${DIST_NAME}.tar.gz"
         }
-        
+
         if (Get-Command zip -ErrorAction SilentlyContinue) {
           Compress-Archive -Path "$DIST_NAME" -DestinationPath "${DIST_NAME}.zip" -Force
           Write-Host "Created: ${DIST_NAME}.zip"
@@ -482,7 +482,7 @@ jobs:
     needs: build
     if: github.event_name == 'pull_request'
     continue-on-error: true
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v6

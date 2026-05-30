@@ -11,27 +11,27 @@ ecu:
     - 0x0E00  # Primary tester
     - 0x0E01  # Backup tester
     - 0x0E02  # Diagnostic tool
-  
+
   # ECU-specific settings
   settings:
     enable_routine_activation: true
     enable_uds_services: true
     session_timeout: 30
     max_concurrent_sessions: 2
-    
+
   # Routine Activation Configuration
   routine_activation:
     active_type: 0x00  # default
     reserved_by_iso: 0x00000000
     reserved_by_manufacturer: 0x00000000
-    
+
   # UDS Services Configuration - References to service files
   uds_services:
     # Service files to load for this ECU
     service_files:
       - "config/generic/generic_uds_messages.yaml"  # Common services
       - "ecu_airbag_services.yaml"                  # Airbag-specific services
-    
+
     # Service categories (for backward compatibility)
     common_services:
       - "Read_VIN"
@@ -42,7 +42,7 @@ ecu:
       - "Diagnostic_Session_Control"
       - "Tester_Present"
       - "Security_Access"
-    
+
     # ECU-specific services (only available for this ECU)
     specific_services:
       - "Airbag_System_Status_Read"

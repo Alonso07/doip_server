@@ -53,7 +53,7 @@ echo ""
 for python_version in "3.9" "3.10" "3.11"; do
     echo "🐍 Testing Python $python_version"
     echo "----------------------------------------"
-    
+
     # Set up Python version (if pyenv is available)
     if command -v pyenv &> /dev/null; then
         print_status "Setting Python version to $python_version"
@@ -61,17 +61,17 @@ for python_version in "3.9" "3.10" "3.11"; do
     else
         print_warning "pyenv not found, using system Python"
     fi
-    
+
     # Install dependencies
     print_status "Installing dependencies with poetry"
     poetry install --no-interaction --no-root
-    
+
     # Run flake8 linting
     print_status "Running flake8 linting"
     poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
     poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     print_status "Flake8 linting passed"
-    
+
     echo ""
 done
 

@@ -123,10 +123,10 @@ def test_new_feature():
     """Test that new feature works correctly."""
     # Arrange
     setup_test_data()
-    
+
     # Act
     result = function_under_test()
-    
+
     # Assert
     assert result == expected_value
 ```
