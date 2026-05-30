@@ -90,7 +90,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.web:
+    if args.web is True:
         # Launch FastAPI web server (which starts the DoIP server as a background thread)
         try:
             import uvicorn
