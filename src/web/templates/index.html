@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – DoIP Server{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-bold text-amber-400 mb-6">Dashboard</h1>
+
+<!-- Status cards -->
+<div class="grid grid-cols-3 gap-4 mb-8"
+     hx-get="/api/status"
+     hx-trigger="load, every 5s"
+     hx-swap="innerHTML"
+     hx-target="#stats-grid">
+  <div id="stats-grid" class="col-span-3 grid grid-cols-3 gap-4">
+    <div class="bg-gray-800 rounded p-4 border border-gray-700">
+      <div class="text-gray-400 text-xs mb-1">Status</div>
+      <div class="text-lg">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Gateway config -->
+<section class="mb-8">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="font-bold text-gray-300">Gateway Configuration</h2>
+    <button class="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-500 rounded"
+            hx-get="/api/gateway"
+            hx-target="#gateway-data"
+            hx-swap="innerHTML">Refresh</button>
+  </div>
+  <div id="gateway-data"
+       hx-get="/api/gateway"
+       hx-trigger="load"
+       hx-swap="innerHTML"
+       class="bg-gray-800 rounded border border-gray-700 p-4 text-xs leading-6">
+    Loading…
+  </div>
+</section>
+
+<!-- ECU overview -->
+<section>
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="font-bold text-gray-300">ECUs</h2>
+    <a href="/ecus" class="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded">Manage →</a>
+  </div>
+  <div id="ecu-list"
+       hx-get="/api/ecus"
+       hx-trigger="load"
+       hx-swap="innerHTML"
+       class="space-y-2">
+    Loading…
+  </div>
+</section>
+{% endblock %}

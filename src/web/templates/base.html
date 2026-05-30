@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-950">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DoIP Dashboard{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+  <script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+  </style>
+</head>
+<body class="h-full text-gray-100 font-mono text-sm">
+
+  <!-- Sidebar -->
+  <div class="flex h-full">
+    <nav class="w-52 shrink-0 bg-gray-900 border-r border-gray-700 flex flex-col p-4 gap-2">
+      <div class="text-amber-400 font-bold text-base mb-4">⚡ DoIP Dashboard</div>
+
+      <a href="/"
+         class="px-3 py-2 rounded hover:bg-gray-800 {% if request.url.path == '/' %}bg-gray-800 text-amber-400{% endif %}">
+        Dashboard
+      </a>
+      <a href="/ecus"
+         class="px-3 py-2 rounded hover:bg-gray-800 {% if '/ecus' in request.url.path %}bg-gray-800 text-amber-400{% endif %}">
+        ECUs
+      </a>
+      <a href="/client"
+         class="px-3 py-2 rounded hover:bg-gray-800 {% if request.url.path == '/client' %}bg-gray-800 text-amber-400{% endif %}">
+        DoIP Client
+      </a>
+
+      <!-- Server status badge -->
+      <div class="mt-auto">
+        <div id="status-badge"
+             hx-get="/api/status"
+             hx-trigger="load, every 5s"
+             hx-swap="outerHTML">
+          <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-700 text-xs text-gray-400">
+            <span class="w-2 h-2 rounded-full bg-gray-500"></span> checking…
+          </span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-auto p-6">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

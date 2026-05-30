@@ -7,6 +7,7 @@ Handles loading and parsing of multiple YAML configuration files with ECU hierar
 import logging
 import os
 import re
+import threading
 from typing import Any, Dict, List, Optional
 
 import yaml
@@ -70,6 +71,7 @@ class HierarchicalConfigManager:
         self.ecu_configs = {}  # target_address -> ecu_config
         self.uds_services = {}  # service_name -> service_config
         self._ecu_service_cache: Dict[int, Dict[str, Any]] = {}  # ecu_addr -> services
+        self._lock = threading.RLock()
         self.logger = logging.getLogger(__name__)
         self._load_all_configs()
 
@@ -888,3 +890,149 @@ gateway:
         summary.append(f"UDS Services: {len(self.uds_services)}")
 
         return "\n".join(summary)
+
+    # -------------------------------------------------------------------------
+    # Runtime CRUD mutations (thread-safe, in-memory only)
+    # -------------------------------------------------------------------------
+
+    def update_gateway(self, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge *updates* into the live gateway config and return the result."""
+        with self._lock:
+            gateway = self.gateway_config.setdefault("gateway", {})
+            _deep_merge(gateway, updates)
+            self.logger.info("Gateway config updated: %s", list(updates.keys()))
+            return dict(gateway)
+
+    def add_ecu(self, ecu_data: Dict[str, Any]) -> int:
+        """Add a new ECU to the runtime config.
+
+        Args:
+            ecu_data: dict with at least 'target_address', 'name', 'tester_addresses'.
+
+        Returns:
+            The target_address of the newly added ECU.
+
+        Raises:
+            ValueError: If target_address is missing or already registered.
+        """
+        with self._lock:
+            target_address = ecu_data.get("target_address")
+            if target_address is None:
+                raise ValueError("ecu_data must include 'target_address'")
+            if target_address in self.ecu_configs:
+                raise ValueError(
+                    f"ECU with target_address 0x{target_address:04X} already exists"
+                )
+            self.ecu_configs[target_address] = {"ecu": dict(ecu_data)}
+            self._ecu_service_cache[target_address] = {}
+            self.logger.info("ECU 0x%04X added at runtime", target_address)
+            return target_address
+
+    def update_ecu(
+        self, target_address: int, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Merge *updates* into the ECU config for *target_address*.
+
+        Returns:
+            Updated ECU info dict.
+
+        Raises:
+            KeyError: If the ECU does not exist.
+        """
+        with self._lock:
+            if target_address not in self.ecu_configs:
+                raise KeyError(f"ECU 0x{target_address:04X} not found")
+            ecu_info = self.ecu_configs[target_address].setdefault("ecu", {})
+            _deep_merge(ecu_info, updates)
+            self.logger.info(
+                "ECU 0x%04X updated: %s", target_address, list(updates.keys())
+            )
+            return dict(ecu_info)
+
+    def delete_ecu(self, target_address: int) -> bool:
+        """Remove an ECU from the runtime config.
+
+        Returns:
+            True if removed, False if it did not exist.
+        """
+        with self._lock:
+            if target_address not in self.ecu_configs:
+                return False
+            del self.ecu_configs[target_address]
+            self._ecu_service_cache.pop(target_address, None)
+            self.logger.info("ECU 0x%04X deleted at runtime", target_address)
+            return True
+
+    def add_service(
+        self, target_address: int, service_name: str, service_data: Dict[str, Any]
+    ) -> bool:
+        """Add a new UDS service to a specific ECU's cache.
+
+        Raises:
+            KeyError: If the ECU does not exist.
+            ValueError: If the service name already exists for this ECU.
+        """
+        with self._lock:
+            if target_address not in self.ecu_configs:
+                raise KeyError(f"ECU 0x{target_address:04X} not found")
+            cache = self._ecu_service_cache.setdefault(target_address, {})
+            if service_name in cache:
+                raise ValueError(
+                    f"Service '{service_name}' already exists on ECU 0x{target_address:04X}"
+                )
+            cache[service_name] = dict(service_data)
+            self.uds_services[service_name] = dict(service_data)
+            self.logger.info(
+                "Service '%s' added to ECU 0x%04X", service_name, target_address
+            )
+            return True
+
+    def update_service(
+        self, target_address: int, service_name: str, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Merge *updates* into an existing service definition.
+
+        Returns:
+            Updated service config dict.
+
+        Raises:
+            KeyError: If the ECU or service does not exist.
+        """
+        with self._lock:
+            cache = self._ecu_service_cache.get(target_address)
+            if cache is None or service_name not in cache:
+                raise KeyError(
+                    f"Service '{service_name}' not found on ECU 0x{target_address:04X}"
+                )
+            _deep_merge(cache[service_name], updates)
+            if service_name in self.uds_services:
+                _deep_merge(self.uds_services[service_name], updates)
+            self.logger.info(
+                "Service '%s' updated on ECU 0x%04X", service_name, target_address
+            )
+            return dict(cache[service_name])
+
+    def delete_service(self, target_address: int, service_name: str) -> bool:
+        """Remove a UDS service from a specific ECU.
+
+        Returns:
+            True if removed, False if it did not exist.
+        """
+        with self._lock:
+            cache = self._ecu_service_cache.get(target_address, {})
+            if service_name not in cache:
+                return False
+            del cache[service_name]
+            self.logger.info(
+                "Service '%s' deleted from ECU 0x%04X", service_name, target_address
+            )
+            return True
+
+
+def _deep_merge(base: dict, updates: dict) -> None:
+    """Recursively merge *updates* into *base* in-place."""
+    for key, value in updates.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            _deep_merge(base[key], value)
+        else:
+            base[key] = value

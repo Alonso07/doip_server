@@ -28,6 +28,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -49,6 +50,7 @@ class TestMain:
             host="192.168.1.100",
             port=13401,
             gateway_config="custom_gateway.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -70,6 +72,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -90,6 +93,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -112,6 +116,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -132,6 +137,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -151,6 +157,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -172,6 +179,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -191,6 +199,7 @@ class TestMain:
             host=None,
             port=None,
             gateway_config="custom_config.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -212,6 +221,7 @@ class TestMain:
             host=None,
             port=13401,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
@@ -233,6 +243,7 @@ class TestMain:
             host="192.168.1.100",
             port=None,
             gateway_config="config/gateway1.yaml",
+            web=False,
         )
         mock_parser_class.return_value = mock_parser
 
