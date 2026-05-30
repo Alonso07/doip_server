@@ -370,7 +370,9 @@ class TestEntityStatusViaTCP:
         assert len(result) == 1
         response = result[0]
         payload_type = struct.unpack(">H", response[2:4])[0]
-        assert payload_type == 0x4002, "Response payload type must be 0x4002 (Entity Status Response)"
+        assert (
+            payload_type == 0x4002
+        ), "Response payload type must be 0x4002 (Entity Status Response)"
 
     def test_entity_status_response_has_correct_protocol_version(self):
         """Entity status TCP response must use the configured protocol version."""

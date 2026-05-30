@@ -344,9 +344,7 @@ class DoIPServer:
                     for i, response in enumerate(responses):
                         delay_ms = self._get_response_delay(data, i)
                         if delay_ms > 0:
-                            self.logger.info(
-                                f"Delaying response {i+1} by {delay_ms}ms"
-                            )
+                            self.logger.info(f"Delaying response {i+1} by {delay_ms}ms")
                             time.sleep(delay_ms / 1000.0)
                         client_socket.send(response)
                         self.logger.debug(
@@ -814,9 +812,7 @@ class DoIPServer:
             try:
                 # Strip "0x" prefix if present
                 hex_str = (
-                    response_hex[2:]
-                    if response_hex.startswith("0x")
-                    else response_hex
+                    response_hex[2:] if response_hex.startswith("0x") else response_hex
                 )
                 self.logger.debug(
                     f"Processing hex string: '{hex_str}' (length: {len(hex_str)})"
@@ -824,9 +820,7 @@ class DoIPServer:
                 response_bytes = bytes.fromhex(hex_str)
                 return response_bytes
             except ValueError as e:
-                self.logger.error(
-                    f"Invalid response hex format: {response_hex} - {e}"
-                )
+                self.logger.error(f"Invalid response hex format: {response_hex} - {e}")
                 self.logger.error(
                     f"Processed hex string: '{hex_str}' (length: {len(hex_str)})"
                 )

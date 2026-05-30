@@ -218,7 +218,9 @@ class TestNoResponseServerBehavior:
         }
 
         result = server.process_uds_message(bytes.fromhex("ABCDEF"), ecu_addr)
-        assert result is None, "Server must return None (no response) for no_response=True services"
+        assert (
+            result is None
+        ), "Server must return None (no response) for no_response=True services"
 
     def test_no_response_false_still_sends_response(self):
         """process_uds_message must return a response when no_response is False."""
@@ -237,7 +239,9 @@ class TestNoResponseServerBehavior:
         }
 
         result = server.process_uds_message(bytes.fromhex("ABCDF0"), ecu_addr)
-        assert result is not None, "Server must return a response when no_response=False"
+        assert (
+            result is not None
+        ), "Server must return a response when no_response=False"
 
 
 class TestServiceLookupFieldPassthrough:
