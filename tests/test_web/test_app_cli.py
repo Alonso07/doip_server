@@ -2,6 +2,7 @@
 
 import os
 import sys
+from importlib import import_module
 
 import pytest
 
@@ -28,9 +29,9 @@ def test_web_app_run_server_defaults_to_loopback(monkeypatch):
 
 @pytest.mark.unit
 def test_main_web_mode_defaults_to_loopback(monkeypatch):
-    import doip_server.main as server_main
     import uvicorn
 
+    server_main = import_module("doip_server.main")
     calls = {}
 
     def fake_run(app, **kwargs):
