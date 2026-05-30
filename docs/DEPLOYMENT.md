@@ -146,27 +146,27 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [3.9, 3.10, 3.11, 3.12]
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: Install Poetry
       uses: snok/install-poetry@v1
-    
+
     - name: Install dependencies
       run: poetry install --with dev
-    
+
     - name: Run tests
       run: poetry run pytest tests/ -v
-    
+
     - name: Run linting
       run: poetry run flake8 src/ tests/
-    
+
     - name: Run security checks
       run: |
         poetry run bandit -r src/
@@ -187,18 +187,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
+
     - name: Install Poetry
       uses: snok/install-poetry@v1
-    
+
     - name: Build package
       run: poetry build
-    
+
     - name: Publish to PyPI
       run: poetry publish
       env:
@@ -419,7 +419,7 @@ sysctl -p
    # Find process using port
    sudo netstat -tlnp | grep :13400
    sudo lsof -i :13400
-   
+
    # Kill process
    sudo kill -9 <PID>
    ```

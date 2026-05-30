@@ -87,7 +87,7 @@ All responses delayed by the same amount:
 specific_services:
   Read_VIN:
     request: "0x22F190"
-    responses:  
+    responses:
       - "0x62F1901020011223344556677889AABB12121212"
       - "0x62F1901020011223344556677889BBCC12121211"
     description: "Read Vehicle Identification Number"

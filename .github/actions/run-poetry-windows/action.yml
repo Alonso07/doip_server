@@ -16,13 +16,13 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         echo "=== Running Poetry Command: ${{ inputs.command }} ==="
-        
+
         # Try multiple methods to run Poetry commands
         $poetryMethods = @(
           { poetry ${{ inputs.command }} },
           { python -m poetry ${{ inputs.command }} }
         )
-        
+
         $commandSuccess = $false
         foreach ($method in $poetryMethods) {
           try {
@@ -37,7 +37,7 @@ runs:
             continue
           }
         }
-        
+
         if (-not $commandSuccess) {
           echo "All Poetry methods failed for command: ${{ inputs.command }}"
           echo "Attempting direct execution..."

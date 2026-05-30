@@ -356,5 +356,35 @@ class TestDoIPEntityStatusIntegration:
         client.stop()
 
 
+class TestEntityStatusViaTCP:
+    """Test entity status handling through the TCP process_doip_message path."""
+
+    def test_entity_status_routed_via_tcp(self):
+        """process_doip_message must route 0x4001 and return a 0x4002 response."""
+        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        request = struct.pack(">BBHI", 0x02, 0xFD, 0x4001, 0)
+        result = server.process_doip_message(request)
+
+        assert result is not None, "Entity status request must produce a response"
+        assert isinstance(result, list), "process_doip_message must return a list"
+        assert len(result) == 1
+        response = result[0]
+        payload_type = struct.unpack(">H", response[2:4])[0]
+        assert (
+            payload_type == 0x4002
+        ), "Response payload type must be 0x4002 (Entity Status Response)"
+
+    def test_entity_status_response_has_correct_protocol_version(self):
+        """Entity status TCP response must use the configured protocol version."""
+        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        request = struct.pack(">BBHI", 0x02, 0xFD, 0x4001, 0)
+        result = server.process_doip_message(request)
+
+        assert result is not None
+        response = result[0]
+        assert response[0] == 0x02  # protocol version
+        assert response[1] == 0xFD  # inverse protocol version
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

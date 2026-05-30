@@ -279,15 +279,17 @@ class TestPowerModeIntegration:
         # Process the DoIP message
         result = server.process_doip_message(power_mode_request)
 
-        # Verify the response is a power mode response
+        # Verify the response is a list containing a power mode response
         assert result is not None
-        assert len(result) == 9  # 8 bytes header + 1 byte payload
-        assert result[0] == 0x02  # Protocol version
-        assert result[1] == 0xFD  # Inverse protocol version
+        assert isinstance(result, list) and len(result) == 1
+        response = result[0]
+        assert len(response) == 9  # 8 bytes header + 1 byte payload
+        assert response[0] == 0x02  # Protocol version
+        assert response[1] == 0xFD  # Inverse protocol version
         assert (
-            struct.unpack(">H", result[2:4])[0] == 0x4004
+            struct.unpack(">H", response[2:4])[0] == 0x4004
         )  # Payload type (Power Mode Information Response)
-        assert struct.unpack(">I", result[4:8])[0] == 1  # Payload length
+        assert struct.unpack(">I", response[4:8])[0] == 1  # Payload length
 
     def test_power_mode_response_cycling_state_management(self):
         """Test power mode response cycling state management"""

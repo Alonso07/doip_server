@@ -260,13 +260,13 @@ def test_no_response_service_processing_logic(self):
         "no_response": True,
         "description": "Test service with no response"
     }
-    
+
     no_response = service_config.get("no_response", False)
     if no_response:
         result = None
     else:
         result = "some_response"
-    
+
     assert result is None, "Should return None when no_response is True"
 ```
 

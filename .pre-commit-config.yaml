@@ -1,0 +1,55 @@
+# pre-commit hook configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually against all files: pre-commit run --all-files
+#
+# Mirrors the checks enforced by CI (.github/workflows/ci.yml):
+#   black --check, flake8 (two passes), bandit
+
+repos:
+  # ── Standard file hygiene ────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: debug-statements        # catches leftover pdb / breakpoint() calls
+
+  # ── Black formatter ──────────────────────────────────────────────────────
+  # Matches CI: poetry run black --check --diff src/ tests/
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  # ── Flake8 linter ───────────────────────────────────────────────────────
+  # Matches CI: two flake8 passes
+  #   Pass 1 – hard errors only (E9, F63, F7, F82)
+  #   Pass 2 – style/complexity with exit-zero (informational in CI, warning here)
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        name: flake8 (hard errors)
+        args:
+          - --select=E9,F63,F7,F82
+          - --show-source
+          - --statistics
+      - id: flake8
+        name: flake8 (style/complexity)
+        args:
+          - --max-complexity=10
+          - --max-line-length=127
+          - --statistics
+          - --exit-zero          # informational; won't block commit
+
+  # ── Bandit security scanner ──────────────────────────────────────────────
+  # Matches CI: poetry run bandit -r src/
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.2
+    hooks:
+      - id: bandit
+        args: ["-r", "src/", "--severity-level", "medium"]
+        pass_filenames: false

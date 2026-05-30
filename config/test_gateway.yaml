@@ -5,13 +5,13 @@ gateway:
   name: "TestGateway"
   description: "Test DoIP Gateway for doip_tester_yaml"
   logical_address: 0x1000  # Gateway logical address (DoIP server address)
-  
+
   # Vehicle Information
   vehicle:
     vin: "1HGBH41JXMN109186"  # Vehicle Identification Number
     eid: "123456789ABC"  # Entity ID (6 bytes hex)
     gid: "DEF012345678"  # Group ID (6 bytes hex)
-  
+
   # TCP/IP Network Configuration
   network:
     host: "0.0.0.0"  # Listen on all interfaces
@@ -20,23 +20,23 @@ gateway:
     timeout: 60
     keep_alive: true
     tcp_nodelay: true
-    
+
   # Protocol Configuration
   protocol:
     version: 0x02
     inverse_version: 0xFD
-    
+
   # Gateway-specific settings
   settings:
     enable_logging: true
     log_level: "INFO"
     enable_security: false
     allow_multiple_sessions: true
-    
+
   # ECU References - List of ECU configuration files for testing
   ecus:
     - "ecus/engine/ecu_engine.yaml"
-    - "ecus/transmission/ecu_transmission.yaml" 
+    - "ecus/transmission/ecu_transmission.yaml"
     - "ecus/abs/ecu_abs.yaml"
     - "ecus/esp/ecu_esp.yaml"
     - "ecus/steering/ecu_steering.yaml"
@@ -44,7 +44,7 @@ gateway:
     - "ecus/gateway/ecu_gateway.yaml"
     - "ecus/hvac/ecu_hvac.yaml"
     - "ecus/airbag/ecu_airbag.yaml"
-    
+
   # Response Codes Configuration
   response_codes:
     routine_activation:
@@ -52,7 +52,7 @@ gateway:
       0x22: "Conditions not correct"
       0x31: "Incorrect routine identifier"
       0x33: "Security access denied"
-    
+
     uds:
       0x10: "General reject"
       0x12: "Sub-function not supported"
@@ -77,7 +77,7 @@ gateway:
     description: "Power mode status values for DoIP power mode response (payload type 0x4004)"
     current_status: 0x01  # Current power mode status (1 byte)
     available_statuses:
-      0x00: 
+      0x00:
         name: "Power Off"
         description: "ECU is powered off"
       0x01:

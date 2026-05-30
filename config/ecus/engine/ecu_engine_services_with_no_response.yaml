@@ -8,8 +8,8 @@ specific_services:
     no_response: true
     description: "Tester Present - silent acknowledgment"
     supports_functional: true  # Supports both physical and functional addressing
-    
-  # Default Session - configured for no response  
+
+  # Default Session - configured for no response
   Default_Session_No_Response:
     request: "0x1081"
     no_response: true

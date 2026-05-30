@@ -10,7 +10,7 @@ specific_services:
       - "0x620C016500"  # 6500 RPM
     description: "Read engine RPM"
     supports_functional: false  # Physical addressing only
-    
+
   Engine_Temperature_Read:
     request: "0x220C05"
     responses:
@@ -19,7 +19,7 @@ specific_services:
       - "0x620C0570"  # 70°C
     description: "Read engine temperature"
     supports_functional: false  # Physical addressing only
-    
+
   Fuel_Level_Read:
     request: "0x220C2F"
     responses:
@@ -28,7 +28,7 @@ specific_services:
       - "0x620C2F20"  # 20% fuel level
     description: "Read fuel level"
     supports_functional: false  # Physical addressing only
-    
+
   Engine_Start_Stop:
     request: "0x31010001"
     responses:
@@ -36,7 +36,7 @@ specific_services:
       - "0x71010002"  # Engine stopped
     description: "Engine start/stop control"
     supports_functional: false  # Physical addressing only
-    
+
   Throttle_Position_Read:
     request: "0x220C11"
     responses:
@@ -45,7 +45,7 @@ specific_services:
       - "0x620C1150"  # 50% throttle
     description: "Read throttle position"
     supports_functional: false  # Physical addressing only
-    
+
   Engine_Diagnostic_Codes:
     request: "0x1902"
     responses:
@@ -124,14 +124,14 @@ specific_services:
       - "0x620C0080"  # Generic engine data response
     description: "Read any engine data identifier"
     supports_functional: false
-    
+
   Engine_Routine_Control_Any:
     request: "regex:^31[0-9A-F]{2}00[0-9A-F]{2}$"  # Matches any 31XX00XX routine
     responses:
       - "0x71000000"  # Generic routine response
     description: "Any engine routine control request"
     supports_functional: false
-    
+
   Engine_DTC_Read_Any:
     request: "regex:^19[0-9A-F]{2}$"  # Matches any 19XX DTC request
     responses:

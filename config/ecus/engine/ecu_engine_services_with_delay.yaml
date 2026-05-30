@@ -11,7 +11,7 @@ specific_services:
     description: "Read engine RPM with response delays"
     supports_functional: false
     delay_ms: 50  # Service-level delay (applied to all responses if not overridden)
-    
+
   Engine_Temperature_Read_With_Response_Delays:
     request: "0x220C05"
     responses:
@@ -23,7 +23,7 @@ specific_services:
         delay_ms: 300  # 300ms delay for third response
     description: "Read engine temperature with individual response delays"
     supports_functional: false
-    
+
   Fuel_Level_Read_Service_Delay:
     request: "0x220C2F"
     responses:
@@ -33,7 +33,7 @@ specific_services:
     description: "Read fuel level with service-level delay"
     supports_functional: false
     delay_ms: 250  # All responses delayed by 250ms
-    
+
   Engine_Start_Stop_Mixed_Delays:
     request: "0x31010001"
     responses:
@@ -44,7 +44,7 @@ specific_services:
     description: "Engine start/stop control with mixed delays"
     supports_functional: false
     delay_ms: 75  # Service-level delay (overridden by response-level delays)
-    
+
   Throttle_Position_Read_No_Delay:
     request: "0x220C11"
     responses:
@@ -53,7 +53,7 @@ specific_services:
       - "0x620C1150"  # 50% throttle
     description: "Read throttle position (no delays configured)"
     supports_functional: false
-    
+
   Engine_Diagnostic_Codes_With_Delays:
     request: "0x1902"
     responses:

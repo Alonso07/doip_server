@@ -366,11 +366,11 @@ config = HierarchicalConfigManager("config/gateway1.yaml")
 # Validate configuration
 if config.validate_configs():
     print("Configuration is valid")
-    
+
     # Get server binding info
     host, port = config.get_server_binding_info()
     print(f"Server will bind to {host}:{port}")
-    
+
     # Get ECU information
     ecus = config.get_all_ecu_addresses()
     print(f"Configured ECUs: {ecus}")

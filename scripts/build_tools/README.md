@@ -24,7 +24,7 @@ The build system creates standalone executables for:
    ```bash
    # Install PyInstaller
    pip install pyinstaller
-   
+
    # Or install from requirements
    pip install -r requirements-build.txt
    ```
@@ -33,7 +33,7 @@ The build system creates standalone executables for:
    ```bash
    # Build for current platform
    ./scripts/build_tools/build_executables.sh
-   
+
    # Clean build and test
    ./scripts/build_tools/build_executables.sh --clean --test
    ```
@@ -209,7 +209,7 @@ Trigger builds manually:
 
 Build artifacts are available for 30 days:
 - `doip_server_windows` - Windows executable
-- `doip_server_macos` - macOS executable  
+- `doip_server_macos` - macOS executable
 - `doip_server_linux` - Linux executable
 
 ## Development

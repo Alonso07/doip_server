@@ -75,26 +75,26 @@ detect_platform() {
 # Function to check dependencies
 check_dependencies() {
     print_info "Checking dependencies..."
-    
+
     # Check if Python is available
     if ! command -v python3 &> /dev/null; then
         print_error "Python 3 is not installed or not in PATH"
         exit 1
     fi
-    
+
     # Check if virtual environment exists
     if [ ! -d "$VENV_DIR" ]; then
         print_error "Virtual environment not found at $VENV_DIR"
         print_info "Please run: python3 -m venv .venv-313"
         exit 1
     fi
-    
+
     # Check if PyInstaller is installed
     if ! "$VENV_DIR/bin/python" -c "import PyInstaller" 2>/dev/null; then
         print_warning "PyInstaller not found, installing..."
         "$VENV_DIR/bin/pip" install pyinstaller
     fi
-    
+
     print_success "Dependencies check passed"
 }
 
@@ -112,20 +112,20 @@ clean_build() {
 # Function to build executable
 build_executable() {
     print_info "Building executable for platform: $PLATFORM"
-    
+
     # Create build directory
     mkdir -p "$BUILD_DIR"
-    
+
     # Activate virtual environment
     source "$VENV_DIR/bin/activate"
-    
+
     # Change to project root
     cd "$PROJECT_ROOT"
-    
+
     # Generate PyInstaller spec file dynamically
     print_info "Generating PyInstaller spec file..."
     python3 "$SCRIPT_DIR/generate_spec.py" "$PROJECT_ROOT" "$PROJECT_ROOT/doip_server.spec"
-    
+
     # Build with PyInstaller
     print_info "Running PyInstaller..."
     python3 -m PyInstaller \
@@ -134,15 +134,15 @@ build_executable() {
         --distpath "$BUILD_DIR" \
         --workpath "$PROJECT_ROOT/build" \
         doip_server.spec
-    
+
     print_success "Build completed successfully"
-    
+
     # Clean up generated spec file
     if [ -f "$PROJECT_ROOT/doip_server.spec" ]; then
         rm -f "$PROJECT_ROOT/doip_server.spec"
         print_info "Cleaned up generated spec file"
     fi
-    
+
     # Show build results
     print_info "Build artifacts:"
     if [ -d "$BUILD_DIR" ]; then
@@ -155,19 +155,19 @@ build_executable() {
 # Function to test executable
 test_executable() {
     print_info "Testing executable..."
-    
+
     local exe_path=""
     if [ "$PLATFORM" = "windows" ]; then
         exe_path="$BUILD_DIR/doip_server.exe"
     else
         exe_path="$BUILD_DIR/doip_server"
     fi
-    
+
     if [ ! -f "$exe_path" ]; then
         print_error "Executable not found at $exe_path"
         return 1
     fi
-    
+
     # Test basic functionality
     print_info "Testing help command..."
     if "$exe_path" --help > /dev/null 2>&1; then
@@ -176,7 +176,7 @@ test_executable() {
         print_error "Executable failed --help test"
         return 1
     fi
-    
+
     # Test version info (if available)
     print_info "Testing version command..."
     if "$exe_path" --version > /dev/null 2>&1; then
@@ -184,20 +184,20 @@ test_executable() {
     else
         print_warning "Executable does not support --version"
     fi
-    
+
     print_success "Executable tests passed"
 }
 
 # Function to create distribution package
 create_distribution() {
     print_info "Creating distribution package..."
-    
+
     local dist_name="doip_server_${PLATFORM}_$(date +%Y%m%d_%H%M%S)"
     local dist_path="$BUILD_DIR/$dist_name"
-    
+
     # Create distribution directory
     mkdir -p "$dist_path"
-    
+
     # Copy executable and config
     if [ -f "$BUILD_DIR/doip_server" ]; then
         cp "$BUILD_DIR/doip_server" "$dist_path/"
@@ -210,7 +210,7 @@ create_distribution() {
     cp -r "$PROJECT_ROOT/config" "$dist_path/"
     cp "$PROJECT_ROOT/README.md" "$dist_path/"
     cp "$PROJECT_ROOT/LICENSE" "$dist_path/"
-    
+
     # Create run script
     cat > "$dist_path/run_doip_server.sh" << 'EOF'
 #!/bin/bash
@@ -229,9 +229,9 @@ cd "$SCRIPT_DIR"
           exit 1
         fi
 EOF
-    
+
     chmod +x "$dist_path/run_doip_server.sh"
-    
+
     # Create Windows batch file
     cat > "$dist_path/run_doip_server.bat" << 'EOF'
 @echo off
@@ -247,19 +247,19 @@ cd /d "%~dp0"
           exit /b 1
         )
 EOF
-    
+
     # Create archive
     cd "$BUILD_DIR"
     if command -v tar &> /dev/null; then
         tar -czf "${dist_name}.tar.gz" "$dist_name"
         print_success "Created distribution: ${dist_name}.tar.gz"
     fi
-    
+
     if command -v zip &> /dev/null; then
         zip -r "${dist_name}.zip" "$dist_name"
         print_success "Created distribution: ${dist_name}.zip"
     fi
-    
+
     print_success "Distribution package created: $dist_path"
 }
 
