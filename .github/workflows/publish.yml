@@ -1,0 +1,76 @@
+name: Publish to PyPI
+
+# Runs on every merge to main after all CI checks pass.
+# Requires the PYPI_TOKEN repository secret to be set.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # needed to push the version tag
+
+    steps:
+    - name: Checkout (full history for commit count)
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 2.1.1
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Compute and write version
+      id: versioning
+      run: |
+        python scripts/set_version.py
+        DISPLAY=$(python - <<'EOF'
+        import re, pathlib
+        txt = pathlib.Path("src/doip_server/__init__.py").read_text()
+        print(re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', txt).group(1))
+        EOF
+        )
+        PYPI=$(python - <<'EOF'
+        import re, pathlib
+        txt = pathlib.Path("pyproject.toml").read_text()
+        print(re.search(r'^version\s*=\s*["\']([^"\']+)["\']', txt, re.MULTILINE).group(1))
+        EOF
+        )
+        echo "display_version=$DISPLAY" >> "$GITHUB_OUTPUT"
+        echo "pypi_version=$PYPI" >> "$GITHUB_OUTPUT"
+        echo "Computed display=$DISPLAY  pypi=$PYPI"
+
+    - name: Install dependencies
+      run: poetry install --only=main --no-interaction
+
+    - name: Build package
+      run: poetry build
+
+    - name: Publish to PyPI
+      env:
+        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+      run: poetry publish --no-interaction
+
+    - name: Create and push version tag
+      run: |
+        TAG="v${{ steps.versioning.outputs.display_version }}"
+        git config user.name  "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "$TAG" -m "Release $TAG"
+        git push origin "$TAG"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

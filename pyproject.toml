@@ -1,5 +1,8 @@
 [project]
 name = "doip-server"
+# Version is managed automatically by scripts/set_version.py at CI build time.
+# PyPI format: YYYY.M.D.post<commit-count>  (PEP 440 compliant CalVer)
+# Display format (in __init__.py): YYYY.MM.DD.<git-short-hash>
 version = "0.5.4"
 description = "DoIP Server and Client implementation with YAML configuration"
 authors = [
