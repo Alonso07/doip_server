@@ -123,6 +123,17 @@ class DoIPHandlers:
                     self.message_handler.create_doip_nack(0x02)
                 ]  # Invalid source address
 
+            # Functional targets are not ECU physical addresses, so resolve them
+            # before applying physical target validation.
+            if self._is_functional_address(target_address):
+                responding_ecus = self._get_responding_ecus_for_functional_address(
+                    target_address
+                )
+                if responding_ecus:
+                    return self._handle_functional_diagnostic_message(
+                        source_address, target_address, uds_payload, responding_ecus
+                    )
+
             # Check if target address is valid
             if not self.config_manager.is_target_address_valid(target_address):
                 self.logger.warning(f"Invalid target address: 0x{target_address:04X}")
@@ -130,15 +141,9 @@ class DoIPHandlers:
                     self.message_handler.create_doip_nack(0x03)
                 ]  # Invalid target address
 
-            # Check if target is functional address
-            if self._is_functional_address(target_address):
-                return self._handle_functional_diagnostic_message(
-                    source_address, target_address, uds_payload
-                )
-            else:
-                return self._handle_physical_diagnostic_message(
-                    source_address, target_address, uds_payload
-                )
+            return self._handle_physical_diagnostic_message(
+                source_address, target_address, uds_payload
+            )
 
         except Exception as e:
             self.logger.error(f"Error processing diagnostic message: {e}")
@@ -440,7 +445,11 @@ class DoIPHandlers:
             return None
 
     def _handle_functional_diagnostic_message(
-        self, source_address: int, functional_address: int, uds_payload: bytes
+        self,
+        source_address: int,
+        functional_address: int,
+        uds_payload: bytes,
+        responding_ecus: Optional[List[int]] = None,
     ) -> List[bytes]:
         """Handle functional diagnostic message (broadcast to multiple ECUs).
 
@@ -457,9 +466,10 @@ class DoIPHandlers:
         )
 
         # Get ECUs that respond to this functional address
-        responding_ecus = self._get_responding_ecus_for_functional_address(
-            functional_address
-        )
+        if responding_ecus is None:
+            responding_ecus = self._get_responding_ecus_for_functional_address(
+                functional_address
+            )
 
         if not responding_ecus:
             self.logger.warning(
@@ -569,18 +579,7 @@ class DoIPHandlers:
         Returns:
             List of ECU addresses
         """
-        # Get all ECU configurations
-        all_ecus = self.config_manager.get_all_ecu_addresses()
-        responding_ecus = []
-
-        for ecu_address in all_ecus:
-            ecu_config = self.config_manager.get_ecu_config(ecu_address)
-            if ecu_config:
-                functional_addresses = ecu_config.get("functional_addresses", [])
-                if functional_address in functional_addresses:
-                    responding_ecus.append(ecu_address)
-
-        return responding_ecus
+        return self.config_manager.get_ecus_by_functional_address(functional_address)
 
     def _get_gateway_logical_address(self) -> int:
         """Get gateway logical address from configuration.
