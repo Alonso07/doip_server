@@ -1,0 +1,63 @@
+name: Weekly Dependency PR Auto-Merge
+
+on:
+  schedule:
+    # Every Monday at 10:00 UTC — one hour after Dependabot opens its PRs (09:00 UTC)
+    - cron: '0 10 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — report only, do not merge'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  auto-merge-deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.1.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install project dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Run dep-pr-merge skill
+        uses: anthropic/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: |
+            Execute the `/dep-pr-merge` skill defined in `.claude/commands/dep-pr-merge.md`.
+
+            Work through ALL open dependency-update PRs on `alonso07/doip_server`
+            in this single session. For each PR:
+              1. Check its CI status via the GitHub MCP tools.
+              2. Run `poetry run pytest tests/ -v --tb=short -q` locally.
+              3. Squash-merge it if both CI and local tests pass.
+              4. After every merge, refresh the PR list and continue.
+
+            ${{ inputs.dry_run == 'true' && 'DRY RUN MODE: report what you would do but do NOT call mcp__github__merge_pull_request.' || '' }}
+
+            The Python + Poetry environment is already installed.
+            When you are done, print the final summary table from the skill.
