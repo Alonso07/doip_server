@@ -20,13 +20,19 @@ from web.state import get_state
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _STATIC_DIR = Path(__file__).parent / "static"
+_DEFAULT_GATEWAY_CONFIG = "config/gateway1.yaml"
+_GATEWAY_CONFIG_ENV = "DOIP_GATEWAY_CONFIG"
 
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    gateway_config = app.state.gateway_config_path
+    gateway_config = getattr(
+        app.state,
+        "gateway_config_path",
+        os.environ.get(_GATEWAY_CONFIG_ENV, _DEFAULT_GATEWAY_CONFIG),
+    )
     get_state().start_doip_server(gateway_config)
     yield
     get_state().stop_doip_server()
@@ -79,12 +85,13 @@ async def client_page(request: Request):
 
 def run_server():
     parser = argparse.ArgumentParser(description="DoIP Server Web Dashboard")
-    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--gateway-config", default="config/gateway1.yaml")
+    parser.add_argument("--gateway-config", default=_DEFAULT_GATEWAY_CONFIG)
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()
 
+    os.environ[_GATEWAY_CONFIG_ENV] = args.gateway_config
     app.state.gateway_config_path = args.gateway_config
 
     uvicorn.run(
