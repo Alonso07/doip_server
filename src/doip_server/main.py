@@ -70,14 +70,43 @@ def main():
         help="Path to gateway configuration file (default: config/gateway1.yaml)",
         default="config/gateway1.yaml",
     )
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Start the web dashboard (FastAPI) alongside the DoIP server",
+    )
+    parser.add_argument(
+        "--web-host",
+        type=str,
+        default="0.0.0.0",
+        help="Web dashboard host (default: 0.0.0.0)",
+    )
+    parser.add_argument(
+        "--web-port",
+        type=int,
+        default=8080,
+        help="Web dashboard port (default: 8080)",
+    )
 
     args = parser.parse_args()
 
-    # Use hierarchical configuration
-    print(f"Using hierarchical configuration: {args.gateway_config}")
-    start_doip_server(
-        host=args.host, port=args.port, gateway_config_path=args.gateway_config
-    )
+    if args.web:
+        # Launch FastAPI web server (which starts the DoIP server as a background thread)
+        try:
+            import uvicorn
+            from web.app import app
+
+            app.state.gateway_config_path = args.gateway_config
+            print(f"Starting web dashboard on http://{args.web_host}:{args.web_port}")
+            uvicorn.run(app, host=args.web_host, port=args.web_port)
+        except ImportError as exc:
+            print(f"Web mode requires FastAPI/uvicorn: {exc}")
+            sys.exit(1)
+    else:
+        print(f"Using hierarchical configuration: {args.gateway_config}")
+        start_doip_server(
+            host=args.host, port=args.port, gateway_config_path=args.gateway_config
+        )
 
 
 if __name__ == "__main__":
