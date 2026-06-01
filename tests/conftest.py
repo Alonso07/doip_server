@@ -26,6 +26,7 @@ def has_ipv6():
     """True when the test host can bind to IPv6 loopback."""
     return _ipv6_loopback_available()
 
+
 # Add the src directory to the path so we can import the modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
