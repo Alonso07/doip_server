@@ -201,6 +201,110 @@ def test_absolute_gateway_path_uses_its_config_tree(tmp_path, monkeypatch):
 
 
 @pytest.mark.unit
+def test_absolute_gateway_path_ignores_colliding_cwd_service_tree(
+    tmp_path, monkeypatch
+):
+    repo_config = Path(__file__).parent.parent.parent / "config"
+    vehicle_root = tmp_path / "vehicle"
+    cwd_root = tmp_path / "cwd"
+    shutil.copytree(repo_config, vehicle_root / "config")
+    shutil.copytree(repo_config, cwd_root / "config")
+    monkeypatch.chdir(cwd_root)
+
+    vehicle_services = vehicle_root / "config/ecus/engine/ecu_engine_services.yaml"
+    cwd_services = cwd_root / "config/ecus/engine/ecu_engine_services.yaml"
+    vehicle_text = vehicle_services.read_text()
+    cwd_text = cwd_services.read_text()
+    vehicle_services.write_text(
+        vehicle_text.replace(
+            'description: "Read engine RPM"', 'description: "vehicle tree RPM"'
+        )
+    )
+    cwd_services.write_text(
+        cwd_text.replace(
+            'description: "Read engine RPM"', 'description: "cwd tree RPM"'
+        )
+    )
+
+    gateway_path = (vehicle_root / "config/gateway1.yaml").resolve()
+    cm = HierarchicalConfigManager(str(gateway_path))
+
+    rpm = cm.get_ecu_uds_services(ENGINE_ADDR)["Engine_RPM_Read"]
+    assert rpm["description"] == "vehicle tree RPM"
+
+    cm.update_service(ENGINE_ADDR, "Engine_RPM_Read", {"description": "Patched RPM"})
+    cm.persist_service_update(
+        ENGINE_ADDR, "Engine_RPM_Read", {"description": "Patched RPM"}
+    )
+
+    assert _load(vehicle_services)["specific_services"]["Engine_RPM_Read"][
+        "description"
+    ] == "Patched RPM"
+    assert _load(cwd_services)["specific_services"]["Engine_RPM_Read"][
+        "description"
+    ] == "cwd tree RPM"
+
+
+@pytest.mark.unit
+def test_persist_delete_ecu_only_removes_exact_gateway_reference(cm):
+    gateway_data = _load(GATEWAY_PATH)
+    gateway_data["gateway"]["ecus"].extend(
+        [
+            "ecus/custom_a/ecu_duplicate.yaml",
+            "ecus/custom_b/ecu_duplicate.yaml",
+        ]
+    )
+    with open(GATEWAY_PATH, "w") as f:
+        yaml.safe_dump(gateway_data, f)
+
+    custom_a = Path("config/ecus/custom_a/ecu_duplicate.yaml")
+    custom_b = Path("config/ecus/custom_b/ecu_duplicate.yaml")
+    custom_a.parent.mkdir(parents=True)
+    custom_b.parent.mkdir(parents=True)
+    custom_a.write_text(
+        yaml.safe_dump(
+            {"ecu": {"target_address": 0x00B1, "name": "A", "tester_addresses": []}}
+        )
+    )
+    custom_b.write_text(
+        yaml.safe_dump(
+            {"ecu": {"target_address": 0x00B2, "name": "B", "tester_addresses": []}}
+        )
+    )
+
+    cm.reload_configs()
+    cm.delete_ecu(0x00B1)
+    cm.persist_delete_ecu(0x00B1)
+
+    ecus = [str(e) for e in _load(GATEWAY_PATH)["gateway"]["ecus"]]
+    assert "ecus/custom_a/ecu_duplicate.yaml" not in ecus
+    assert "ecus/custom_b/ecu_duplicate.yaml" in ecus
+
+
+@pytest.mark.unit
+def test_persist_new_service_requires_persisted_ecu(cm):
+    addr = 0x00AE
+    service_data = {
+        "request": "0x22AE01",
+        "responses": ["0x62AE0100"],
+        "description": "orphan prevention",
+        "supports_functional": False,
+        "no_response": False,
+    }
+    cm.add_ecu(
+        {
+            "target_address": addr,
+            "name": "RuntimeOnlyECU",
+            "tester_addresses": [0x0E00],
+        }
+    )
+    cm.add_service(addr, "Runtime_Only_Service", service_data)
+
+    with pytest.raises(KeyError, match="No source file tracked"):
+        cm.persist_new_service(addr, "Runtime_Only_Service", service_data)
+
+
+@pytest.mark.unit
 def test_persist_new_and_delete_service(cm):
     name = "Runtime_Persisted_Service"
     data = {
