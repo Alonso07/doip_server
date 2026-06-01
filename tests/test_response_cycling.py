@@ -244,7 +244,9 @@ class TestResponseCycling:
             {"responses": ["0x620C010001"]},
         )
 
-        response_after_update = server.process_uds_message(request_bytes, target_address)
+        response_after_update = server.process_uds_message(
+            request_bytes, target_address
+        )
         assert response_after_update is not None
         assert response_after_update.hex().upper() == "620C010001"
         assert server.get_response_cycling_state()["ECU_0x0001_Engine_RPM_Read"] == 0
