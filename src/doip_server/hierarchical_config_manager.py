@@ -319,7 +319,9 @@ gateway:
         except Exception as e:
             self.logger.error(f"Failed to load services from {service_file_path}: {e}")
 
-    def _find_service_file_path(self, service_file: str, ecu_address: int = None) -> str:
+    def _find_service_file_path(
+        self, service_file: str, ecu_address: int = None
+    ) -> str:
         """Find the actual path to a service file"""
         service_file = str(service_file)
         ecu_path = (
@@ -364,9 +366,7 @@ gateway:
         """Find the UDS services configuration file path"""
         possible_paths = [
             os.path.join(self._config_dir(), "uds_services.yaml"),
-            os.path.join(
-                self._config_dir(), "generic", "generic_uds_messages.yaml"
-            ),
+            os.path.join(self._config_dir(), "generic", "generic_uds_messages.yaml"),
             os.path.join(self._config_dir(), "generic", "uds_services.yaml"),
             os.path.join(self._config_root_dir(), "config", "uds_services.yaml"),
             os.path.join(
