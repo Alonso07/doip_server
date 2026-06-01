@@ -5,6 +5,7 @@ Tests the ability to send requests to functional addresses and receive responses
 """
 
 import os
+import struct
 import sys
 import unittest
 from unittest.mock import Mock
@@ -13,6 +14,7 @@ from unittest.mock import Mock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from doip_client.doip_client import DoIPClientWrapper
+from doip_server.doip_server import DoIPServer
 from doip_server.hierarchical_config_manager import HierarchicalConfigManager
 
 
@@ -242,6 +244,70 @@ class TestFunctionalDiagnosticsIntegration(unittest.TestCase):
             self.fail(f"Functional demo raised an exception: {e}")
         finally:
             client.disconnect()
+
+
+class TestFunctionalDiagnosticsTCPDispatch(unittest.TestCase):
+    """Regression tests: functional diagnostics must respect supports_functional flag."""
+
+    # Functional address used by all ECUs in gateway1.yaml config
+    FUNCTIONAL_ADDRESS = 0x0000
+    SOURCE_ADDRESS = 0x0E00
+
+    @staticmethod
+    def _make_doip_message(payload_type, payload):
+        header = struct.pack(">BBHI", 0x02, 0xFD, payload_type, len(payload))
+        return header + payload
+
+    def _make_diagnostic_request(self, source_address, target_address, uds_payload):
+        diag_payload = struct.pack(">HH", source_address, target_address) + uds_payload
+        return self._make_doip_message(0x8001, diag_payload)
+
+    def test_functional_request_returns_ack_and_ecu_responses(self):
+        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        # 0x1902: Read DTC — supports_functional=True on all ECUs
+        uds_payload = bytes.fromhex("1902")
+
+        request = self._make_diagnostic_request(
+            self.SOURCE_ADDRESS, self.FUNCTIONAL_ADDRESS, uds_payload
+        )
+        responses = server.process_doip_message(request)
+
+        self.assertIsNotNone(responses)
+        self.assertGreater(len(responses), 0)
+
+        payload_types = [struct.unpack(">H", r[2:4])[0] for r in responses]
+        self.assertEqual(payload_types[0], 0x8002)  # ACK first
+        self.assertNotIn(0x8000, payload_types)  # no NACK
+
+        expected_ecus = set(
+            server.config_manager.get_ecus_by_functional_address(
+                self.FUNCTIONAL_ADDRESS
+            )
+        )
+        response_ecus = {
+            struct.unpack(">H", r[8:10])[0]
+            for r in responses
+            if struct.unpack(">H", r[2:4])[0] == 0x8001
+        }
+        self.assertEqual(response_ecus, expected_ecus)
+        self.assertGreater(len(response_ecus), 0)
+
+    def test_functional_request_rejects_physical_only_service(self):
+        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        # 0x31010001: Engine Start/Stop — supports_functional=False (engine ECU only)
+        uds_payload = bytes.fromhex("31010001")
+
+        request = self._make_diagnostic_request(
+            self.SOURCE_ADDRESS, self.FUNCTIONAL_ADDRESS, uds_payload
+        )
+        responses = server.process_doip_message(request)
+
+        self.assertIsNotNone(responses)
+        self.assertEqual(len(responses), 1)
+        payload_types = [struct.unpack(">H", r[2:4])[0] for r in responses]
+        # DoIPServer uses generic NACK (0x8000); nack code 0x04 = no functional responders
+        self.assertEqual(payload_types, [0x8000])
+        self.assertEqual(struct.unpack(">I", responses[0][8:12])[0], 0x04)
 
 
 if __name__ == "__main__":
