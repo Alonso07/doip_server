@@ -477,6 +477,34 @@ class DoIPHandlers:
             )
             return []
 
+        request_hex = uds_payload.hex().upper()
+        functional_ecus = []
+        for ecu_address in responding_ecus:
+            if not self.config_manager.is_source_address_allowed(
+                source_address, ecu_address
+            ):
+                self.logger.debug(
+                    f"Source 0x{source_address:04X} not authorized for ECU 0x{ecu_address:04X}"
+                )
+                continue
+
+            service_config = self.config_manager.get_uds_service_by_request(
+                request_hex, ecu_address
+            )
+            if service_config and service_config.get("supports_functional", False):
+                functional_ecus.append(ecu_address)
+            else:
+                self.logger.debug(
+                    f"ECU 0x{ecu_address:04X} does not support functional "
+                    f"addressing for UDS request {request_hex}"
+                )
+
+        if not functional_ecus:
+            self.logger.warning(
+                f"No ECUs support functional addressing for UDS request: {request_hex}"
+            )
+            return [self.message_handler.create_doip_nack(0x04)]
+
         # Create ACK first
         ack_response = self.message_handler.create_diagnostic_message_ack(
             source_address, functional_address
@@ -484,7 +512,7 @@ class DoIPHandlers:
 
         # Process UDS message for each responding ECU
         responses = [ack_response]
-        for ecu_address in responding_ecus:
+        for ecu_address in functional_ecus:
             uds_response = self.process_uds_message(uds_payload, ecu_address)
             if uds_response:
                 response = self.message_handler.create_diagnostic_message_response(
