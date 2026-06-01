@@ -1012,6 +1012,9 @@ gateway:
                 return False
             del self.ecu_configs[target_address]
             self._ecu_service_cache.pop(target_address, None)
+            self._ecu_file_paths.pop(target_address, None)
+            for key in [k for k in self._service_source if k[0] == target_address]:
+                self._service_source.pop(key, None)
             self.logger.info("ECU 0x%04X deleted at runtime", target_address)
             return True
 
@@ -1153,6 +1156,26 @@ gateway:
             os.path.normpath(ecu_path)
         )
 
+    def _gateway_references_target_address(self, target_address: int) -> bool:
+        """Return True if the gateway file already references target_address."""
+        gateway = self.gateway_config.get("gateway", {})
+        for ecu_ref in gateway.get("ecus", []):
+            path = self._find_ecu_config_path(ecu_ref)
+            if not path or not os.path.exists(path):
+                continue
+            try:
+                with open(path, "r") as f:
+                    data = yaml.safe_load(f) or {}
+            except Exception as exc:
+                self.logger.warning(
+                    "Could not inspect ECU reference %s: %s", ecu_ref, exc
+                )
+                continue
+            ecu = data.get("ecu", {})
+            if ecu.get("target_address") == target_address:
+                return True
+        return False
+
     def _new_ecu_file_path(self, target_address: int, name: str) -> Tuple[str, str]:
         """Return a collision-free (full_path, relative_ref) for a new ECU."""
         base_slug = self._slug(name, f"ecu_{target_address:04x}")
@@ -1204,6 +1227,10 @@ gateway:
             ecu_cfg = self.ecu_configs.get(target_address)
             if ecu_cfg is None:
                 raise KeyError(f"ECU 0x{target_address:04X} not found in memory")
+            if self._gateway_references_target_address(target_address):
+                raise ValueError(
+                    f"Gateway already references an ECU file for 0x{target_address:04X}"
+                )
             name = ecu_cfg.get("ecu", {}).get("name", "")
             full, rel = self._new_ecu_file_path(target_address, name)
             os.makedirs(os.path.dirname(full), exist_ok=True)

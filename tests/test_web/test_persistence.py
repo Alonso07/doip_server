@@ -111,8 +111,8 @@ def test_persist_new_and_delete_ecu(cm):
     ecus = _load(GATEWAY_PATH)["gateway"]["ecus"]
     assert any("ecu_newecu" in str(e) for e in ecus)
 
-    cm.delete_ecu(addr)
     cm.persist_delete_ecu(addr)
+    cm.delete_ecu(addr)
     assert not Path(full).exists()
     ecus_after = _load(GATEWAY_PATH)["gateway"]["ecus"]
     assert not any("ecu_newecu" in str(e) for e in ecus_after)
@@ -157,6 +157,27 @@ def test_persist_new_ecu_name_collision_does_not_overwrite_existing_file(cm):
     assert Path(src_path).parent == full.parent
     assert _load(src_path)[section][service_name]["request"] == "0x22AC01"
     assert existing_services.read_text() == before_services
+
+
+@pytest.mark.unit
+def test_session_delete_recreate_does_not_reuse_previous_ecu_source(cm):
+    existing_ecu = Path(cm._ecu_file_paths[ENGINE_ADDR])
+    before_ecu = existing_ecu.read_text()
+
+    cm.delete_ecu(ENGINE_ADDR)
+    cm.add_ecu(
+        {
+            "target_address": ENGINE_ADDR,
+            "name": "Replacement_ECU",
+            "tester_addresses": [0x0E00],
+        }
+    )
+
+    with pytest.raises(KeyError, match="No source file tracked"):
+        cm.persist_ecu_update(ENGINE_ADDR, {"name": "Replacement_ECU"})
+    with pytest.raises(ValueError, match="already references"):
+        cm.persist_new_ecu(ENGINE_ADDR)
+    assert existing_ecu.read_text() == before_ecu
 
 
 @pytest.mark.unit
@@ -273,8 +294,8 @@ def test_persist_delete_ecu_only_removes_exact_gateway_reference(cm):
     )
 
     cm.reload_configs()
-    cm.delete_ecu(0x00B1)
     cm.persist_delete_ecu(0x00B1)
+    cm.delete_ecu(0x00B1)
 
     ecus = [str(e) for e in _load(GATEWAY_PATH)["gateway"]["ecus"]]
     assert "ecus/custom_a/ecu_duplicate.yaml" not in ecus
@@ -346,3 +367,17 @@ def test_api_persist_false_is_session_only(persist_client):
         persist_client.get("/api/gateway").json()["gateway"]["name"] == "WebSessionGW"
     )
     assert Path(GATEWAY_PATH).read_text() == before
+
+
+@pytest.mark.unit
+def test_api_delete_ecu_persist_removes_file_and_gateway_ref(persist_client, cm):
+    path = Path(cm._ecu_file_paths[ENGINE_ADDR])
+
+    r = persist_client.delete(f"/api/ecus/{ENGINE_ADDR}?persist=true")
+
+    assert r.status_code == 200
+    assert r.json()["persisted"] is True
+    assert not path.exists()
+    ecus = [str(e) for e in _load(GATEWAY_PATH)["gateway"]["ecus"]]
+    assert "ecus/engine/ecu_engine.yaml" not in ecus
+    assert persist_client.get(f"/api/ecus/{ENGINE_ADDR}").status_code == 404
