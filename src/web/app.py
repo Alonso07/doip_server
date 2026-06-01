@@ -20,13 +20,17 @@ from web.state import get_state
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _STATIC_DIR = Path(__file__).parent / "static"
+_DEFAULT_GATEWAY_CONFIG = "config/gateway1.yaml"
+_GATEWAY_CONFIG_ENV = "DOIP_GATEWAY_CONFIG"
 
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    gateway_config = app.state.gateway_config_path
+    gateway_config = getattr(app.state, "gateway_config_path", None) or os.environ.get(
+        _GATEWAY_CONFIG_ENV, _DEFAULT_GATEWAY_CONFIG
+    )
     get_state().start_doip_server(gateway_config)
     yield
     get_state().stop_doip_server()

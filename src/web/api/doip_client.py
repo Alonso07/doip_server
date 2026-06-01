@@ -1,6 +1,7 @@
 """REST + WebSocket endpoints for the in-browser DoIP client tester."""
 
 import asyncio
+import ipaddress
 import json
 import socket
 import struct
@@ -16,6 +17,8 @@ DOIP_VERSION = 0x02
 DOIP_INV_VERSION = 0xFD
 ROUTING_ACTIVATION_REQUEST = 0x0005
 DIAGNOSTIC_MESSAGE = 0x8001
+MAX_DOIP_PAYLOAD_LEN = 64 * 1024
+EXPECTED_RESPONSE_TYPES = {0x0006, 0x8001, 0x8002, 0x8003}
 
 
 def _build_header(payload_type: int, payload_len: int) -> bytes:
@@ -38,6 +41,28 @@ def _build_diagnostic_message(source: int, target: int, uds_bytes: bytes) -> byt
     return _build_header(DIAGNOSTIC_MESSAGE, len(payload)) + payload
 
 
+def _resolve_loopback_host(host: str, port: int) -> str:
+    """Resolve a client target and require it to stay on the dashboard host."""
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise ValueError(f"Unable to resolve host '{host}'") from exc
+
+    addresses = []
+    for _family, _socktype, _proto, _canonname, sockaddr in infos:
+        try:
+            addresses.append(ipaddress.ip_address(sockaddr[0]))
+        except ValueError:
+            continue
+
+    if not addresses:
+        raise ValueError(f"Unable to resolve host '{host}'")
+    if any(not address.is_loopback for address in addresses):
+        raise ValueError("DoIP client host must resolve to a loopback address")
+
+    return str(addresses[0])
+
+
 def _recv_exact(sock: socket.socket, n: int) -> Optional[bytes]:
     buf = b""
     while len(buf) < n:
@@ -52,8 +77,18 @@ def _parse_doip_frame(sock: socket.socket) -> Optional[dict]:
     header = _recv_exact(sock, 8)
     if not header:
         return None
-    _ver, _inv, payload_type, payload_len = struct.unpack(">BBHI", header)
+    ver, inv, payload_type, payload_len = struct.unpack(">BBHI", header)
+    if ver != DOIP_VERSION or inv != DOIP_INV_VERSION:
+        raise ValueError("Invalid DoIP response header")
+    if payload_type not in EXPECTED_RESPONSE_TYPES:
+        raise ValueError(f"Unexpected DoIP payload type: 0x{payload_type:04X}")
+    if payload_len > MAX_DOIP_PAYLOAD_LEN:
+        raise ValueError(
+            f"DoIP payload length {payload_len} exceeds limit {MAX_DOIP_PAYLOAD_LEN}"
+        )
     payload = _recv_exact(sock, payload_len) if payload_len else b""
+    if payload is None:
+        return None
     return {"type": payload_type, "payload": payload}
 
 
@@ -67,8 +102,9 @@ def _send_diagnostic_sync(req: DoIPSendRequest) -> dict:
 
     try:
         note("connecting", f"{req.host}:{req.port}")
+        target_host = _resolve_loopback_host(req.host, req.port)
         with socket.create_connection(
-            (req.host, req.port), timeout=req.timeout
+            (target_host, req.port), timeout=req.timeout
         ) as sock:
             sock.settimeout(req.timeout)
             note("connected")
