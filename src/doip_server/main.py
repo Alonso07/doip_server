@@ -79,7 +79,7 @@ def main():
         "--web-host",
         type=str,
         default="127.0.0.1",
-        help="Web dashboard host (default: 127.0.0.1)",
+        help="Web dashboard host (default: 127.0.0.1; use :: for all IPv6 interfaces)",
     )
     parser.add_argument(
         "--web-port",

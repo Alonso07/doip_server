@@ -3,13 +3,33 @@
 The actual TCP socket call is mocked so these remain fast unit tests.
 """
 
-import json
 from unittest.mock import patch
 
 import pytest
 
+from web.api.doip_client import _resolve_loopback_host
+
 # The sync function we'll mock out
 _TARGET = "web.api.doip_client._send_diagnostic_sync"
+
+
+@pytest.mark.unit
+def test_resolve_loopback_host_ipv6():
+    assert _resolve_loopback_host("::1", 13400) == "::1"
+
+
+@pytest.mark.unit
+def test_resolve_loopback_host_localhost():
+    import ipaddress
+
+    resolved = _resolve_loopback_host("localhost", 13400)
+    assert ipaddress.ip_address(resolved).is_loopback
+
+
+@pytest.mark.unit
+def test_resolve_loopback_host_rejects_public():
+    with pytest.raises(ValueError, match="loopback"):
+        _resolve_loopback_host("8.8.8.8", 13400)
 
 
 @pytest.mark.unit

@@ -57,7 +57,7 @@ class ServiceUpdate(BaseModel):
 
 
 class DoIPSendRequest(BaseModel):
-    host: str = "127.0.0.1"
+    host: str = "localhost"
     port: int = 13400
     source_address: int = 0x0E00
     target_address: int

@@ -4,10 +4,27 @@ Pytest configuration for DoIP tests.
 Sets up the test environment and provides common fixtures.
 """
 
+import socket
 import sys
 from pathlib import Path
 
 import pytest
+
+
+def _ipv6_loopback_available() -> bool:
+    try:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        s.bind(("::1", 0))
+        s.close()
+        return True
+    except OSError:
+        return False
+
+
+@pytest.fixture(scope="session")
+def has_ipv6():
+    """True when the test host can bind to IPv6 loopback."""
+    return _ipv6_loopback_available()
 
 # Add the src directory to the path so we can import the modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

@@ -451,6 +451,26 @@ gateway:
         port = network_config.get("port", 13400)
         return host, port
 
+    def get_dual_stack(self, host: Optional[str] = None) -> bool:
+        """Whether to enable IPv4-mapped dual-stack when binding on ::.
+
+        Args:
+            host: Bind address to evaluate; defaults to network.host from config.
+
+        Returns:
+            bool: True when network.dual_stack is set or host is "::" and
+            dual_stack is omitted (defaults to True for "::" only).
+        """
+        network_config = self.get_network_config()
+        bind_host = (
+            host
+            if host is not None
+            else network_config.get("host", "0.0.0.0")  # nosec B104
+        )
+        if "dual_stack" in network_config:
+            return bool(network_config["dual_stack"])
+        return str(bind_host).strip() == "::"
+
     def get_protocol_config(self) -> Dict[str, Any]:
         """Get protocol configuration"""
         return self.get_gateway_config().get("protocol", {})
@@ -842,6 +862,16 @@ gateway:
         network = self.get_network_config()
         if "host" not in network or "port" not in network:
             self.logger.error("Missing network configuration")
+            return False
+        try:
+            from .net_utils import resolve_bind_params
+
+            resolve_bind_params(
+                str(network["host"]),
+                self.get_dual_stack(str(network["host"])),
+            )
+        except ValueError as exc:
+            self.logger.error(f"Invalid network.host: {exc}")
             return False
 
         # Validate protocol configuration

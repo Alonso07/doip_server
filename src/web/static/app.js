@@ -19,7 +19,10 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
   if (id === "status-badge") {
     const color = data.running ? "bg-green-500" : "bg-red-500";
     const label = data.running ? "Running" : "Stopped";
-    const host = data.host && data.port ? ` ${data.host}:${data.port}` : "";
+    const host =
+      data.host && data.port
+        ? ` ${formatHostPort(data.host, data.port)}`
+        : "";
     evt.detail.serverResponse = `
       <div id="status-badge"
            hx-get="/api/status" hx-trigger="every 5s" hx-swap="outerHTML"
@@ -181,6 +184,13 @@ function renderGateway(data) {
 }
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
+
+function formatHostPort(host, port) {
+  if (typeof host === "string" && host.includes(":") && !host.startsWith("[")) {
+    return `[${host}]:${port}`;
+  }
+  return `${host}:${port}`;
+}
 
 const INP =
   "bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white w-full";

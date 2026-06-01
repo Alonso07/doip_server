@@ -10,6 +10,11 @@ import struct
 import time
 from typing import Optional
 
+from doip_server.net_utils import (
+    is_ipv6_multicast_host,
+    resolve_client_socket_family,
+)
+
 
 class UDPDoIPClient:
     """
@@ -320,12 +325,17 @@ class UDPDoIPClient:
             bool: True if successful, False otherwise
         """
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            family = resolve_client_socket_family(self.server_host)
+            self.socket = socket.socket(family, socket.SOCK_DGRAM)
 
-            # Only enable broadcast if using broadcast address
+            # IPv4 broadcast discovery
             if self.server_host == "255.255.255.255":
                 self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 self.logger.info("UDP client configured for broadcast mode")
+            elif is_ipv6_multicast_host(self.server_host):
+                self.logger.info(
+                    f"UDP client configured for IPv6 multicast to {self.server_host}"
+                )
             else:
                 self.logger.info(
                     f"UDP client configured for unicast mode to {self.server_host}"
@@ -333,8 +343,9 @@ class UDPDoIPClient:
 
             self.socket.settimeout(self.timeout)
 
-            # Bind to any available port
-            self.socket.bind(("", 0))
+            # Bind to any available port (IPv4 or IPv6)
+            bind_addr = "::" if family == socket.AF_INET6 else ""
+            self.socket.bind((bind_addr, 0))
             local_port = self.socket.getsockname()[1]
 
             self.logger.info(f"UDP DoIP client started on port {local_port}")
