@@ -227,6 +227,28 @@ class TestResponseCycling:
         assert key in cycling_state
         assert cycling_state[key] == 1  # Next response should be index 1
 
+    def test_response_cycling_handles_runtime_response_list_shrink(self):
+        """Runtime service updates must not leave stale cycle indexes crashable."""
+        server = DoIPServer(gateway_config_path="config/gateway1.yaml")
+        request_bytes = bytes.fromhex("220C01")
+        target_address = 0x0001
+
+        response = server.process_uds_message(request_bytes, target_address)
+        assert response is not None
+        assert response.hex().upper() == "620C018000"
+        assert server.get_response_cycling_state()["ECU_0x0001_Engine_RPM_Read"] == 1
+
+        server.config_manager.update_service(
+            target_address,
+            "Engine_RPM_Read",
+            {"responses": ["0x620C010001"]},
+        )
+
+        response_after_update = server.process_uds_message(request_bytes, target_address)
+        assert response_after_update is not None
+        assert response_after_update.hex().upper() == "620C010001"
+        assert server.get_response_cycling_state()["ECU_0x0001_Engine_RPM_Read"] == 0
+
     def test_response_cycling_reset_all(self):
         """Test resetting all response cycling states"""
         server = DoIPServer(gateway_config_path="config/gateway1.yaml")

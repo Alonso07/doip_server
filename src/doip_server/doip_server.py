@@ -784,6 +784,16 @@ class DoIPServer:
             # Get current response index for this service-ECU combination
             current_index = self.response_cycle_state.get(cycle_key, 0)
 
+            if current_index >= len(responses):
+                self.logger.warning(
+                    "Response cycle index %s out of range for service %s "
+                    "(%s responses); restarting cycle",
+                    current_index,
+                    service_name,
+                    len(responses),
+                )
+                current_index = 0
+
             # Select response based on current index
             response_template = responses[current_index]
 
