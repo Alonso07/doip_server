@@ -233,14 +233,18 @@ gateway:
 
     def _find_ecu_config_path(self, ecu_file: str) -> str:
         """Find the full path to an ECU configuration file"""
+        ecu_file = str(ecu_file)
         possible_paths = [
+            ecu_file if os.path.isabs(ecu_file) else None,
+            os.path.join(self._config_dir(), ecu_file),
+            os.path.join(self._config_root_dir(), ecu_file),
             f"config/{ecu_file}",
             ecu_file,
             f"../config/{ecu_file}",
             f"src/doip_server/config/{ecu_file}",
         ]
 
-        for path in possible_paths:
+        for path in self._unique_paths(possible_paths):
             if os.path.exists(path):
                 return path
         return None
@@ -291,7 +295,7 @@ gateway:
         """Load UDS services from a specific file"""
         try:
             # Find the actual file path
-            actual_path = self._find_service_file_path(service_file_path)
+            actual_path = self._find_service_file_path(service_file_path, _ecu_address)
             if not actual_path or not os.path.exists(actual_path):
                 self.logger.warning(f"Service file not found: {service_file_path}")
                 return
@@ -315,9 +319,23 @@ gateway:
         except Exception as e:
             self.logger.error(f"Failed to load services from {service_file_path}: {e}")
 
-    def _find_service_file_path(self, service_file: str) -> str:
+    def _find_service_file_path(
+        self, service_file: str, ecu_address: int = None
+    ) -> str:
         """Find the actual path to a service file"""
+        service_file = str(service_file)
+        ecu_path = (
+            self._ecu_file_paths.get(ecu_address) if ecu_address is not None else None
+        )
         possible_paths = [
+            service_file if os.path.isabs(service_file) else None,
+            (
+                os.path.join(os.path.dirname(ecu_path), service_file)
+                if ecu_path and not os.path.isabs(service_file)
+                else None
+            ),
+            os.path.join(self._config_dir(), service_file),
+            os.path.join(self._config_root_dir(), service_file),
             service_file,  # Direct path
             os.path.join("config", service_file),  # In config directory
             os.path.join("..", "config", service_file),  # Relative to parent
@@ -339,7 +357,7 @@ gateway:
             os.path.join("config", "ecus", "airbag", service_file),  # Airbag services
         ]
 
-        for path in possible_paths:
+        for path in self._unique_paths(possible_paths):
             if os.path.exists(path):
                 return path
         return None
@@ -347,6 +365,19 @@ gateway:
     def _find_uds_services_path(self) -> str:
         """Find the UDS services configuration file path"""
         possible_paths = [
+            os.path.join(self._config_dir(), "uds_services.yaml"),
+            os.path.join(self._config_dir(), "generic", "generic_uds_messages.yaml"),
+            os.path.join(self._config_dir(), "generic", "uds_services.yaml"),
+            os.path.join(self._config_root_dir(), "config", "uds_services.yaml"),
+            os.path.join(
+                self._config_root_dir(),
+                "config",
+                "generic",
+                "generic_uds_messages.yaml",
+            ),
+            os.path.join(
+                self._config_root_dir(), "config", "generic", "uds_services.yaml"
+            ),
             "config/uds_services.yaml",
             "uds_services.yaml",
             "../config/uds_services.yaml",
@@ -356,7 +387,7 @@ gateway:
             "config/generic/uds_services.yaml",
         ]
 
-        for path in possible_paths:
+        for path in self._unique_paths(possible_paths):
             if os.path.exists(path):
                 return path
         return None
@@ -1092,6 +1123,25 @@ gateway:
     def _config_dir(self) -> str:
         return os.path.dirname(self.gateway_config_path) or "."
 
+    def _config_root_dir(self) -> str:
+        config_dir = os.path.normpath(self._config_dir())
+        if os.path.basename(config_dir) == "config":
+            return os.path.dirname(config_dir) or "."
+        return config_dir
+
+    @staticmethod
+    def _unique_paths(paths: List[Optional[str]]) -> List[str]:
+        unique = []
+        seen = set()
+        for path in paths:
+            if not path:
+                continue
+            norm = os.path.normpath(path)
+            if norm not in seen:
+                seen.add(norm)
+                unique.append(path)
+        return unique
+
     def _new_ecu_file_path(self, target_address: int, name: str) -> Tuple[str, str]:
         """Return a collision-free (full_path, relative_ref) for a new ECU."""
         base_slug = self._slug(name, f"ecu_{target_address:04x}")
@@ -1199,7 +1249,7 @@ gateway:
         ecu_cfg = self.ecu_configs.get(target_address, {})
         uds = ecu_cfg.get("ecu", {}).get("uds_services", {})
         for sf in uds.get("service_files", []):
-            actual = self._find_service_file_path(sf)
+            actual = self._find_service_file_path(sf, target_address)
             if actual and "generic" not in actual.replace("\\", "/").lower():
                 return actual, sf
 

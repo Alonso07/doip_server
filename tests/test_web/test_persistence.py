@@ -160,6 +160,47 @@ def test_persist_new_ecu_name_collision_does_not_overwrite_existing_file(cm):
 
 
 @pytest.mark.unit
+def test_absolute_gateway_path_uses_its_config_tree(tmp_path, monkeypatch):
+    repo_config = Path(__file__).parent.parent.parent / "config"
+    vehicle_root = tmp_path / "vehicle"
+    shutil.copytree(repo_config, vehicle_root / "config")
+    outside_cwd = tmp_path / "outside"
+    outside_cwd.mkdir()
+    monkeypatch.chdir(outside_cwd)
+
+    gateway_path = (vehicle_root / "config/gateway1.yaml").resolve()
+    cm = HierarchicalConfigManager(str(gateway_path))
+
+    engine_path = Path(cm._ecu_file_paths[ENGINE_ADDR]).resolve()
+    assert engine_path == vehicle_root / "config/ecus/engine/ecu_engine.yaml"
+    assert "Engine_RPM_Read" in cm.get_ecu_uds_services(ENGINE_ADDR)
+
+    addr = 0x00AD
+    cm.add_ecu(
+        {
+            "target_address": addr,
+            "name": "AbsolutePathECU",
+            "tester_addresses": [0x0E00],
+        }
+    )
+    full = Path(cm.persist_new_ecu(addr)).resolve()
+    service_data = {
+        "request": "0x22AD01",
+        "responses": ["0x62AD0100"],
+        "description": "absolute-path service",
+        "supports_functional": False,
+        "no_response": False,
+    }
+    service_name = "Absolute_Path_Service"
+    cm.add_service(addr, service_name, service_data)
+    cm.persist_new_service(addr, service_name, service_data)
+
+    reloaded = HierarchicalConfigManager(str(gateway_path))
+    assert Path(reloaded._ecu_file_paths[addr]).resolve() == full
+    assert service_name in reloaded.get_ecu_uds_services(addr)
+
+
+@pytest.mark.unit
 def test_persist_new_and_delete_service(cm):
     name = "Runtime_Persisted_Service"
     data = {
