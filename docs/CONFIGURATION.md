@@ -22,7 +22,8 @@ gateway:
   logical_address: 0x1000
 
   network:
-    host: "0.0.0.0"
+    host: "0.0.0.0"       # IPv4 all interfaces (default)
+    dual_stack: false     # Set true with host "::" for IPv4+IPv6 on one socket
     port: 13400
     max_connections: 10
     timeout: 60
@@ -312,6 +313,36 @@ poetry run python -c "from src.doip_server.hierarchical_config_manager import Hi
 # Validate specific configuration
 poetry run python -c "from src.doip_server.hierarchical_config_manager import HierarchicalConfigManager; HierarchicalConfigManager('config/gateway1.yaml').validate_configs()"
 ```
+
+## IPv6 and dual-stack binding
+
+The DoIP server selects the socket family from `gateway.network.host`:
+
+| `host` value | Behavior |
+|---|---|
+| `0.0.0.0` or IPv4 literal | IPv4 only (`AF_INET`) |
+| `::` | IPv6 socket with `IPV6_V6ONLY=0` — accepts IPv4-mapped and native IPv6 clients |
+| `::1` or other IPv6 literal | IPv6 only on that address |
+
+`dual_stack` controls IPv4-mapped access when binding on `::`:
+
+- Omitted with `host: "::"` → dual-stack enabled (default for `::`)
+- `dual_stack: false` with `host: "::"` → IPv6-only wildcard
+- `dual_stack: true` with IPv4 hosts → validation error at startup
+
+Example dual-stack gateway (see also `config/gateway1_ipv6.yaml`):
+
+```yaml
+gateway:
+  network:
+    host: "::"
+    dual_stack: true
+    port: 13400
+```
+
+CLI override: `poetry run python -m doip_server.main --host :: --gateway-config config/gateway1_ipv6.yaml`
+
+**UDP discovery:** IPv4 broadcast (`255.255.255.255`) is unchanged. For IPv6, use unicast to the gateway address or link-local multicast `ff02::1` with `UDPDoIPClient(server_host="ff02::1")`.
 
 ## Configuration Examples
 

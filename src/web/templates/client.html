@@ -12,7 +12,7 @@
 
     <label class="flex flex-col gap-1 text-xs">
       Host
-      <input x-model="form.host" type="text"
+      <input x-model="form.host" type="text" placeholder="localhost, 127.0.0.1, or ::1"
              class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
     </label>
     <label class="flex flex-col gap-1 text-xs">
@@ -83,7 +83,7 @@
 function doipClient() {
   return {
     form: {
-      host: '127.0.0.1',
+      host: 'localhost',
       port: 13400,
       source_address: 0x0E00,
       target_address: 1,

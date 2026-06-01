@@ -1,40 +1,35 @@
-# Gateway Configuration - TCP/IP Network Settings
-# This file contains the network configuration for a DoIP gateway
+# Gateway Configuration - Dual-stack IPv6/IPv4 (example)
+# Binds on :: with IPV6_V6ONLY=0 so IPv4-mapped clients can connect on the same port.
 
 gateway:
   name: "Gateway1"
-  description: "Primary DoIP Gateway"
-  logical_address: 0x1000  # Gateway logical address (DoIP server address)
+  description: "Primary DoIP Gateway (dual-stack)"
+  logical_address: 0x1000
 
-  # Vehicle Information
   vehicle:
-    vin: "1HGBH41JXMN109186"  # Vehicle Identification Number
-    eid: "123456789ABC"  # Entity ID (6 bytes hex)
-    gid: "DEF012345678"  # Group ID (6 bytes hex)
+    vin: "1HGBH41JXMN109186"
+    eid: "123456789ABC"
+    gid: "DEF012345678"
 
-  # TCP/IP Network Configuration
   network:
-    host: "0.0.0.0"  # Listen on all interfaces (IPv4). Use "::" for dual-stack IPv6/IPv4
-    dual_stack: false  # Auto-true when host is "::"; see config/gateway1_ipv6.yaml
+    host: "::"
+    dual_stack: true
     port: 13400
     max_connections: 10
     timeout: 60
     keep_alive: true
     tcp_nodelay: true
 
-  # Protocol Configuration
   protocol:
     version: 0x02
     inverse_version: 0xFD
 
-  # Gateway-specific settings
   settings:
     enable_logging: true
     log_level: "INFO"
     enable_security: false
     allow_multiple_sessions: true
 
-  # ECU References - List of ECU configuration files
   ecus:
     - "ecus/engine/ecu_engine.yaml"
     - "ecus/transmission/ecu_transmission.yaml"
@@ -45,14 +40,12 @@ gateway:
     - "ecus/gateway/ecu_gateway.yaml"
     - "ecus/hvac/ecu_hvac.yaml"
 
-  # Response Codes Configuration
   response_codes:
     routine_activation:
       0x10: "Routine started successfully"
       0x22: "Conditions not correct"
       0x31: "Incorrect routine identifier"
       0x33: "Security access denied"
-
     uds:
       0x10: "General reject"
       0x12: "Sub-function not supported"
@@ -72,10 +65,9 @@ gateway:
       0x7E: "Sub-function not supported in active session"
       0x7F: "Service not supported in active session"
 
-  # Power Mode Status Configuration
   power_mode_status:
     description: "Power mode status values for DoIP power mode response (payload type 0x4004)"
-    current_status: 0x01  # Current power mode status (1 byte)
+    current_status: 0x01
     available_statuses:
       0x00:
         name: "Power Off"
@@ -93,18 +85,16 @@ gateway:
         name: "Power Wake"
         description: "ECU is waking up"
     response_cycling:
-      enabled: false  # Enable cycling through different power mode statuses
-      cycle_through: [0x01, 0x02, 0x03]  # Statuses to cycle through
+      enabled: false
+      cycle_through: [0x01, 0x02, 0x03]
 
-  # DoIP Entity Status Configuration
   entity_status:
     description: "DoIP Entity Status Response configuration (payload type 0x4002)"
-    node_type: 0x01  # Node type: 0x01 = Vehicle Gateway, 0x02 = Node
-    max_open_sockets: 10  # Maximum number of concurrent diagnostic connections
-    current_open_sockets: 0  # Current number of active diagnostic connections
-    doip_entity_status: 0x00  # Entity status: 0x00 = Ready, 0x01 = Not ready
-    diagnostic_power_mode: 0x02  # Diagnostic power mode: 0x01 = Power on, 0x02 = Power off, 0x03 = Not ready
-    # Available node types
+    node_type: 0x01
+    max_open_sockets: 10
+    current_open_sockets: 0
+    doip_entity_status: 0x00
+    diagnostic_power_mode: 0x02
     available_node_types:
       0x01:
         name: "Vehicle Gateway"
@@ -112,7 +102,6 @@ gateway:
       0x02:
         name: "Node"
         description: "DoIP entity is a node"
-    # Available entity statuses
     available_entity_statuses:
       0x00:
         name: "Ready"
@@ -120,7 +109,6 @@ gateway:
       0x01:
         name: "Not Ready"
         description: "Entity is not ready for diagnostic communication"
-    # Available diagnostic power modes
     available_diagnostic_power_modes:
       0x01:
         name: "Power On"
@@ -132,16 +120,14 @@ gateway:
         name: "Not Ready"
         description: "Diagnostic power is not ready"
 
-# Logging Configuration
 logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "doip_server.log"
   console: true
   max_file_size: "10MB"
   backup_count: 5
 
-# Security Configuration
 security:
   enabled: false
   allowed_sources_strict: false

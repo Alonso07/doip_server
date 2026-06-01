@@ -56,6 +56,19 @@ gateway:
     console: false
 ```
 
+#### Production (dual-stack IPv6/IPv4)
+```yaml
+# config/production_ipv6.yaml
+gateway:
+  name: "DoIP Gateway - Production"
+  network:
+    host: "::"
+    dual_stack: true
+    port: 13400
+```
+
+On Linux, ensure the host has IPv6 enabled and firewall rules allow TCP/UDP port 13400 for both `iptables` and `ip6tables`. macOS dual-stack uses `IPV6_V6ONLY=0` automatically when `host` is `::` in the server config.
+
 ### Configuration Validation
 ```bash
 # Validate configuration before deployment

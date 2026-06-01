@@ -36,11 +36,13 @@ poetry run python -m web.app \
 | Flag | Default | Description |
 |---|---|---|
 | `--gateway-config` | `config/gateway1.yaml` | Path to the gateway YAML config |
-| `--host` | `0.0.0.0` | Interface to bind the HTTP server |
+| `--host` | `0.0.0.0` | Interface to bind the HTTP server (`::` for all IPv6 interfaces) |
 | `--port` | `8080` | TCP port for the web dashboard |
 | `--reload` | _(off)_ | Enable uvicorn auto-reload (development only) |
 
-Once running, open `http://localhost:8080` in a browser.
+Once running, open `http://localhost:8080` in a browser. For IPv6 loopback use `http://[::1]:8080`.
+
+Combined DoIP + web mode: `poetry run python -m doip_server.main --web --web-host :: --web-port 8080 --gateway-config config/gateway1_ipv6.yaml`
 
 ---
 
@@ -95,7 +97,7 @@ Fill in:
 
 | Field | Example | Notes |
 |---|---|---|
-| Server host | `127.0.0.1` | Hostname of the DoIP server |
+| Server host | `localhost` | DoIP server host (`127.0.0.1`, `::1`, or `localhost`) |
 | Server port | `13400` | TCP port |
 | Source address | `0x0E00` | Logical address of the tester |
 | Target address | `0x1000` | ECU target address |

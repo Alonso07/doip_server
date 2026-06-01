@@ -32,6 +32,7 @@ class TestResponseDelay(unittest.TestCase):
             "max_connections": 5,
             "timeout": 30,
         }
+        self.mock_config_manager.get_dual_stack.return_value = False
         self.mock_config_manager.get_protocol_config.return_value = {
             "version": 0x02,
             "inverse_version": 0xFD,

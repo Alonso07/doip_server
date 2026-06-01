@@ -12,6 +12,11 @@ import struct
 import time
 
 from .hierarchical_config_manager import HierarchicalConfigManager
+from .net_utils import (
+    create_listening_socket,
+    format_listen_address,
+    resolve_bind_params,
+)
 
 # DoIP Protocol constants
 DOIP_PROTOCOL_VERSION = 0x02
@@ -123,6 +128,7 @@ class DoIPServer:
         network_config = self.config_manager.get_network_config()
         self.max_connections = network_config.get("max_connections", 5)
         self.timeout = network_config.get("timeout", 30)
+        self.dual_stack = self.config_manager.get_dual_stack(self.host)
 
         # Get protocol configuration
         protocol_config = self.config_manager.get_protocol_config()
@@ -153,10 +159,12 @@ class DoIPServer:
 
     def _validate_binding_config(self):
         """Validate host and port configuration"""
-        # Validate host
-        if not self.host or self.host.strip() == "":
-            self.logger.error("Invalid host configuration: host cannot be empty")
-            raise ValueError("Invalid host configuration: host cannot be empty")
+        # Validate host (IP literal or wildcard)
+        try:
+            resolve_bind_params(self.host, self.dual_stack)
+        except ValueError as exc:
+            self.logger.error(f"Invalid host configuration: {exc}")
+            raise
 
         # Validate port
         if not isinstance(self.port, int) or self.port < 1 or self.port > 65535:
@@ -273,22 +281,25 @@ class DoIPServer:
             OSError: If socket binding fails (e.g., port already in use)
             Exception: If server startup fails for any other reason
         """
-        # Start TCP server
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind((self.host, self.port))
-        self.server_socket.listen(self.max_connections)
-
-        # Start UDP server for vehicle identification
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.udp_socket.bind((self.host, self.port))
+        # Start TCP and UDP servers (IPv4, IPv6, or dual-stack per config)
+        self.server_socket = create_listening_socket(
+            socket.SOCK_STREAM,
+            self.host,
+            self.port,
+            dual_stack=self.dual_stack,
+            max_connections=self.max_connections,
+        )
+        self.udp_socket = create_listening_socket(
+            socket.SOCK_DGRAM,
+            self.host,
+            self.port,
+            dual_stack=self.dual_stack,
+        )
 
         self.running = True
 
-        self.logger.info(
-            f"DoIP server listening on {self.host}:{self.port} (TCP and UDP)"
-        )
+        listen_addr = format_listen_address(self.host, self.port, self.dual_stack)
+        self.logger.info(f"DoIP server listening on {listen_addr} (TCP and UDP)")
         self.logger.info(self.config_manager.get_config_summary())
 
         # Signal that server is ready for connections
