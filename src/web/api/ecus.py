@@ -77,11 +77,12 @@ def update_ecu(address: int, body: ECUUpdate, persist: bool = False):
 @router.delete("/{address}")
 def delete_ecu(address: int, persist: bool = False):
     cm = _require_cm()
-    if not cm.delete_ecu(address):
+    if address not in cm.ecu_configs:
         raise HTTPException(404, f"ECU 0x{address:04X} not found")
     if persist:
         try:
             cm.persist_delete_ecu(address)
         except Exception as exc:  # pragma: no cover - surfaced to client
-            raise HTTPException(500, f"Deleted in memory but file write failed: {exc}")
+            raise HTTPException(500, f"File delete failed: {exc}")
+    cm.delete_ecu(address)
     return {"deleted": True, "persisted": persist}
