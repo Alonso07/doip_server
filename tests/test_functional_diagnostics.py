@@ -6,6 +6,7 @@ Tests the ability to send requests to functional addresses and receive responses
 
 import os
 import sys
+import struct
 import unittest
 from unittest.mock import Mock
 
@@ -14,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from doip_client.doip_client import DoIPClientWrapper
 from doip_server.hierarchical_config_manager import HierarchicalConfigManager
+from doip_server.doip_tcp import DoIPTCPServer
 
 
 class TestFunctionalDiagnostics(unittest.TestCase):
@@ -242,6 +244,47 @@ class TestFunctionalDiagnosticsIntegration(unittest.TestCase):
             self.fail(f"Functional demo raised an exception: {e}")
         finally:
             client.disconnect()
+
+
+class TestFunctionalDiagnosticsTCPDispatch(unittest.TestCase):
+    """Regression coverage for functional diagnostics on the TCP dispatcher."""
+
+    @staticmethod
+    def create_doip_message(payload_type, payload):
+        header = struct.pack(">BBHI", 0x02, 0xFD, payload_type, len(payload))
+        return header + payload
+
+    def test_functional_request_returns_ack_and_ecu_responses(self):
+        config_manager = HierarchicalConfigManager("config/gateway1.yaml")
+        tcp_server = DoIPTCPServer("127.0.0.1", 0, config_manager)
+
+        source_address = 0x0E00
+        functional_address = 0x1FFF
+        uds_payload = bytes.fromhex("22F190")  # Read VIN, supported by all ECUs
+        diagnostic_payload = (
+            struct.pack(">HH", source_address, functional_address) + uds_payload
+        )
+        request = self.create_doip_message(0x8001, diagnostic_payload)
+
+        responses = tcp_server.process_doip_message(request)
+        payload_types = [
+            struct.unpack(">H", response[2:4])[0] for response in responses
+        ]
+
+        self.assertEqual(payload_types[0], 0x8002)  # one diagnostic ACK first
+        self.assertNotIn(0x8003, payload_types)  # not rejected as invalid target
+
+        expected_ecus = set(
+            config_manager.get_ecus_by_functional_address(functional_address)
+        )
+        response_ecus = {
+            struct.unpack(">H", response[8:10])[0]
+            for response in responses
+            if struct.unpack(">H", response[2:4])[0] == 0x8001
+        }
+
+        self.assertEqual(response_ecus, expected_ecus)
+        self.assertGreater(len(response_ecus), 0)
 
 
 if __name__ == "__main__":

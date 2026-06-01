@@ -5,10 +5,10 @@ DoIP Message handling module.
 This module provides classes and functions for creating, parsing, and handling
 DoIP (Diagnostics over IP) messages according to ISO 13400-2:2019.
 """
+
 import struct
 import logging
 from typing import Optional, Tuple, Dict, Any
-
 
 # DoIP Protocol constants
 DOIP_PROTOCOL_VERSION = 0x02

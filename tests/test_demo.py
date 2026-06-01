@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from doip_client.doip_client import DoIPClientWrapper
 
-
 # DoIP Protocol constants (for reference)
 DOIP_PROTOCOL_VERSION = 0x02
 DOIP_INVERSE_PROTOCOL_VERSION = 0xFD
