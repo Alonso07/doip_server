@@ -5,6 +5,7 @@ DoIP UDP Server module.
 This module provides UDP-specific functionality for the DoIP server,
 including vehicle identification requests and responses.
 """
+
 import socket
 import threading
 import logging
@@ -312,7 +313,6 @@ class DoIPUDPServer:
         except Exception as e:
             self.logger.error(f"Error creating power mode response: {e}")
             return self.message_handler.create_power_mode_response(0x01)
-
 
     def get_server_info(self) -> dict:
         """Get UDP server information.

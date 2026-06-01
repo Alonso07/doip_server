@@ -5,6 +5,7 @@ DoIP Server implementation for automotive diagnostics.
 This module provides the main DoIP (Diagnostics over IP) server functionality
 for handling automotive diagnostic communication protocols.
 """
+
 import socket
 import struct
 import logging

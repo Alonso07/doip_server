@@ -5,6 +5,7 @@ DoIP TCP Server module.
 This module provides TCP-specific functionality for the DoIP server,
 including connection handling, message processing, and client management.
 """
+
 import socket
 import threading
 import logging
