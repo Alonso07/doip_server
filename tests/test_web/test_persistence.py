@@ -119,6 +119,47 @@ def test_persist_new_and_delete_ecu(cm):
 
 
 @pytest.mark.unit
+def test_persist_new_ecu_name_collision_does_not_overwrite_existing_file(cm):
+    existing_ecu = Path("config/ecus/engine/ecu_engine.yaml")
+    existing_services = Path("config/ecus/engine/ecu_engine_services.yaml")
+    before_ecu = existing_ecu.read_text()
+    before_services = existing_services.read_text()
+    addr = 0x00AC
+    cm.add_ecu(
+        {
+            "target_address": addr,
+            "name": "engine",
+            "tester_addresses": [0x0E00],
+        }
+    )
+
+    full = Path(cm.persist_new_ecu(addr))
+
+    assert full != existing_ecu
+    assert full.exists()
+    assert existing_ecu.read_text() == before_ecu
+    ecus = [str(e) for e in _load(GATEWAY_PATH)["gateway"]["ecus"]]
+    assert "ecus/engine/ecu_engine.yaml" in ecus
+    assert full.relative_to("config").as_posix() in ecus
+
+    service_data = {
+        "request": "0x22AC01",
+        "responses": ["0x62AC0100"],
+        "description": "collision-safe service",
+        "supports_functional": False,
+        "no_response": False,
+    }
+    service_name = "Collision_Safe_Service"
+    cm.add_service(addr, service_name, service_data)
+    cm.persist_new_service(addr, service_name, service_data)
+
+    src_path, section = cm._service_source[(addr, service_name)]
+    assert Path(src_path).parent == full.parent
+    assert _load(src_path)[section][service_name]["request"] == "0x22AC01"
+    assert existing_services.read_text() == before_services
+
+
+@pytest.mark.unit
 def test_persist_new_and_delete_service(cm):
     name = "Runtime_Persisted_Service"
     data = {

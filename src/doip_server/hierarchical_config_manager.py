@@ -1092,6 +1092,26 @@ gateway:
     def _config_dir(self) -> str:
         return os.path.dirname(self.gateway_config_path) or "."
 
+    def _new_ecu_file_path(self, target_address: int, name: str) -> Tuple[str, str]:
+        """Return a collision-free (full_path, relative_ref) for a new ECU."""
+        base_slug = self._slug(name, f"ecu_{target_address:04x}")
+        slugs = [base_slug]
+        address_slug = f"{base_slug}_{target_address:04x}"
+        if address_slug not in slugs:
+            slugs.append(address_slug)
+
+        suffix = 2
+        while True:
+            if slugs:
+                slug = slugs.pop(0)
+            else:
+                slug = f"{base_slug}_{target_address:04x}_{suffix}"
+                suffix += 1
+            rel = f"ecus/{slug}/ecu_{slug}.yaml"
+            full = os.path.join(self._config_dir(), rel)
+            if not os.path.exists(full):
+                return full, rel
+
     def persist_gateway(self, updates: Dict[str, Any]) -> None:
         """Write gateway *updates* back to the gateway config file."""
         with self._lock:
@@ -1124,9 +1144,7 @@ gateway:
             if ecu_cfg is None:
                 raise KeyError(f"ECU 0x{target_address:04X} not found in memory")
             name = ecu_cfg.get("ecu", {}).get("name", "")
-            slug = self._slug(name, f"ecu_{target_address:04x}")
-            rel = f"ecus/{slug}/ecu_{slug}.yaml"
-            full = os.path.join(self._config_dir(), rel)
+            full, rel = self._new_ecu_file_path(target_address, name)
             os.makedirs(os.path.dirname(full), exist_ok=True)
 
             y = self._rt_yaml()
@@ -1186,10 +1204,16 @@ gateway:
                 return actual, sf
 
         # No specific file yet: create one alongside the ECU file.
-        name = ecu_cfg.get("ecu", {}).get("name", "")
-        slug = self._slug(name, f"ecu_{target_address:04x}")
-        rel = f"ecus/{slug}/ecu_{slug}_services.yaml"
-        full = os.path.join(self._config_dir(), rel)
+        ecu_path = self._ecu_file_paths.get(target_address)
+        if ecu_path:
+            stem = os.path.splitext(os.path.basename(ecu_path))[0]
+            full = os.path.join(os.path.dirname(ecu_path), f"{stem}_services.yaml")
+            rel = os.path.relpath(full, self._config_dir())
+        else:
+            name = ecu_cfg.get("ecu", {}).get("name", "")
+            slug = self._slug(name, f"ecu_{target_address:04x}")
+            rel = f"ecus/{slug}/ecu_{slug}_services.yaml"
+            full = os.path.join(self._config_dir(), rel)
         os.makedirs(os.path.dirname(full), exist_ok=True)
         if not os.path.exists(full):
             y = self._rt_yaml()
