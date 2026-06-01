@@ -78,8 +78,8 @@ def main():
     parser.add_argument(
         "--web-host",
         type=str,
-        default="0.0.0.0",
-        help="Web dashboard host (default: 0.0.0.0)",
+        default="127.0.0.1",
+        help="Web dashboard host (default: 127.0.0.1)",
     )
     parser.add_argument(
         "--web-port",
@@ -90,7 +90,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.web:
+    if args.web is True:
         # Launch FastAPI web server (which starts the DoIP server as a background thread)
         try:
             import uvicorn
