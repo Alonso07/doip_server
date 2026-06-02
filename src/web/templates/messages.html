@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Messages – DoIP Server{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-bold text-amber-400 mb-2">UDS Messages</h1>
+<p class="text-gray-500 text-xs mb-6">
+  Global catalog of all configured UDS services. Scope is determined by service name across ECUs.
+</p>
+
+<div id="messages-table"
+     hx-get="/api/messages"
+     hx-trigger="load"
+     hx-swap="outerHTML"
+     class="overflow-x-auto">
+  Loading…
+</div>
+{% endblock %}

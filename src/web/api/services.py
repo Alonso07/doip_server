@@ -12,13 +12,27 @@ def _require_cm():
     return cm
 
 
+def _service_scope_fields(cm, service_name: str) -> dict:
+    """Shared vs unique scope for a service name across ECUs."""
+    addrs = cm.get_service_ecu_usage().get(service_name, [])
+    ecu_count = len(addrs)
+    return {
+        "ecu_count": ecu_count,
+        "shared": ecu_count > 1,
+        "used_by": [f"0x{a:04X}" for a in addrs],
+    }
+
+
 @router.get("")
 def list_services(address: int):
     cm = _require_cm()
     if address not in cm.ecu_configs:
         raise HTTPException(404, f"ECU 0x{address:04X} not found")
     services = cm.get_ecu_uds_services(address)
-    return [{"name": name, **cfg} for name, cfg in services.items()]
+    return [
+        {"name": name, **_service_scope_fields(cm, name), **cfg}
+        for name, cfg in services.items()
+    ]
 
 
 @router.get("/{service_name}")

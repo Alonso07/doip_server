@@ -10,6 +10,22 @@
   <div class="bg-gray-800 border border-gray-700 rounded p-5 space-y-4">
     <h2 class="font-bold text-gray-300 mb-2">Request</h2>
 
+    <!-- Mode toggle -->
+    <div class="flex gap-2 text-xs">
+      <button type="button"
+              @click="setMode('named')"
+              :class="mode === 'named' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300'"
+              class="px-3 py-1 rounded font-bold">
+        By name
+      </button>
+      <button type="button"
+              @click="setMode('raw')"
+              :class="mode === 'raw' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300'"
+              class="px-3 py-1 rounded font-bold">
+        Raw
+      </button>
+    </div>
+
     <label class="flex flex-col gap-1 text-xs">
       Host
       <input x-model="form.host" type="text" placeholder="localhost, 127.0.0.1, or ::1"
@@ -21,28 +37,79 @@
              class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
     </label>
     <label class="flex flex-col gap-1 text-xs">
-      Source Address (decimal)
-      <input x-model.number="form.source_address" type="number"
-             class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
-    </label>
-    <label class="flex flex-col gap-1 text-xs">
-      Target Address (decimal)
-      <input x-model.number="form.target_address" type="number"
-             class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
-    </label>
-    <label class="flex flex-col gap-1 text-xs">
-      UDS Message (hex, without 0x)
-      <input x-model="form.uds_message" type="text" placeholder="22F190"
-             class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
-    </label>
-    <label class="flex flex-col gap-1 text-xs">
       Timeout (s)
       <input x-model.number="form.timeout" type="number" step="0.5"
              class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
     </label>
 
+    <!-- Named mode: ECU + service pickers -->
+    <template x-if="mode === 'named'">
+      <div class="space-y-4 border-t border-gray-700 pt-4">
+        <label class="flex flex-col gap-1 text-xs">
+          ECU
+          <select x-model.number="selectedEcuAddress"
+                  @change="onEcuChange()"
+                  class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
+            <option value="">— Select ECU —</option>
+            <template x-for="ecu in ecus" :key="ecu.target_address">
+              <option :value="ecu.target_address"
+                      x-text="`${ecu.name} (${ecu.target_address_hex})`"></option>
+            </template>
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-1 text-xs">
+          Service
+          <select x-model="selectedServiceName"
+                  @change="onServiceChange()"
+                  @focus="loadServicesIfNeeded()"
+                  :disabled="!selectedEcuAddress"
+                  class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white disabled:opacity-50">
+            <option value="">— Select service —</option>
+            <template x-for="svc in services" :key="svc.name">
+              <option :value="svc.name" x-text="svc.name"></option>
+            </template>
+          </select>
+        </label>
+
+        <div class="text-[10px] text-gray-500 space-y-1" x-show="selectedEcuAddress && selectedServiceName">
+          <div>Target: <span class="text-gray-300" x-text="'0x' + form.target_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
+          <div>Source: <span class="text-gray-300" x-text="'0x' + form.source_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
+          <div>UDS: <span class="text-gray-300 font-mono" x-text="form.uds_message"></span></div>
+        </div>
+
+        <button type="button"
+                @click="createServiceForEcu()"
+                :disabled="!selectedEcuAddress"
+                class="text-xs px-3 py-1 bg-green-700 hover:bg-green-600 disabled:opacity-50 rounded">
+          + New service for this ECU
+        </button>
+      </div>
+    </template>
+
+    <!-- Raw mode: explicit addresses and hex -->
+    <template x-if="mode === 'raw'">
+      <div class="space-y-4 border-t border-gray-700 pt-4">
+        <label class="flex flex-col gap-1 text-xs">
+          Source Address (decimal)
+          <input x-model.number="form.source_address" type="number"
+                 class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
+        </label>
+        <label class="flex flex-col gap-1 text-xs">
+          Target Address (decimal)
+          <input x-model.number="form.target_address" type="number"
+                 class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white"/>
+        </label>
+        <label class="flex flex-col gap-1 text-xs">
+          UDS Message (hex, without 0x)
+          <input x-model="form.uds_message" type="text" placeholder="22F190"
+                 class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
+        </label>
+      </div>
+    </template>
+
     <button @click="send()"
-            :disabled="busy"
+            :disabled="busy || !canSend()"
             class="w-full py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded font-bold">
       <span x-text="busy ? 'Sending…' : 'Send'"></span>
     </button>
@@ -82,6 +149,7 @@
 <script>
 function doipClient() {
   return {
+    mode: 'named',
     form: {
       host: 'localhost',
       port: 13400,
@@ -90,11 +158,103 @@ function doipClient() {
       uds_message: '22F190',
       timeout: 5.0,
     },
+    ecus: [],
+    services: [],
+    selectedEcuAddress: '',
+    selectedServiceName: '',
     log: [],
     response: null,
     ok: false,
     busy: false,
     ws: null,
+
+    async init() {
+      window.__onServiceSaved = (address) => {
+        if (Number(address) === Number(this.selectedEcuAddress)) {
+          this.loadServices(true);
+        }
+      };
+      await this.loadEcus();
+    },
+
+    setMode(m) {
+      this.mode = m;
+      if (m === 'named' && this.ecus.length === 0) {
+        this.loadEcus();
+      }
+    },
+
+    async loadEcus() {
+      try {
+        const res = await fetch('/api/ecus');
+        if (!res.ok) throw new Error(res.statusText);
+        this.ecus = await res.json();
+      } catch (e) {
+        console.error('Failed to load ECUs', e);
+      }
+    },
+
+    async onEcuChange() {
+      this.selectedServiceName = '';
+      this.services = [];
+      if (!this.selectedEcuAddress) return;
+      const ecu = this.ecus.find(e => e.target_address === Number(this.selectedEcuAddress));
+      if (ecu) {
+        this.form.target_address = ecu.target_address;
+        if (ecu.tester_addresses && ecu.tester_addresses.length) {
+          this.form.source_address = ecu.tester_addresses[0];
+        }
+      }
+      await this.loadServices();
+    },
+
+    loadServicesIfNeeded() {
+      if (this.selectedEcuAddress && this.services.length === 0) {
+        this.loadServices();
+      }
+    },
+
+    async loadServices(force) {
+      if (!this.selectedEcuAddress) return;
+      if (!force && this.services.length > 0) return;
+      try {
+        const res = await fetch(`/api/ecus/${this.selectedEcuAddress}/services`);
+        if (!res.ok) throw new Error(res.statusText);
+        this.services = await res.json();
+        if (this.selectedServiceName) {
+          this.onServiceChange();
+        }
+      } catch (e) {
+        console.error('Failed to load services', e);
+      }
+    },
+
+    onServiceChange() {
+      const svc = this.services.find(s => s.name === this.selectedServiceName);
+      if (!svc) return;
+      const ecu = this.ecus.find(e => e.target_address === Number(this.selectedEcuAddress));
+      if (ecu) {
+        this.form.target_address = ecu.target_address;
+        if (ecu.tester_addresses && ecu.tester_addresses.length) {
+          this.form.source_address = ecu.tester_addresses[0];
+        }
+      }
+      let req = svc.request || '';
+      req = String(req).replace(/^0x/i, '').replace(/\s/g, '');
+      this.form.uds_message = req.toUpperCase();
+    },
+
+    createServiceForEcu() {
+      if (!this.selectedEcuAddress) return;
+      newService(Number(this.selectedEcuAddress));
+    },
+
+    canSend() {
+      if (this.mode === 'named') {
+        return this.selectedEcuAddress && this.selectedServiceName && this.form.uds_message;
+      }
+      return this.form.target_address != null && this.form.uds_message;
+    },
 
     send() {
       this.response = null;
