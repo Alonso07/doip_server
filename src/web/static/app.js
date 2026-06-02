@@ -113,6 +113,7 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
         <td class="px-3 py-2 text-gray-400">${s.request ?? "—"}</td>
         <td class="px-3 py-2">${(s.responses || []).length} response(s)</td>
         <td class="px-3 py-2">${s.supports_functional ? "✓" : ""}</td>
+        <td class="px-3 py-2">${scopeBadge(s.shared, s.ecu_count, s.used_by)}</td>
         <td class="px-3 py-2 text-right whitespace-nowrap">
           <button class="text-blue-400 hover:text-blue-300 text-xs mr-3"
                   onclick="editService(${ecuAddress}, '${esc(s.name)}')">Edit</button>
@@ -129,7 +130,48 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
               <th class="px-3 py-2 text-left">Request</th>
               <th class="px-3 py-2 text-left">Responses</th>
               <th class="px-3 py-2 text-left">Functional</th>
+              <th class="px-3 py-2 text-left">Scope</th>
               <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  if (id === "messages-table") {
+    const messages = Array.isArray(data) ? data : [];
+    if (messages.length === 0) {
+      evt.detail.serverResponse = `<div id="messages-table" class="text-gray-500 text-xs">No messages configured.</div>`;
+      return;
+    }
+    const rows = messages.map(m => {
+      const links = (m.used_by_addresses || []).map((addr, i) => {
+        const hex = m.used_by[i] || `0x${addr.toString(16).toUpperCase().padStart(4, "0")}`;
+        const label = (m.used_by_names && m.used_by_names[i]) ? `${m.used_by_names[i]} (${hex})` : hex;
+        return `<a href="/ecus/${addr}/services" class="text-amber-400 hover:underline">${esc(label)}</a>`;
+      }).join(", ");
+      return `
+      <tr class="border-b border-gray-700 hover:bg-gray-700/40">
+        <td class="px-3 py-2 font-bold">${esc(m.name)}</td>
+        <td class="px-3 py-2 text-gray-400">${esc(m.request ?? "—")}</td>
+        <td class="px-3 py-2">${m.responses_count ?? 0} response(s)</td>
+        <td class="px-3 py-2">${m.supports_functional ? "✓" : ""}</td>
+        <td class="px-3 py-2">${scopeBadge(m.shared, m.ecu_count, m.used_by)}</td>
+        <td class="px-3 py-2 text-gray-300">${links || "—"}</td>
+      </tr>`;
+    }).join("");
+    evt.detail.serverResponse = `
+      <div id="messages-table" class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead class="text-gray-400 border-b border-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left">Name</th>
+              <th class="px-3 py-2 text-left">Request</th>
+              <th class="px-3 py-2 text-left">Responses</th>
+              <th class="px-3 py-2 text-left">Functional</th>
+              <th class="px-3 py-2 text-left">Scope</th>
+              <th class="px-3 py-2 text-left">Used by</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -205,6 +247,14 @@ function esc(s) {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function scopeBadge(shared, ecuCount, usedBy) {
+  const title = (usedBy || []).join(", ");
+  if (shared) {
+    return `<span class="text-amber-400" title="${esc(title)}">Shared (${ecuCount})</span>`;
+  }
+  return `<span class="text-green-400" title="${esc(title)}">Unique</span>`;
 }
 
 // Whether mutations should be written to YAML files (read from the sidebar toggle)
@@ -569,6 +619,9 @@ async function submitService(ev, address, name) {
     }
     closeModal();
     refreshServiceTable(address);
+    if (typeof window.__onServiceSaved === "function") {
+      window.__onServiceSaved(address, name == null ? f.service_name.value.trim() : name);
+    }
     toast(`Service saved ${persistLabel()}.`);
   } catch (e) {
     toast(e.message, false);

@@ -55,6 +55,22 @@ def is_port_in_use(port):
 class TestUDSEndToEnd:
     """End-to-end UDS diagnostic communication tests"""
 
+    def _recv_doip_frame(self, sock, buf_holder):
+        """Read one complete DoIP frame (handles coalesced TCP reads)."""
+        while True:
+            data = buf_holder[0]
+            if len(data) >= 8:
+                payload_len = struct.unpack(">I", data[4:8])[0]
+                frame_len = 8 + payload_len
+                if len(data) >= frame_len:
+                    frame = data[:frame_len]
+                    buf_holder[0] = data[frame_len:]
+                    return frame
+            chunk = sock.recv(4096)
+            if not chunk:
+                raise ConnectionError("TCP connection closed while reading DoIP frame")
+            buf_holder[0] += chunk
+
     @pytest.fixture
     def server(self):
         """Create and start DoIP server for testing"""
@@ -155,6 +171,7 @@ class TestUDSEndToEnd:
         tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_client.settimeout(10.0)
 
+        recv_buf = [b""]
         try:
             # Connect to server
             tcp_client.connect(("127.0.0.1", server.port))
@@ -168,7 +185,7 @@ class TestUDSEndToEnd:
             tcp_client.send(routing_request)
 
             # Receive routing activation response
-            response = tcp_client.recv(1024)
+            response = self._recv_doip_frame(tcp_client, recv_buf)
             routing_response = self._parse_routing_activation_response(response)
 
             assert routing_response["response_code"] == 0x10  # Success
@@ -186,14 +203,12 @@ class TestUDSEndToEnd:
             )
             tcp_client.send(diag_request)
 
-            # Receive session control response (now multiple responses: ACK + UDS)
-            # First response should be ACK
-            ack_response = tcp_client.recv(1024)
+            # Receive session control response (ACK + UDS; may arrive in one TCP read)
+            ack_response = self._recv_doip_frame(tcp_client, recv_buf)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
 
-            # Second response should be UDS response
-            response = tcp_client.recv(1024)
+            response = self._recv_doip_frame(tcp_client, recv_buf)
             session_response = self._parse_diagnostic_message_response(response)
 
             assert session_response["uds_response"][0] == 0x50  # Positive response
@@ -210,14 +225,11 @@ class TestUDSEndToEnd:
             )
             tcp_client.send(diag_request)
 
-            # Receive VIN response (now multiple responses: ACK + UDS)
-            # First response should be ACK
-            ack_response = tcp_client.recv(1024)
+            ack_response = self._recv_doip_frame(tcp_client, recv_buf)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
 
-            # Second response should be UDS response
-            response = tcp_client.recv(1024)
+            response = self._recv_doip_frame(tcp_client, recv_buf)
             vin_response = self._parse_diagnostic_message_response(response)
 
             assert vin_response["uds_response"][0] == 0x62  # Positive response
@@ -247,13 +259,10 @@ class TestUDSEndToEnd:
                 )
                 tcp_client.send(diag_request)
 
-                # Receive service response (now multiple responses: ACK + UDS)
-                # First response should be ACK
-                ack_response = tcp_client.recv(1024)
+                ack_response = self._recv_doip_frame(tcp_client, recv_buf)
                 ack_parsed = self._parse_diagnostic_message_response(ack_response)
                 assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-                # Then receive UDS response
-                response = tcp_client.recv(1024)
+                response = self._recv_doip_frame(tcp_client, recv_buf)
                 service_response = self._parse_diagnostic_message_response(response)
 
                 assert service_response["uds_response"][0] == 0x62  # Positive response
@@ -270,13 +279,10 @@ class TestUDSEndToEnd:
                 )
                 tcp_client.send(diag_request)
 
-                # Receive VIN response (now multiple responses: ACK + UDS)
-                # First response should be ACK
-                ack_response = tcp_client.recv(1024)
+                ack_response = self._recv_doip_frame(tcp_client, recv_buf)
                 ack_parsed = self._parse_diagnostic_message_response(ack_response)
                 assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-                # Then receive UDS response
-                response = tcp_client.recv(1024)
+                response = self._recv_doip_frame(tcp_client, recv_buf)
                 vin_response = self._parse_diagnostic_message_response(response)
 
                 assert vin_response["uds_response"][0] == 0x62
@@ -292,13 +298,10 @@ class TestUDSEndToEnd:
             )
             tcp_client.send(diag_request)
 
-            # Receive tester present response (now multiple responses: ACK + UDS)
-            # First response should be ACK
-            ack_response = tcp_client.recv(1024)
+            ack_response = self._recv_doip_frame(tcp_client, recv_buf)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
-            response = tcp_client.recv(1024)
+            response = self._recv_doip_frame(tcp_client, recv_buf)
             tester_response = self._parse_diagnostic_message_response(response)
 
             assert tester_response["uds_response"][0] == 0x7E  # Positive response
@@ -318,13 +321,14 @@ class TestUDSEndToEnd:
         tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_client.settimeout(10.0)
 
+        recv_buf = [b""]
         try:
-            tcp_client.connect(("127.0.0.1", 13400))
+            tcp_client.connect(("127.0.0.1", server.port))
 
             # Activate routing
             routing_request = self._create_routing_activation_request()
             tcp_client.send(routing_request)
-            tcp_client.recv(1024)  # Consume response
+            self._recv_doip_frame(tcp_client, recv_buf)
 
             # Test Engine ECU (0x0001)
             print("Testing Engine ECU (0x0001)...")
@@ -334,13 +338,11 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C01),  # RPM
             )
             tcp_client.send(engine_request)
-            # Receive ACK first
-            ack_response = tcp_client.recv(1024)
+            ack_response = self._recv_doip_frame(tcp_client, recv_buf)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
             engine_response = self._parse_diagnostic_message_response(
-                tcp_client.recv(1024)
+                self._recv_doip_frame(tcp_client, recv_buf)
             )
             assert engine_response["uds_response"][0] == 0x62
             print("  ✅ Engine ECU communication successful")
@@ -353,13 +355,11 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C0A),  # Gear
             )
             tcp_client.send(trans_request)
-            # Receive ACK first
-            ack_response = tcp_client.recv(1024)
+            ack_response = self._recv_doip_frame(tcp_client, recv_buf)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
             trans_response = self._parse_diagnostic_message_response(
-                tcp_client.recv(1024)
+                self._recv_doip_frame(tcp_client, recv_buf)
             )
             assert trans_response["uds_response"][0] == 0x62
             print("  ✅ Transmission ECU communication successful")
@@ -372,13 +372,11 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0x220C0B),  # Wheel Speed
             )
             tcp_client.send(abs_request)
-            # Receive ACK first
-            ack_response = tcp_client.recv(1024)
+            ack_response = self._recv_doip_frame(tcp_client, recv_buf)
             ack_parsed = self._parse_diagnostic_message_response(ack_response)
             assert ack_parsed["payload_type"] == 0x8002  # Diagnostic message ACK
-            # Then receive UDS response
             abs_response = self._parse_diagnostic_message_response(
-                tcp_client.recv(1024)
+                self._recv_doip_frame(tcp_client, recv_buf)
             )
             assert abs_response["uds_response"][0] == 0x62
             print("  ✅ ABS ECU communication successful")
@@ -396,8 +394,9 @@ class TestUDSEndToEnd:
         tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_client.settimeout(5.0)
 
+        recv_buf = [b""]
         try:
-            tcp_client.connect(("127.0.0.1", 13400))
+            tcp_client.connect(("127.0.0.1", server.port))
 
             # Test invalid source address
             print("Testing invalid source address...")
@@ -407,7 +406,7 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0xF190),
             )
             tcp_client.send(invalid_request)
-            response = tcp_client.recv(1024)
+            response = self._recv_doip_frame(tcp_client, recv_buf)
 
             # Should receive NACK for invalid source address
             diag_response = self._parse_diagnostic_message_response(response)
@@ -422,7 +421,7 @@ class TestUDSEndToEnd:
                 self._create_read_data_by_identifier_request(0xF190),
             )
             tcp_client.send(invalid_request)
-            response = tcp_client.recv(1024)
+            response = self._recv_doip_frame(tcp_client, recv_buf)
 
             # Should receive NACK for invalid target address
             diag_response = self._parse_diagnostic_message_response(response)

@@ -619,6 +619,14 @@ gateway:
 
         return ecu_services
 
+    def get_service_ecu_usage(self) -> Dict[str, List[int]]:
+        """Map each service name to the ECU addresses that expose it."""
+        usage: Dict[str, List[int]] = {}
+        for addr in self.get_all_ecu_addresses():
+            for name in self.get_ecu_uds_services(addr).keys():
+                usage.setdefault(name, []).append(addr)
+        return usage
+
     def _get_services_from_file(
         self, service_file_path: str, ecu_address: int
     ) -> Dict[str, Any]:

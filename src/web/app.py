@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 # Allow running as `python -m web.app` from src/
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from web.api import doip_client, ecus, gateway, services, status
+from web.api import doip_client, ecus, gateway, messages, services, status
 from web.state import get_state
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -50,6 +50,7 @@ app.include_router(status.router)
 app.include_router(gateway.router)
 app.include_router(ecus.router)
 app.include_router(services.router)
+app.include_router(messages.router)
 app.include_router(doip_client.router)
 
 
@@ -71,6 +72,11 @@ async def services_page(request: Request, address: int):
     return templates.TemplateResponse(
         request, "services.html", {"ecu_address": address}
     )
+
+
+@app.get("/messages", response_class=HTMLResponse)
+async def messages_page(request: Request):
+    return templates.TemplateResponse(request, "messages.html")
 
 
 @app.get("/client", response_class=HTMLResponse)
