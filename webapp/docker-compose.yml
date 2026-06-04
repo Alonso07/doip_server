@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      # Mount Docker socket so the backend can spawn server containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DATA_DIR: /app/data
+      # HOST_DATA_DIR must be the absolute host path to ./data
+      # Set in .env file via: HOST_DATA_DIR=/absolute/path/to/data
+      HOST_DATA_DIR: ${HOST_DATA_DIR}
+      DOCKER_NETWORK: diag-net
+      DOIP_IMAGE: diag-doip-server:latest
+      SOVD_IMAGE: diag-sovd-server:latest
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# Management webapp lives on its own network
+# Diagnostic servers are spawned into 'diag-net' by the backend
+networks:
+  default:
+    name: webapp-net
