@@ -54,7 +54,7 @@ Version format: YYYY.MM.DD.<git-short-hash>
 
 # Version is set by scripts/set_version.py on every merge to main.
 # Format: YYYY.MM.DD.<git-short-hash>  (display)
-__version__ = "0.5.4"
+__version__ = "0.5.6"
 
 # Main exports
 from .doip_server import DoIPServer, start_doip_server
