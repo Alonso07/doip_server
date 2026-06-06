@@ -12,6 +12,13 @@ def _require_cm():
     return cm
 
 
+def _ecu_name(cm, address: int) -> str:
+    cfg = cm.get_ecu_config(address)
+    if cfg:
+        return cfg.get("ecu", {}).get("name", "Unknown")
+    return "Unknown"
+
+
 def _service_scope_fields(cm, service_name: str) -> dict:
     """Shared vs unique scope for a service name across ECUs."""
     addrs = cm.get_service_ecu_usage().get(service_name, [])
@@ -20,6 +27,8 @@ def _service_scope_fields(cm, service_name: str) -> dict:
         "ecu_count": ecu_count,
         "shared": ecu_count > 1,
         "used_by": [f"0x{a:04X}" for a in addrs],
+        "used_by_addresses": addrs,
+        "used_by_names": [_ecu_name(cm, a) for a in addrs],
     }
 
 
@@ -30,7 +39,12 @@ def list_services(address: int):
         raise HTTPException(404, f"ECU 0x{address:04X} not found")
     services = cm.get_ecu_uds_services(address)
     return [
-        {"name": name, **_service_scope_fields(cm, name), **cfg}
+        {
+            "name": name,
+            **_service_scope_fields(cm, name),
+            **cm.get_service_source_info(address, name),
+            **cfg,
+        }
         for name, cfg in services.items()
     ]
 
@@ -43,7 +57,12 @@ def get_service(address: int, service_name: str):
         raise HTTPException(
             404, f"Service '{service_name}' not found on ECU 0x{address:04X}"
         )
-    return {"name": service_name, **services[service_name]}
+    return {
+        "name": service_name,
+        **_service_scope_fields(cm, service_name),
+        **cm.get_service_source_info(address, service_name),
+        **services[service_name],
+    }
 
 
 @router.post("", status_code=201)

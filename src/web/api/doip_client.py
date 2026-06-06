@@ -60,7 +60,9 @@ def _resolve_loopback_host(host: str, port: int) -> str:
     if any(not address.is_loopback for address in addresses):
         raise ValueError("DoIP client host must resolve to a loopback address")
 
-    return str(addresses[0])
+    # Prefer IPv4 — the default server binding is 0.0.0.0, not ::
+    ipv4 = [a for a in addresses if a.version == 4]
+    return str((ipv4 or addresses)[0])
 
 
 def _recv_exact(sock: socket.socket, n: int) -> Optional[bytes]:

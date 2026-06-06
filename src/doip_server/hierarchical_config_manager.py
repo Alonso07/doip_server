@@ -627,6 +627,19 @@ gateway:
                 usage.setdefault(name, []).append(addr)
         return usage
 
+    def get_service_source_info(self, target_address: int, service_name: str) -> dict:
+        """Return source file metadata for a service on a given ECU."""
+        src = self._service_source.get((target_address, service_name))
+        if not src:
+            return {"source_file": None, "source_section": None, "is_generic": None}
+        path, section = src
+        is_generic = "generic" in path.replace("\\", "/").lower()
+        return {
+            "source_file": os.path.basename(path),
+            "source_section": section,
+            "is_generic": is_generic,
+        }
+
     def _get_services_from_file(
         self, service_file_path: str, ecu_address: int
     ) -> Dict[str, Any]:

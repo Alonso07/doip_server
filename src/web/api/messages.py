@@ -32,6 +32,7 @@ def list_messages():
         first_addr = addrs[0]
         cfg = cm.get_ecu_uds_services(first_addr).get(name, {})
         ecu_count = len(addrs)
+        source = cm.get_service_source_info(first_addr, name)
         catalog.append(
             {
                 "name": name,
@@ -45,6 +46,8 @@ def list_messages():
                 "used_by": [f"0x{a:04X}" for a in addrs],
                 "used_by_addresses": addrs,
                 "used_by_names": [_ecu_name(cm, a) for a in addrs],
+                "is_generic": source.get("is_generic"),
+                "source_file": source.get("source_file"),
             }
         )
 

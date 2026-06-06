@@ -109,14 +109,15 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
     const ecuAddress = window.__ecuAddress;
     const rows = services.map(s => `
       <tr class="border-b border-gray-700 hover:bg-gray-700/40">
-        <td class="px-3 py-2 font-bold">${s.name}</td>
-        <td class="px-3 py-2 text-gray-400">${s.request ?? "—"}</td>
+        <td class="px-3 py-2 font-bold">${esc(s.name)}</td>
+        <td class="px-3 py-2 text-gray-400 font-mono">${esc(s.request ?? "—")}</td>
         <td class="px-3 py-2">${(s.responses || []).length} response(s)</td>
-        <td class="px-3 py-2">${s.supports_functional ? "✓" : ""}</td>
+        <td class="px-3 py-2 text-center">${s.supports_functional ? `<span class="text-green-400" title="Supports functional addressing">✓</span>` : ""}</td>
+        <td class="px-3 py-2">${sourceBadge(s.is_generic)}</td>
         <td class="px-3 py-2">${scopeBadge(s.shared, s.ecu_count, s.used_by)}</td>
         <td class="px-3 py-2 text-right whitespace-nowrap">
           <button class="text-blue-400 hover:text-blue-300 text-xs mr-3"
-                  onclick="editService(${ecuAddress}, '${esc(s.name)}')">Edit</button>
+                  onclick="editService(${ecuAddress}, '${esc(s.name)}', ${s.is_generic ?? null}, ${s.shared ?? false}, ${s.ecu_count ?? 1})">Edit</button>
           <button class="text-red-500 hover:text-red-400 text-xs"
                   onclick="deleteService(${ecuAddress}, '${esc(s.name)}')">Delete</button>
         </td>
@@ -130,6 +131,7 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
               <th class="px-3 py-2 text-left">Request</th>
               <th class="px-3 py-2 text-left">Responses</th>
               <th class="px-3 py-2 text-left">Functional</th>
+              <th class="px-3 py-2 text-left">Source</th>
               <th class="px-3 py-2 text-left">Scope</th>
               <th class="px-3 py-2"></th>
             </tr>
@@ -146,19 +148,23 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
       return;
     }
     const rows = messages.map(m => {
-      const links = (m.used_by_addresses || []).map((addr, i) => {
+      const ecuLinks = (m.used_by_addresses || []).map((addr, i) => {
         const hex = m.used_by[i] || `0x${addr.toString(16).toUpperCase().padStart(4, "0")}`;
         const label = (m.used_by_names && m.used_by_names[i]) ? `${m.used_by_names[i]} (${hex})` : hex;
-        return `<a href="/ecus/${addr}/services" class="text-amber-400 hover:underline">${esc(label)}</a>`;
-      }).join(", ");
+        const editBtn = `<button class="text-blue-400 hover:text-blue-300 ml-1"
+          onclick="editService(${addr}, '${esc(m.name)}', ${m.is_generic ?? null}, ${m.shared ?? false}, ${m.ecu_count ?? 1})"
+          title="Edit this service on ${esc(label)}">[edit]</button>`;
+        return `<span class="whitespace-nowrap"><a href="/ecus/${addr}/services" class="text-amber-400 hover:underline">${esc(label)}</a>${editBtn}</span>`;
+      }).join(" ");
       return `
       <tr class="border-b border-gray-700 hover:bg-gray-700/40">
         <td class="px-3 py-2 font-bold">${esc(m.name)}</td>
-        <td class="px-3 py-2 text-gray-400">${esc(m.request ?? "—")}</td>
+        <td class="px-3 py-2 text-gray-400 font-mono">${esc(m.request ?? "—")}</td>
         <td class="px-3 py-2">${m.responses_count ?? 0} response(s)</td>
-        <td class="px-3 py-2">${m.supports_functional ? "✓" : ""}</td>
+        <td class="px-3 py-2 text-center">${m.supports_functional ? `<span class="text-green-400">✓</span>` : ""}</td>
+        <td class="px-3 py-2">${sourceBadge(m.is_generic)}</td>
         <td class="px-3 py-2">${scopeBadge(m.shared, m.ecu_count, m.used_by)}</td>
-        <td class="px-3 py-2 text-gray-300">${links || "—"}</td>
+        <td class="px-3 py-2 text-gray-300">${ecuLinks || "—"}</td>
       </tr>`;
     }).join("");
     evt.detail.serverResponse = `
@@ -170,6 +176,7 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
               <th class="px-3 py-2 text-left">Request</th>
               <th class="px-3 py-2 text-left">Responses</th>
               <th class="px-3 py-2 text-left">Functional</th>
+              <th class="px-3 py-2 text-left">Source</th>
               <th class="px-3 py-2 text-left">Scope</th>
               <th class="px-3 py-2 text-left">Used by</th>
             </tr>
@@ -252,9 +259,19 @@ function esc(s) {
 function scopeBadge(shared, ecuCount, usedBy) {
   const title = (usedBy || []).join(", ");
   if (shared) {
-    return `<span class="text-amber-400" title="${esc(title)}">Shared (${ecuCount})</span>`;
+    return `<span class="text-amber-400" title="Used by: ${esc(title)}">Shared (${ecuCount})</span>`;
   }
-  return `<span class="text-green-400" title="${esc(title)}">Unique</span>`;
+  return `<span class="text-green-400" title="Only used by this ECU">Unique</span>`;
+}
+
+function sourceBadge(isGeneric) {
+  if (isGeneric === true) {
+    return `<span class="px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-700/50" title="Defined in a shared generic file — editing affects all ECUs using it">Generic</span>`;
+  }
+  if (isGeneric === false) {
+    return `<span class="px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-300 border border-gray-600/50" title="Defined in this ECU's own service file">ECU-specific</span>`;
+  }
+  return `<span class="text-gray-600">—</span>`;
 }
 
 // Whether mutations should be written to YAML files (read from the sidebar toggle)
@@ -554,7 +571,30 @@ function parseResponses(text) {
 function serviceFormHtml(address, svc) {
   const s = svc || {};
   const isNew = svc == null;
+
+  let warningHtml = "";
+  if (!isNew) {
+    if (s.is_generic === true) {
+      const usedByList = (s.used_by_names || s.used_by || []).join(", ");
+      warningHtml = `
+        <div class="flex gap-2 items-start bg-blue-950/60 border border-blue-700/60 rounded px-3 py-2 text-blue-300">
+          <span class="mt-0.5 text-blue-400">ℹ</span>
+          <span><strong>Generic service</strong> — defined in a shared file.
+            Editing will update the definition for all ECUs that use it${usedByList ? `: ${esc(usedByList)}` : ""}.</span>
+        </div>`;
+    } else if (s.shared) {
+      const usedByList = (s.used_by_names || s.used_by || []).join(", ");
+      warningHtml = `
+        <div class="flex gap-2 items-start bg-amber-950/60 border border-amber-700/60 rounded px-3 py-2 text-amber-300">
+          <span class="mt-0.5 text-amber-400">⚠</span>
+          <span>This service is used by <strong>${s.ecu_count} ECUs</strong>${usedByList ? ` (${esc(usedByList)})` : ""}.
+            This edit applies to ECU <strong>0x${address.toString(16).toUpperCase().padStart(4, "0")}</strong> only.</span>
+        </div>`;
+    }
+  }
+
   return `<form onsubmit="return submitService(event, ${address}, ${isNew ? "null" : `'${esc(s.name)}'`})" class="space-y-3 text-xs">
+    ${warningHtml}
     ${
       isNew
         ? `<label class="flex flex-col gap-1">Service Name
@@ -583,10 +623,14 @@ function newService(address) {
   openModal("Add Service", serviceFormHtml(address, null));
 }
 
-async function editService(address, name) {
+async function editService(address, name, isGeneric, isShared, ecuCount) {
   try {
     const svc = await apiGet(`/api/ecus/${address}/services/${encodeURIComponent(name)}`);
-    openModal(`Edit Service ${esc(name)}`, serviceFormHtml(address, svc));
+    // Merge in scope/source context passed from the table row
+    if (isGeneric !== undefined) svc.is_generic = isGeneric;
+    if (isShared !== undefined) svc.shared = isShared;
+    if (ecuCount !== undefined) svc.ecu_count = ecuCount;
+    openModal(`Edit Service: ${esc(name)}`, serviceFormHtml(address, svc));
   } catch (e) {
     toast(e.message, false);
   }
