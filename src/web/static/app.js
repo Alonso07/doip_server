@@ -33,6 +33,16 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
       </div>`;
   }
 
+  if (id === "version-info") {
+    const tag = data.git_tag || data.version || "unknown";
+    const hash = data.git_hash;
+    const text = hash && !tag.includes(hash) ? `${tag} (${hash})` : tag;
+    evt.detail.serverResponse = `
+      <div id="version-info" class="mt-1 text-[10px] text-gray-600" title="Version ${data.version ?? ""}">
+        ${text}
+      </div>`;
+  }
+
   if (id === "stats-grid") {
     // Swapped with innerHTML into #stats-grid: return ONLY the cards (no wrapper
     // with the same id, which would otherwise nest a grid inside the grid).

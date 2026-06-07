@@ -56,6 +56,11 @@
             <span class="w-2 h-2 rounded-full bg-gray-500"></span> checking…
           </span>
         </div>
+        <div id="version-info"
+             hx-get="/api/status"
+             hx-trigger="load"
+             hx-swap="outerHTML"
+             class="mt-1 text-[10px] text-gray-600"></div>
       </div>
     </nav>
 
