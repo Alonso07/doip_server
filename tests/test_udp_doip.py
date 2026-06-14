@@ -117,6 +117,10 @@ class TestDoIPServerUDP:
             "gid": "DEF012345678",
         }
         mock_config.get_gateway_info.return_value = {"logical_address": 0x1000}
+        mock_config.get_protocol_config.return_value = {
+            "version": 0x02,
+            "inverse_version": 0xFD,
+        }
 
         # Create server with mock config
         server = DoIPServer()
@@ -367,6 +371,10 @@ class TestEntityStatusUDP:
             "available_entity_statuses": {0x00: {"name": "Ready"}},
             "available_diagnostic_power_modes": {0x02: {"name": "Power Off"}},
         }
+        mock_config.get_protocol_config.return_value = {
+            "version": 0x02,
+            "inverse_version": 0xFD,
+        }
 
         # Create server with mock config
         server = DoIPServer()
@@ -533,6 +541,10 @@ class TestPowerModeUDP:
                     "description": "ECU is in standby mode",
                 }
             },
+        }
+        mock_config.get_protocol_config.return_value = {
+            "version": 0x02,
+            "inverse_version": 0xFD,
         }
 
         # Create server with mock config

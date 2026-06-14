@@ -1002,6 +1002,13 @@ gateway:
         """Merge *updates* into the live gateway config and return the result."""
         with self._lock:
             gateway = self.gateway_config.setdefault("gateway", {})
+            protocol = updates.get("protocol")
+            if (
+                isinstance(protocol, dict)
+                and "version" in protocol
+                and "inverse_version" not in protocol
+            ):
+                protocol["inverse_version"] = 0xFF - protocol["version"]
             _deep_merge(gateway, updates)
             self.logger.info("Gateway config updated: %s", list(updates.keys()))
             return dict(gateway)

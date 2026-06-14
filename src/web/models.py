@@ -73,3 +73,58 @@ class DoIPSendRequest(BaseModel):
         except ValueError:
             raise ValueError("uds_message must be a valid hex string")
         return clean.upper()
+
+
+UDP_MESSAGE_TYPES = {"vehicle_identification", "entity_status", "power_mode"}
+
+
+class DoIPSendUdpRequest(BaseModel):
+    host: str = "localhost"
+    port: int = 13400
+    message_type: str = "vehicle_identification"
+    timeout: float = 5.0
+
+    @field_validator("message_type")
+    @classmethod
+    def validate_message_type(cls, v: str) -> str:
+        if v not in UDP_MESSAGE_TYPES:
+            raise ValueError(f"message_type must be one of {sorted(UDP_MESSAGE_TYPES)}")
+        return v
+
+
+class DoIPSendRawUdpRequest(BaseModel):
+    host: str = "localhost"
+    port: int = 13400
+    version: Optional[int] = None
+    inverse_version: Optional[int] = None
+    payload_type: int
+    payload_hex: str = ""
+    timeout: float = 5.0
+
+    @field_validator("payload_hex")
+    @classmethod
+    def validate_hex(cls, v: str) -> str:
+        clean = v.replace(" ", "")
+        if clean.lower().startswith("0x"):
+            clean = clean[2:]
+        try:
+            bytes.fromhex(clean)
+        except ValueError:
+            raise ValueError("payload_hex must be a valid hex string")
+        return clean.upper()
+
+    @field_validator("payload_type")
+    @classmethod
+    def validate_payload_type(cls, v: int) -> int:
+        if not (0 <= v <= 0xFFFF):
+            raise ValueError("payload_type must be in range 0x0000–0xFFFF")
+        return v
+
+    @field_validator("version", "inverse_version")
+    @classmethod
+    def validate_version_byte(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if not (0 <= v <= 0xFF):
+            raise ValueError("version/inverse_version must be in range 0x00–0xFF")
+        return v

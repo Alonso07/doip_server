@@ -258,6 +258,20 @@ const BTN_PRIMARY =
 const BTN_SECONDARY =
   "px-4 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs";
 
+// Format a byte value as a 2-digit uppercase hex string (no "0x" prefix), for form inputs.
+function hexByte(v) {
+  return typeof v === "number" ? v.toString(16).toUpperCase().padStart(2, "0") : "";
+}
+
+// Keep the Inverse Version field in sync with Protocol Version: inverse = 0xFF - version.
+function syncInverseVersion(versionInput) {
+  const form = versionInput.form;
+  const inverse = form.elements.namedItem("inverse_version");
+  const version = parseInt(versionInput.value, 16);
+  if (!inverse || Number.isNaN(version)) return;
+  inverse.value = (0xff - (version & 0xff)).toString(16).toUpperCase().padStart(2, "0");
+}
+
 function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -418,11 +432,19 @@ async function editGateway() {
             <input name="max_connections" type="number" value="${net.max_connections ?? ""}" class="${INP}"/></label>
           <label class="flex flex-col gap-1">Timeout (s)
             <input name="timeout" type="number" value="${net.timeout ?? ""}" class="${INP}"/></label>
-          <label class="flex flex-col gap-1">Protocol Version (dec)
-            <input name="version" type="number" value="${proto.version ?? ""}" class="${INP}"/></label>
-          <label class="flex flex-col gap-1">Inverse Version (dec)
-            <input name="inverse_version" type="number" value="${proto.inverse_version ?? ""}" class="${INP}"/></label>
+          <label class="flex flex-col gap-1">Protocol Version (hex)
+            <input name="version" type="text" maxlength="2" value="${hexByte(proto.version)}"
+                   oninput="syncInverseVersion(this)"
+                   class="${INP} uppercase font-mono"/></label>
+          <label class="flex flex-col gap-1">Inverse Version (hex, auto = FF − version)
+            <input name="inverse_version" type="text" maxlength="2" value="${hexByte(proto.inverse_version)}"
+                   readonly
+                   class="${INP} uppercase font-mono bg-gray-800 text-gray-400"/></label>
         </div>
+        <p class="text-[10px] text-gray-500">
+          This is the global DoIP protocol version used by the server for all TCP and UDP
+          messages, and by the DoIP Client tester's default.
+        </p>
         ${persistNoteHtml()}
         <div class="flex gap-2 pt-1">
           <button type="submit" class="${BTN_PRIMARY}">Save</button>
@@ -448,8 +470,8 @@ async function submitGateway(ev) {
       timeout: Number(f.timeout.value),
     },
     protocol: {
-      version: Number(f.version.value),
-      inverse_version: Number(f.inverse_version.value),
+      version: parseInt(f.version.value, 16),
+      inverse_version: parseInt(f.inverse_version.value, 16),
     },
   };
   try {
