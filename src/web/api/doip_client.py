@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from web.models import DoIPSendRequest
+from web.state import get_state
 
 router = APIRouter(prefix="/api/client", tags=["doip-client"])
 
@@ -19,6 +20,9 @@ ROUTING_ACTIVATION_REQUEST = 0x0005
 DIAGNOSTIC_MESSAGE = 0x8001
 MAX_DOIP_PAYLOAD_LEN = 64 * 1024
 EXPECTED_RESPONSE_TYPES = {0x0006, 0x8001, 0x8002, 0x8003}
+# Extra time to wait for additional responses from other ECUs after a
+# functional (broadcast) request, once the first UDS response is in.
+FUNCTIONAL_EXTRA_TIMEOUT = 0.5
 
 
 def _build_header(payload_type: int, payload_len: int) -> bytes:
@@ -146,24 +150,63 @@ def _send_diagnostic_sync(req: DoIPSendRequest) -> dict:
                 note("got_ack")
             elif ack_frame and ack_frame["type"] == 0x8003:
                 note("got_nack", ack_frame["payload"].hex())
-                return {"ok": False, "log": log, "response": None}
+                return {"ok": False, "log": log, "response": None, "responses": []}
 
-            # UDS response
-            resp_frame = _parse_doip_frame(sock)
-            if resp_frame and resp_frame["type"] == 0x8001:
-                uds_response = resp_frame["payload"][4:].hex().upper()
-                note("got_response", uds_response)
-                return {"ok": True, "log": log, "response": uds_response}
+            # UDS response(s) — a functional (broadcast) request may receive one
+            # response frame per responding ECU.
+            cm = get_state().config_manager
+            is_functional = bool(
+                cm and cm.get_ecus_by_functional_address(req.target_address)
+            )
 
-            note("no_response")
-            return {"ok": False, "log": log, "response": None}
+            responses: list[dict] = []
+            while True:
+                sock.settimeout(
+                    req.timeout if not responses else FUNCTIONAL_EXTRA_TIMEOUT
+                )
+                try:
+                    resp_frame = _parse_doip_frame(sock)
+                except TimeoutError:
+                    break
+
+                if resp_frame is None:
+                    break
+                if resp_frame["type"] != 0x8001:
+                    note("unexpected_frame", f"type=0x{resp_frame['type']:04X}")
+                    break
+
+                payload = resp_frame["payload"]
+                ecu_address = int.from_bytes(payload[0:2], "big")
+                uds_response = payload[4:].hex().upper()
+                note("got_response", f"from 0x{ecu_address:04X}: {uds_response}")
+                responses.append(
+                    {
+                        "ecu_address": ecu_address,
+                        "ecu_address_hex": f"0x{ecu_address:04X}",
+                        "response": uds_response,
+                    }
+                )
+
+                if not is_functional:
+                    break
+
+            if not responses:
+                note("no_response")
+                return {"ok": False, "log": log, "response": None, "responses": []}
+
+            return {
+                "ok": True,
+                "log": log,
+                "response": responses[0]["response"],
+                "responses": responses,
+            }
 
     except TimeoutError:
         note("timeout")
-        return {"ok": False, "log": log, "response": None}
+        return {"ok": False, "log": log, "response": None, "responses": []}
     except Exception as exc:
         note("error", str(exc))
-        return {"ok": False, "log": log, "response": None}
+        return {"ok": False, "log": log, "response": None, "responses": []}
 
 
 @router.post("/send")
@@ -203,6 +246,7 @@ async def doip_client_ws(websocket: WebSocket):
                     "event": "done",
                     "ok": result["ok"],
                     "response": result["response"],
+                    "responses": result.get("responses", []),
                 }
             )
 

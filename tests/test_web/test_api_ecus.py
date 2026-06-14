@@ -35,6 +35,29 @@ def test_get_missing_ecu(web_client):
 
 
 @pytest.mark.unit
+def test_list_functional_addresses(web_client):
+    r = web_client.get("/api/ecus/functional-addresses")
+    assert r.status_code == 200
+    groups = r.json()
+    assert isinstance(groups, list)
+    assert len(groups) > 0
+
+    group = groups[0]
+    for field in ("functional_address", "functional_address_hex", "ecus", "services"):
+        assert field in group, f"Missing field: {field}"
+
+    # gateway1.yaml has every ECU on functional address 0x0000, sharing
+    # services like Read_VIN that support functional addressing.
+    assert group["functional_address_hex"] == "0x0000"
+    assert len(group["ecus"]) > 1
+    service_names = [s["name"] for s in group["services"]]
+    assert "Read_VIN" in service_names
+    read_vin = next(s for s in group["services"] if s["name"] == "Read_VIN")
+    assert read_vin["request"] == "0x22F190"
+    assert len(read_vin["ecus"]) > 1
+
+
+@pytest.mark.unit
 def test_create_and_delete_ecu(web_client):
     new_ecu = {
         "target_address": 0x00FF,
