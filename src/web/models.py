@@ -3,6 +3,8 @@
 from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, field_validator
 
+from doip_server.config_schema import REQUEST_RE, RESPONSE_RE
+
 
 class GatewayUpdate(BaseModel):
     name: Optional[str] = None
@@ -33,9 +35,44 @@ class ECUUpdate(BaseModel):
     description: Optional[str] = None
 
 
+def _validate_request(v: str) -> str:
+    if not REQUEST_RE.match(v):
+        raise ValueError(
+            "request must be a '0x'-prefixed hex string with a whole number of "
+            "bytes (e.g. '0x22F190') or a 'regex:' pattern"
+        )
+    return v
+
+
+def _validate_response(v: str) -> str:
+    if not RESPONSE_RE.match(v):
+        raise ValueError(
+            "response must be a '0x'-prefixed hex string with a whole number of "
+            "bytes (e.g. '0x62F190'), optionally containing '{request[...]}' "
+            "mirroring templates"
+        )
+    return v
+
+
+def _validate_responses(
+    responses: Optional[List[Union[str, "ServiceResponse"]]],
+) -> Optional[List[Union[str, "ServiceResponse"]]]:
+    if responses is None:
+        return responses
+    for entry in responses:
+        if isinstance(entry, str):
+            _validate_response(entry)
+    return responses
+
+
 class ServiceResponse(BaseModel):
     response: str
     delay_ms: Optional[int] = None
+
+    @field_validator("response")
+    @classmethod
+    def validate_response(cls, v: str) -> str:
+        return _validate_response(v)
 
 
 class ServiceCreate(BaseModel):
@@ -46,6 +83,18 @@ class ServiceCreate(BaseModel):
     no_response: bool = False
     delay_ms: int = 0
 
+    @field_validator("request")
+    @classmethod
+    def validate_request(cls, v: str) -> str:
+        return _validate_request(v)
+
+    @field_validator("responses")
+    @classmethod
+    def validate_responses(
+        cls, v: List[Union[str, ServiceResponse]]
+    ) -> List[Union[str, ServiceResponse]]:
+        return _validate_responses(v)
+
 
 class ServiceUpdate(BaseModel):
     request: Optional[str] = None
@@ -54,6 +103,20 @@ class ServiceUpdate(BaseModel):
     supports_functional: Optional[bool] = None
     no_response: Optional[bool] = None
     delay_ms: Optional[int] = None
+
+    @field_validator("request")
+    @classmethod
+    def validate_request(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        return _validate_request(v)
+
+    @field_validator("responses")
+    @classmethod
+    def validate_responses(
+        cls, v: Optional[List[Union[str, ServiceResponse]]]
+    ) -> Optional[List[Union[str, ServiceResponse]]]:
+        return _validate_responses(v)
 
 
 class DoIPSendRequest(BaseModel):

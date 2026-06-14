@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DoIP Gateway Configuration",
+  "type": "object",
+  "required": ["gateway"],
+  "properties": {
+    "gateway": {
+      "type": "object",
+      "required": ["network", "protocol"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "logical_address": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "vehicle": {
+          "type": "object",
+          "properties": {
+            "vin": { "type": "string" },
+            "eid": { "type": "string", "pattern": "^[0-9A-Fa-f]{12}$" },
+            "gid": { "type": "string", "pattern": "^[0-9A-Fa-f]{12}$" }
+          },
+          "additionalProperties": true
+        },
+        "network": {
+          "type": "object",
+          "required": ["host", "port"],
+          "properties": {
+            "host": { "type": "string" },
+            "dual_stack": { "type": "boolean" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "max_connections": { "type": "integer", "minimum": 1 },
+            "timeout": { "type": "number", "exclusiveMinimum": 0 },
+            "keep_alive": { "type": "boolean" },
+            "tcp_nodelay": { "type": "boolean" }
+          },
+          "additionalProperties": true
+        },
+        "protocol": {
+          "type": "object",
+          "required": ["version", "inverse_version"],
+          "properties": {
+            "version": { "type": "integer", "minimum": 0, "maximum": 255 },
+            "inverse_version": { "type": "integer", "minimum": 0, "maximum": 255 }
+          },
+          "additionalProperties": true
+        },
+        "ecus": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "logging": { "type": "object", "additionalProperties": true },
+    "security": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DoIP UDS Services Configuration",
+  "type": "object",
+  "$defs": {
+    "hexBytes": {
+      "type": "string",
+      "pattern": "^0[xX]([0-9A-Fa-f]{2})+$",
+      "description": "DoIP/UDS message as a '0x'-prefixed hex string with a whole number of bytes"
+    },
+    "hexBytesOrMirrorTemplate": {
+      "type": "string",
+      "pattern": "^0[xX]([0-9A-Fa-f]{2}|\\{[^{}]*\\})+$",
+      "description": "DoIP/UDS hex string that may embed '{request[...]}' mirroring templates"
+    },
+    "request": {
+      "oneOf": [
+        { "$ref": "#/$defs/hexBytes" },
+        {
+          "type": "string",
+          "pattern": "^regex:.+$",
+          "description": "Regex pattern (prefixed with 'regex:') matched against incoming requests"
+        }
+      ]
+    },
+    "response": {
+      "oneOf": [
+        { "$ref": "#/$defs/hexBytesOrMirrorTemplate" },
+        {
+          "type": "object",
+          "required": ["response"],
+          "properties": {
+            "response": { "$ref": "#/$defs/hexBytesOrMirrorTemplate" },
+            "delay_ms": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "service": {
+      "type": "object",
+      "required": ["request"],
+      "properties": {
+        "request": { "$ref": "#/$defs/request" },
+        "responses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/response" }
+        },
+        "description": { "type": "string" },
+        "supports_functional": { "type": "boolean" },
+        "no_response": { "type": "boolean" },
+        "delay_ms": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "common_services": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/service" }
+    },
+    "specific_services": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/service" }
+    }
+  },
+  "additionalProperties": true
+}

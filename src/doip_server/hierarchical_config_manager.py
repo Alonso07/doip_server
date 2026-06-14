@@ -857,6 +857,7 @@ gateway:
         """Validate all configuration files for completeness and correctness.
 
         This method performs comprehensive validation of all loaded configurations:
+        - JSON Schema validation of every gateway/ECU/UDS service YAML file
         - Gateway configuration (network, protocol settings)
         - ECU configurations (target addresses, tester addresses)
         - UDS services (service definitions)
@@ -869,6 +870,15 @@ gateway:
             Warnings are issued for missing optional configurations,
             errors are issued for missing required configurations.
         """
+        # Validate every config file against its JSON Schema
+        from .config_schema import validate_config_tree
+
+        for result in validate_config_tree(self):
+            if not result.valid:
+                for error in result.errors:
+                    self.logger.error(f"Schema validation ({result.path}): {error}")
+                return False
+
         # Validate gateway configuration
         if not self.gateway_config:
             self.logger.error("Gateway configuration is empty")
@@ -950,6 +960,30 @@ gateway:
 
         self.logger.info("Configuration validation passed")
         return True
+
+    def get_config_file_paths(self) -> Tuple[Optional[str], List[str], List[str]]:
+        """Return the on-disk paths of all configuration files currently loaded.
+
+        Returns:
+            Tuple[Optional[str], List[str], List[str]]: A tuple of
+                (gateway_config_path, ecu_config_paths, uds_service_file_paths),
+                suitable for schema validation of every config file in the
+                hierarchy.
+        """
+        ecu_paths = self._unique_paths(list(self._ecu_file_paths.values()))
+
+        service_paths: List[Optional[str]] = []
+        for ecu_addr, ecu_config in self.ecu_configs.items():
+            ecu_info = ecu_config.get("ecu", {})
+            uds_config = ecu_info.get("uds_services", {})
+            for service_file in uds_config.get("service_files", []):
+                service_paths.append(
+                    self._find_service_file_path(service_file, ecu_addr)
+                )
+
+        service_paths.append(self._find_uds_services_path())
+
+        return self.gateway_config_path, ecu_paths, self._unique_paths(service_paths)
 
     def get_config_summary(self) -> str:
         """Get a summary of the current configuration"""

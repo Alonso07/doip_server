@@ -59,11 +59,11 @@ specific_services:
     responses:
       - response: "0x5902"  # No DTCs
         delay_ms: 50
-      - response: "0x5902P0000"  # P0000 - No fault
+      - response: "0x59020000"  # P0000 - No fault
         delay_ms: 100
-      - response: "0x5902P0100"  # P0100 - Mass or Volume Air Flow Circuit Malfunction
+      - response: "0x59020100"  # P0100 - Mass or Volume Air Flow Circuit Malfunction
         delay_ms: 200
-      - response: "0x5902P0200"  # P0200 - Injector Circuit Malfunction
+      - response: "0x59020200"  # P0200 - Injector Circuit Malfunction
         delay_ms: 300
     description: "Read engine diagnostic trouble codes with progressive delays"
     supports_functional: true

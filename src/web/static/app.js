@@ -58,6 +58,37 @@ document.body.addEventListener("htmx:beforeSwap", function (evt) {
         </div>`).join("");
   }
 
+  if (id === "validation-results") {
+    const files = Array.isArray(data.files) ? data.files : [];
+    const overall = data.valid
+      ? `<span class="text-green-400">All configuration files are valid.</span>`
+      : `<span class="text-red-400">Configuration validation failed.</span>`;
+
+    const rows = files.map((f) => {
+      const status = f.valid
+        ? `<span class="text-green-400">OK</span>`
+        : `<span class="text-red-400">FAIL</span>`;
+      const errors = Array.isArray(f.errors) && f.errors.length
+        ? `<ul class="mt-1 ml-4 list-disc text-red-300">${f.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>`
+        : "";
+      return `<div class="py-1 border-b border-gray-700/60">
+          <div>${status} <span class="text-gray-300">${esc(f.path)}</span></div>
+          ${errors}
+        </div>`;
+    }).join("");
+
+    const semantic = data.semantic_valid
+      ? `<span class="text-green-400">OK</span>`
+      : `<span class="text-red-400">FAIL</span>`;
+
+    evt.detail.serverResponse = `
+      <div class="mb-2">${overall}</div>
+      ${rows}
+      <div class="mt-2 pt-2 border-t border-gray-700">
+        ${semantic} <span class="text-gray-300">Semantic validation</span>
+      </div>`;
+  }
+
   if (id === "gateway-data") {
     // Swapped with innerHTML into #gateway-data: return ONLY the inner content.
     // Re-emitting a #gateway-data wrapper with hx-trigger="load" caused infinite
