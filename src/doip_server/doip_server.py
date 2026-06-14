@@ -130,11 +130,6 @@ class DoIPServer:
         self.timeout = network_config.get("timeout", 30)
         self.dual_stack = self.config_manager.get_dual_stack(self.host)
 
-        # Get protocol configuration
-        protocol_config = self.config_manager.get_protocol_config()
-        self.protocol_version = protocol_config.get("version", 0x02)
-        self.inverse_protocol_version = protocol_config.get("inverse_version", 0xFD)
-
         # Initialize server state
         self.server_socket = None
         self.udp_socket = None
@@ -156,6 +151,16 @@ class DoIPServer:
 
         # Validate host and port configuration
         self._validate_binding_config()
+
+    @property
+    def protocol_version(self) -> int:
+        """Current DoIP protocol version, read live from the gateway config."""
+        return self.config_manager.get_protocol_config().get("version", 0x02)
+
+    @property
+    def inverse_protocol_version(self) -> int:
+        """Current DoIP inverse protocol version, read live from the gateway config."""
+        return self.config_manager.get_protocol_config().get("inverse_version", 0xFD)
 
     def _validate_binding_config(self):
         """Validate host and port configuration"""

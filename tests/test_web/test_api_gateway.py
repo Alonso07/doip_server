@@ -31,3 +31,23 @@ def test_update_gateway_name(web_client):
 def test_update_gateway_empty_body_rejected(web_client):
     r = web_client.put("/api/gateway", json={})
     assert r.status_code == 400
+
+
+@pytest.mark.unit
+def test_update_gateway_protocol_version_auto_syncs_inverse(web_client):
+    r = web_client.put("/api/gateway", json={"protocol": {"version": 0x03}})
+    assert r.status_code == 200
+    protocol = r.json()["gateway"]["protocol"]
+    assert protocol["version"] == 0x03
+    assert protocol["inverse_version"] == 0xFF - 0x03
+
+
+@pytest.mark.unit
+def test_update_gateway_protocol_explicit_inverse_version_kept(web_client):
+    r = web_client.put(
+        "/api/gateway", json={"protocol": {"version": 0x03, "inverse_version": 0x10}}
+    )
+    assert r.status_code == 200
+    protocol = r.json()["gateway"]["protocol"]
+    assert protocol["version"] == 0x03
+    assert protocol["inverse_version"] == 0x10

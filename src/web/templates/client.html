@@ -6,6 +6,14 @@
 
 <div x-data="doipClient()" class="grid grid-cols-2 gap-6">
 
+  <div class="col-span-2 -mt-2 mb-2 text-[11px] text-gray-500">
+    Global DoIP protocol version:
+    <span class="text-gray-300 font-mono" x-text="gatewayProtocolHex()"></span>
+    — configured on the
+    <a href="/" class="text-amber-400 hover:underline">Dashboard</a> (Edit Gateway) and used
+    by the server for all TCP/UDP/UDS messages and as this client's default.
+  </div>
+
   <!-- Request form -->
   <div class="bg-gray-800 border border-gray-700 rounded p-5 space-y-4">
     <h2 class="font-bold text-gray-300 mb-2">Request</h2>
@@ -197,12 +205,14 @@
             <div class="grid grid-cols-2 gap-3">
               <label class="flex flex-col gap-1 text-xs">
                 Protocol Version (hex)
-                <input x-model="udpRawForm.version" type="text" placeholder="auto (e.g. 02)"
+                <input x-model="udpRawForm.version" type="text"
+                       :placeholder="'auto (' + (gatewayProtocol.version ?? 0x02).toString(16).toUpperCase().padStart(2,'0') + ')'"
                        class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
               </label>
               <label class="flex flex-col gap-1 text-xs">
                 Inverse Version (hex)
-                <input x-model="udpRawForm.inverse_version" type="text" placeholder="auto (e.g. FD)"
+                <input x-model="udpRawForm.inverse_version" type="text"
+                       :placeholder="'auto (' + (gatewayProtocol.inverse_version ?? 0xFD).toString(16).toUpperCase().padStart(2,'0') + ')'"
                        class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
               </label>
             </div>
@@ -333,6 +343,7 @@ function doipClient() {
       payload_hex: '',
     },
     udpResponse: null,
+    gatewayProtocol: {},
     log: [],
     responses: [],
     done: false,
@@ -347,6 +358,25 @@ function doipClient() {
         }
       };
       await this.loadEcus();
+      await this.loadGatewayProtocol();
+    },
+
+    async loadGatewayProtocol() {
+      try {
+        const res = await fetch('/api/gateway');
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        this.gatewayProtocol = data.protocol || {};
+      } catch (e) {
+        console.error('Failed to load gateway protocol config', e);
+      }
+    },
+
+    gatewayProtocolHex() {
+      const { version, inverse_version } = this.gatewayProtocol;
+      if (typeof version !== 'number' || typeof inverse_version !== 'number') return '—';
+      const fmt = (v) => '0x' + v.toString(16).toUpperCase().padStart(2, '0');
+      return `${fmt(version)} / ${fmt(inverse_version)}`;
     },
 
     setMode(m) {
