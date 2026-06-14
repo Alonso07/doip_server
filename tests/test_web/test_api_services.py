@@ -93,3 +93,58 @@ def test_update_missing_service(web_client):
         f"/api/ecus/{addr}/services/__no_such__", json={"description": "x"}
     )
     assert r.status_code == 404
+
+
+@pytest.mark.unit
+def test_create_service_rejects_invalid_request_hex(web_client):
+    addr = _first_ecu(web_client)
+    payload = {"request": "not_hex", "responses": ["0x62AABB00"]}
+    r = web_client.post(
+        f"/api/ecus/{addr}/services?service_name=bad_request_service", json=payload
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.unit
+def test_create_service_rejects_invalid_response_hex(web_client):
+    addr = _first_ecu(web_client)
+    payload = {"request": "0x22AABB", "responses": ["not_hex"]}
+    r = web_client.post(
+        f"/api/ecus/{addr}/services?service_name=bad_response_service", json=payload
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.unit
+def test_create_service_allows_regex_request(web_client):
+    addr = _first_ecu(web_client)
+    svc_name = "regex_request_service"
+    payload = {"request": "regex:^10[0-9A-F]{2}$", "responses": ["0x5010"]}
+    r = web_client.post(
+        f"/api/ecus/{addr}/services?service_name={svc_name}", json=payload
+    )
+    assert r.status_code == 201
+
+    web_client.delete(f"/api/ecus/{addr}/services/{svc_name}")
+
+
+@pytest.mark.unit
+def test_create_service_allows_mirroring_response(web_client):
+    addr = _first_ecu(web_client)
+    svc_name = "mirroring_response_service"
+    payload = {"request": "0x220C01", "responses": ["0x620C01{request[2:4]}"]}
+    r = web_client.post(
+        f"/api/ecus/{addr}/services?service_name={svc_name}", json=payload
+    )
+    assert r.status_code == 201
+
+    web_client.delete(f"/api/ecus/{addr}/services/{svc_name}")
+
+
+@pytest.mark.unit
+def test_update_service_rejects_invalid_request_hex(web_client):
+    addr = _first_ecu(web_client)
+    services = web_client.get(f"/api/ecus/{addr}/services").json()
+    name = services[0]["name"]
+    r = web_client.put(f"/api/ecus/{addr}/services/{name}", json={"request": "not_hex"})
+    assert r.status_code == 422

@@ -46,9 +46,9 @@ specific_services:
     request: "0x1902"
     responses:
       - "0x5902"  # No DTCs
-      - "0x5902P0700"  # P0700 - Transmission control system
-      - "0x5902P0701"  # P0701 - Transmission control system range/performance
-      - "0x5902P0702"  # P0702 - Transmission control system electrical
+      - "0x59020700"  # P0700 - Transmission control system
+      - "0x59020701"  # P0701 - Transmission control system range/performance
+      - "0x59020702"  # P0702 - Transmission control system electrical
     description: "Read transmission diagnostic trouble codes"
     supports_functional: true  # Supports both physical and functional addressing
 

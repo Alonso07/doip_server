@@ -24,6 +24,7 @@ help:
 	@echo "  format-check - Check code formatting without changes"
 	@echo "  security    - Run security checks (bandit, safety)"
 	@echo "  validate    - Validate configuration files"
+	@echo "  validate-config - Run the full config schema/semantic validator (CLI)"
 	@echo "  demo        - Run demo scripts"
 	@echo "  build       - Build package"
 	@echo "  clean       - Clean build artifacts and cache"
@@ -160,6 +161,11 @@ security:
 validate:
 	@echo "Validating hierarchical configuration..."
 	poetry run python -c "from src.doip_server.hierarchical_config_manager import HierarchicalConfigManager; HierarchicalConfigManager('config/gateway1.yaml')"
+
+# Full schema + semantic configuration validation (CLI)
+validate-config:
+	@echo "Validating configuration files against JSON schemas..."
+	poetry run validate_config --gateway-config config/gateway1.yaml
 
 # Demo scripts
 demo:

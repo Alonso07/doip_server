@@ -41,11 +41,11 @@ specific_services:
     request: "0x1902"
     responses:
       - "0x5902"  # No DTCs
-      - "0x5902C0000"  # C0000 - No fault
-      - "0x5902C0001"  # C0001 - Left front wheel speed sensor
-      - "0x5902C0002"  # C0002 - Right front wheel speed sensor
-      - "0x5902C0003"  # C0003 - Left rear wheel speed sensor
-      - "0x5902C0004"  # C0004 - Right rear wheel speed sensor
+      - "0x59024000"  # C0000 - No fault
+      - "0x59024001"  # C0001 - Left front wheel speed sensor
+      - "0x59024002"  # C0002 - Right front wheel speed sensor
+      - "0x59024003"  # C0003 - Left rear wheel speed sensor
+      - "0x59024004"  # C0004 - Right rear wheel speed sensor
     description: "Read ABS diagnostic trouble codes"
     supports_functional: true  # Supports both physical and functional addressing
 

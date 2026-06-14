@@ -54,4 +54,19 @@
     Loading…
   </div>
 </section>
+
+<!-- Configuration validation -->
+<section class="mt-8">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="font-bold text-gray-300">Configuration Validation</h2>
+    <button class="text-xs px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded"
+            hx-get="/api/validate"
+            hx-target="#validation-results"
+            hx-swap="innerHTML">Run Validation</button>
+  </div>
+  <div id="validation-results"
+       class="bg-gray-800 rounded border border-gray-700 p-4 text-xs leading-6 text-gray-400">
+    Click "Run Validation" to check all configuration files against their schemas.
+  </div>
+</section>
 {% endblock %}

@@ -50,9 +50,9 @@ specific_services:
     request: "0x1902"
     responses:
       - "0x5902"  # No DTCs
-      - "0x5902P0000"  # P0000 - No fault
-      - "0x5902P0100"  # P0100 - Mass or Volume Air Flow Circuit Malfunction
-      - "0x5902P0200"  # P0200 - Injector Circuit Malfunction
+      - "0x59020000"  # P0000 - No fault
+      - "0x59020100"  # P0100 - Mass or Volume Air Flow Circuit Malfunction
+      - "0x59020200"  # P0200 - Injector Circuit Malfunction
     description: "Read engine diagnostic trouble codes"
     supports_functional: true  # Supports both physical and functional addressing
 
