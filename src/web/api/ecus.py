@@ -33,6 +33,58 @@ def list_ecus():
     return [_ecu_summary(cm, addr) for addr in cm.get_all_ecu_addresses()]
 
 
+@router.get("/functional-addresses")
+def list_functional_addresses():
+    """Group ECUs by functional address, with the services each group can broadcast."""
+    cm = _require_cm()
+
+    groups: dict[int, list[int]] = {}
+    for addr in cm.get_all_ecu_addresses():
+        func_addr = cm.get_ecu_functional_address(addr)
+        if func_addr is None:
+            continue
+        groups.setdefault(func_addr, []).append(addr)
+
+    result = []
+    for func_addr, ecu_addresses in groups.items():
+        services: dict[str, dict] = {}
+        for ecu_addr in ecu_addresses:
+            ecu_services = cm.get_ecu_uds_services(ecu_addr)
+            for name in cm.get_uds_services_supporting_functional(ecu_addr):
+                entry = services.setdefault(
+                    name,
+                    {
+                        "name": name,
+                        "request": ecu_services[name].get("request"),
+                        "ecus": [],
+                    },
+                )
+                entry["ecus"].append(f"0x{ecu_addr:04X}")
+
+        result.append(
+            {
+                "functional_address": func_addr,
+                "functional_address_hex": f"0x{func_addr:04X}",
+                "ecus": [
+                    {
+                        "target_address": addr,
+                        "target_address_hex": f"0x{addr:04X}",
+                        "name": (cm.get_ecu_config(addr) or {})
+                        .get("ecu", {})
+                        .get("name", "Unknown"),
+                        "tester_addresses": (cm.get_ecu_config(addr) or {})
+                        .get("ecu", {})
+                        .get("tester_addresses", []),
+                    }
+                    for addr in ecu_addresses
+                ],
+                "services": list(services.values()),
+            }
+        )
+
+    return result
+
+
 @router.get("/{address}")
 def get_ecu(address: int):
     cm = _require_cm()

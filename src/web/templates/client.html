@@ -45,45 +45,97 @@
     <!-- Named mode: ECU + service pickers -->
     <template x-if="mode === 'named'">
       <div class="space-y-4 border-t border-gray-700 pt-4">
-        <label class="flex flex-col gap-1 text-xs">
-          ECU
-          <select x-model.number="selectedEcuAddress"
-                  @change="onEcuChange()"
-                  class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
-            <option value="">— Select ECU —</option>
-            <template x-for="ecu in ecus" :key="ecu.target_address">
-              <option :value="ecu.target_address"
-                      x-text="`${ecu.name} (${ecu.target_address_hex})`"></option>
-            </template>
-          </select>
+        <label class="flex items-center gap-2 text-xs">
+          <input type="checkbox" x-model="functional" @change="onFunctionalToggle()"/>
+          Send as functional (broadcast)
         </label>
 
-        <label class="flex flex-col gap-1 text-xs">
-          Service
-          <select x-model="selectedServiceName"
-                  @change="onServiceChange()"
-                  @focus="loadServicesIfNeeded()"
-                  :disabled="!selectedEcuAddress"
-                  class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white disabled:opacity-50">
-            <option value="">— Select service —</option>
-            <template x-for="svc in services" :key="svc.name">
-              <option :value="svc.name" x-text="svc.name"></option>
-            </template>
-          </select>
-        </label>
+        <template x-if="!functional">
+          <div class="space-y-4">
+            <label class="flex flex-col gap-1 text-xs">
+              ECU
+              <select x-model.number="selectedEcuAddress"
+                      @change="onEcuChange()"
+                      class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
+                <option value="">— Select ECU —</option>
+                <template x-for="ecu in ecus" :key="ecu.target_address">
+                  <option :value="ecu.target_address"
+                          x-text="`${ecu.name} (${ecu.target_address_hex})`"></option>
+                </template>
+              </select>
+            </label>
 
-        <div class="text-[10px] text-gray-500 space-y-1" x-show="selectedEcuAddress && selectedServiceName">
-          <div>Target: <span class="text-gray-300" x-text="'0x' + form.target_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
-          <div>Source: <span class="text-gray-300" x-text="'0x' + form.source_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
-          <div>UDS: <span class="text-gray-300 font-mono" x-text="form.uds_message"></span></div>
-        </div>
+            <label class="flex flex-col gap-1 text-xs">
+              Service
+              <select x-model="selectedServiceName"
+                      @change="onServiceChange()"
+                      @focus="loadServicesIfNeeded()"
+                      :disabled="!selectedEcuAddress"
+                      class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white disabled:opacity-50">
+                <option value="">— Select service —</option>
+                <template x-for="svc in services" :key="svc.name">
+                  <option :value="svc.name" x-text="svc.name"></option>
+                </template>
+              </select>
+            </label>
 
-        <button type="button"
-                @click="createServiceForEcu()"
-                :disabled="!selectedEcuAddress"
-                class="text-xs px-3 py-1 bg-green-700 hover:bg-green-600 disabled:opacity-50 rounded">
-          + New service for this ECU
-        </button>
+            <div class="text-[10px] text-gray-500 space-y-1" x-show="selectedEcuAddress && selectedServiceName">
+              <div>Target: <span class="text-gray-300" x-text="'0x' + form.target_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
+              <div>Source: <span class="text-gray-300" x-text="'0x' + form.source_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
+              <div>UDS: <span class="text-gray-300 font-mono" x-text="form.uds_message"></span></div>
+            </div>
+
+            <button type="button"
+                    @click="createServiceForEcu()"
+                    :disabled="!selectedEcuAddress"
+                    class="text-xs px-3 py-1 bg-green-700 hover:bg-green-600 disabled:opacity-50 rounded">
+              + New service for this ECU
+            </button>
+          </div>
+        </template>
+
+        <template x-if="functional">
+          <div class="space-y-4">
+            <label class="flex flex-col gap-1 text-xs">
+              Functional group
+              <select x-model.number="selectedFunctionalAddress"
+                      @change="onFunctionalGroupChange()"
+                      class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
+                <option value="">— Select functional address —</option>
+                <template x-for="group in functionalGroups" :key="group.functional_address">
+                  <option :value="group.functional_address"
+                          x-text="`${group.functional_address_hex} (${group.ecus.length} ECUs)`"></option>
+                </template>
+              </select>
+            </label>
+
+            <label class="flex flex-col gap-1 text-xs">
+              Service
+              <select x-model="selectedFunctionalServiceName"
+                      @change="onFunctionalServiceChange()"
+                      :disabled="selectedFunctionalAddress === ''"
+                      class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white disabled:opacity-50">
+                <option value="">— Select service —</option>
+                <template x-for="svc in currentFunctionalServices()" :key="svc.name">
+                  <option :value="svc.name" x-text="svc.name"></option>
+                </template>
+              </select>
+            </label>
+
+            <div class="text-[10px] text-gray-500 space-y-1" x-show="selectedFunctionalAddress !== '' && selectedFunctionalServiceName">
+              <div>Functional target: <span class="text-gray-300" x-text="'0x' + form.target_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
+              <div>Source: <span class="text-gray-300" x-text="'0x' + form.source_address.toString(16).toUpperCase().padStart(4, '0')"></span></div>
+              <div>UDS: <span class="text-gray-300 font-mono" x-text="form.uds_message"></span></div>
+              <div>Broadcasts to:
+                <span class="text-gray-300" x-text="(currentFunctionalGroup()?.ecus || []).map(e => e.name).join(', ')"></span>
+              </div>
+            </div>
+
+            <div class="text-xs text-gray-500" x-show="selectedFunctionalAddress !== '' && currentFunctionalServices().length === 0">
+              No functional-capable services found for this group.
+            </div>
+          </div>
+        </template>
       </div>
     </template>
 
@@ -119,10 +171,19 @@
   <div class="flex flex-col gap-4">
     <div class="bg-gray-800 border border-gray-700 rounded p-4">
       <h2 class="font-bold text-gray-300 mb-2">Response</h2>
-      <div x-show="response !== null"
-           :class="ok ? 'text-green-400' : 'text-red-400'"
-           class="text-base break-all" x-text="response ?? '—'"></div>
-      <div x-show="response === null" class="text-gray-500">—</div>
+      <template x-if="done && responses.length > 0">
+        <div class="space-y-1">
+          <template x-for="(r, i) in responses" :key="i">
+            <div :class="ok ? 'text-green-400' : 'text-red-400'" class="text-base break-all">
+              <span x-show="responses.length > 1 && r.ecu_address_hex"
+                    class="text-gray-500 text-xs mr-1" x-text="r.ecu_address_hex + ':'"></span>
+              <span x-text="r.response"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+      <div x-show="done && responses.length === 0" class="text-red-400 text-base">FAILED — no response</div>
+      <div x-show="!done" class="text-gray-500">—</div>
     </div>
 
     <div class="bg-gray-900 border border-gray-700 rounded p-4 flex-1 overflow-y-auto max-h-96">
@@ -162,8 +223,13 @@ function doipClient() {
     services: [],
     selectedEcuAddress: '',
     selectedServiceName: '',
+    functional: false,
+    functionalGroups: [],
+    selectedFunctionalAddress: '',
+    selectedFunctionalServiceName: '',
     log: [],
-    response: null,
+    responses: [],
+    done: false,
     ok: false,
     busy: false,
     ws: null,
@@ -249,15 +315,65 @@ function doipClient() {
       newService(Number(this.selectedEcuAddress));
     },
 
+    onFunctionalToggle() {
+      this.selectedFunctionalAddress = '';
+      this.selectedFunctionalServiceName = '';
+      if (this.functional && this.functionalGroups.length === 0) {
+        this.loadFunctionalGroups();
+      }
+    },
+
+    async loadFunctionalGroups() {
+      try {
+        const res = await fetch('/api/ecus/functional-addresses');
+        if (!res.ok) throw new Error(res.statusText);
+        this.functionalGroups = await res.json();
+      } catch (e) {
+        console.error('Failed to load functional addresses', e);
+      }
+    },
+
+    currentFunctionalGroup() {
+      return this.functionalGroups.find(g => g.functional_address === Number(this.selectedFunctionalAddress));
+    },
+
+    currentFunctionalServices() {
+      const group = this.currentFunctionalGroup();
+      return group ? group.services : [];
+    },
+
+    onFunctionalGroupChange() {
+      this.selectedFunctionalServiceName = '';
+      const group = this.currentFunctionalGroup();
+      if (!group) return;
+      this.form.target_address = group.functional_address;
+      const firstEcu = group.ecus[0];
+      if (firstEcu && firstEcu.tester_addresses && firstEcu.tester_addresses.length) {
+        this.form.source_address = firstEcu.tester_addresses[0];
+      }
+    },
+
+    onFunctionalServiceChange() {
+      const svc = this.currentFunctionalServices().find(s => s.name === this.selectedFunctionalServiceName);
+      if (!svc) return;
+      let req = svc.request || '';
+      req = String(req).replace(/^0x/i, '').replace(/\s/g, '');
+      this.form.uds_message = req.toUpperCase();
+    },
+
     canSend() {
       if (this.mode === 'named') {
+        if (this.functional) {
+          return this.selectedFunctionalAddress !== '' && this.selectedFunctionalServiceName && this.form.uds_message;
+        }
         return this.selectedEcuAddress && this.selectedServiceName && this.form.uds_message;
       }
       return this.form.target_address != null && this.form.uds_message;
     },
 
     send() {
-      this.response = null;
+      this.responses = [];
+      this.done = false;
       this.busy = true;
 
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -273,7 +389,10 @@ function doipClient() {
     _onMessage(msg) {
       if (msg.event === 'done') {
         this.ok = msg.ok;
-        this.response = msg.response ?? (msg.ok ? '(no data)' : 'FAILED');
+        this.responses = msg.responses && msg.responses.length
+          ? msg.responses
+          : (msg.response ? [{ ecu_address_hex: null, response: msg.response }] : []);
+        this.done = true;
         this.busy = false;
       } else {
         this.log.push(msg);
@@ -282,7 +401,8 @@ function doipClient() {
 
     clearLog() {
       this.log = [];
-      this.response = null;
+      this.responses = [];
+      this.done = false;
     },
   };
 }
