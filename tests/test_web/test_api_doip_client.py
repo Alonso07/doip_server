@@ -11,9 +11,10 @@ import pytest
 from web.api.doip_client import (
     _resolve_loopback_host,
     _send_diagnostic_sync,
+    _send_raw_udp_sync,
     _send_udp_sync,
 )
-from web.models import DoIPSendRequest, DoIPSendUdpRequest
+from web.models import DoIPSendRawUdpRequest, DoIPSendRequest, DoIPSendUdpRequest
 
 # The sync function we'll mock out
 _TARGET = "web.api.doip_client._send_diagnostic_sync"
@@ -168,6 +169,10 @@ def test_send_diagnostic_sync_functional_multi_response():
             1,
             2,
         ]
+        mock_get_state.return_value.config_manager.get_protocol_config.return_value = {
+            "version": 0x02,
+            "inverse_version": 0xFD,
+        }
         result = _send_diagnostic_sync(req)
 
     assert result["ok"] is True
@@ -207,6 +212,10 @@ def test_send_diagnostic_sync_physical_single_response():
         mock_get_state.return_value.config_manager.get_ecus_by_functional_address.return_value = (
             []
         )
+        mock_get_state.return_value.config_manager.get_protocol_config.return_value = {
+            "version": 0x02,
+            "inverse_version": 0xFD,
+        }
         result = _send_diagnostic_sync(req)
 
     assert result["ok"] is True
@@ -424,5 +433,147 @@ def test_send_udp_invalid_message_type(web_client):
     r = web_client.post(
         "/api/client/send-udp",
         json={"host": "127.0.0.1", "port": 13400, "message_type": "bogus"},
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.unit
+def test_send_udp_uses_configured_protocol_version():
+    """entity_status/power_mode requests use the gateway's configured DoIP version."""
+    payload = bytes([0x01])
+    # Configured version 0x03/0xFC instead of the 0x02/0xFD default.
+    fake_sock = _FakeUdpSocket(_udp_response(0x4004, payload))
+    fake_sock.data = struct.pack(">BBHI", 0x03, 0xFC, 0x4004, len(payload)) + payload
+
+    req = DoIPSendUdpRequest(host="127.0.0.1", port=13400, message_type="power_mode")
+
+    with (
+        patch("web.api.doip_client._resolve_loopback_host", return_value="127.0.0.1"),
+        patch("socket.socket", return_value=fake_sock),
+        patch("web.api.doip_client.get_state") as mock_get_state,
+    ):
+        mock_get_state.return_value.config_manager.get_protocol_config.return_value = {
+            "version": 0x03,
+            "inverse_version": 0xFC,
+        }
+        result = _send_udp_sync(req)
+
+    assert result["ok"] is True
+    assert result["response"] == {"power_mode_status": 0x01}
+
+    sent_data, _ = fake_sock.sent[0]
+    assert sent_data == struct.pack(">BBHI", 0x03, 0xFC, 0x4003, 0)
+
+
+@pytest.mark.unit
+def test_send_udp_raw_default_version():
+    """Raw UDP request uses the configured protocol version when none is given."""
+    payload = bytes([0x01])
+    fake_sock = _FakeUdpSocket(_udp_response(0x4004, payload))
+
+    req = DoIPSendRawUdpRequest(
+        host="127.0.0.1", port=13400, payload_type=0x4003, payload_hex=""
+    )
+
+    with (
+        patch("web.api.doip_client._resolve_loopback_host", return_value="127.0.0.1"),
+        patch("socket.socket", return_value=fake_sock),
+    ):
+        result = _send_raw_udp_sync(req)
+
+    assert result["ok"] is True
+    assert result["response"]["payload_type_hex"] == "0x4004"
+    assert result["response"]["payload_hex"] == "01"
+    assert result["response"]["parsed"] == {"power_mode_status": 0x01}
+
+    sent_data, _ = fake_sock.sent[0]
+    assert sent_data == struct.pack(">BBHI", 0x02, 0xFD, 0x4003, 0)
+
+
+@pytest.mark.unit
+def test_send_udp_raw_explicit_version_and_payload():
+    """Raw UDP request honors an explicit version/inverse_version and payload bytes."""
+    payload = b"1HGBH41JXMN109186".ljust(17, b"\x00") + bytes(16)
+    fake_sock = _FakeUdpSocket(_udp_response(0x0004, payload))
+
+    req = DoIPSendRawUdpRequest(
+        host="127.0.0.1",
+        port=13400,
+        version=0xFF,
+        inverse_version=0x00,
+        payload_type=0x0001,
+        payload_hex="DEADBEEF",
+    )
+
+    with (
+        patch("web.api.doip_client._resolve_loopback_host", return_value="127.0.0.1"),
+        patch("socket.socket", return_value=fake_sock),
+    ):
+        result = _send_raw_udp_sync(req)
+
+    assert result["ok"] is True
+    sent_data, _ = fake_sock.sent[0]
+    assert sent_data == struct.pack(">BBHI", 0xFF, 0x00, 0x0001, 4) + bytes.fromhex(
+        "DEADBEEF"
+    )
+    assert result["response"]["parsed"]["vin"] == "1HGBH41JXMN109186"
+
+
+@pytest.mark.unit
+def test_send_udp_raw_unknown_response_type_no_parsed():
+    """An unknown response payload type is returned raw without a 'parsed' field."""
+    fake_sock = _FakeUdpSocket(_udp_response(0x9999, bytes.fromhex("AABBCC")))
+
+    req = DoIPSendRawUdpRequest(host="127.0.0.1", port=13400, payload_type=0x0001)
+
+    with (
+        patch("web.api.doip_client._resolve_loopback_host", return_value="127.0.0.1"),
+        patch("socket.socket", return_value=fake_sock),
+    ):
+        result = _send_raw_udp_sync(req)
+
+    assert result["ok"] is True
+    assert result["response"]["payload_type_hex"] == "0x9999"
+    assert result["response"]["payload_hex"] == "AABBCC"
+    assert "parsed" not in result["response"]
+
+
+@pytest.mark.unit
+def test_send_udp_raw_endpoint(web_client):
+    mock_result = {
+        "ok": True,
+        "response": {
+            "version": 2,
+            "version_hex": "0x02",
+            "inverse_version": 253,
+            "inverse_version_hex": "0xFD",
+            "payload_type": 0x4004,
+            "payload_type_hex": "0x4004",
+            "payload_hex": "01",
+            "parsed": {"power_mode_status": 1},
+        },
+        "log": [{"ts": 0, "event": "sent", "detail": ""}],
+    }
+    with patch("web.api.doip_client._send_raw_udp_sync", return_value=mock_result):
+        r = web_client.post(
+            "/api/client/send-udp-raw",
+            json={"host": "127.0.0.1", "port": 13400, "payload_type": 16387},
+        )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["ok"] is True
+    assert data["response"]["parsed"] == {"power_mode_status": 1}
+
+
+@pytest.mark.unit
+def test_send_udp_raw_invalid_hex(web_client):
+    r = web_client.post(
+        "/api/client/send-udp-raw",
+        json={
+            "host": "127.0.0.1",
+            "port": 13400,
+            "payload_type": 1,
+            "payload_hex": "ZZ",
+        },
     )
     assert r.status_code == 422

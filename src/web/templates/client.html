@@ -169,18 +169,58 @@
     <!-- UDP mode: vehicle identification / entity status / power mode -->
     <template x-if="mode === 'udp'">
       <div class="space-y-4 border-t border-gray-700 pt-4">
-        <label class="flex flex-col gap-1 text-xs">
-          UDP Message
-          <select x-model="udpMessageType"
-                  class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
-            <option value="vehicle_identification">Vehicle Identification (0x0001)</option>
-            <option value="entity_status">Entity Status (0x4001)</option>
-            <option value="power_mode">Power Mode Information (0x4003)</option>
-          </select>
+        <label class="flex items-center gap-2 text-xs">
+          <input type="checkbox" x-model="udpRaw"/>
+          Raw UDP message
         </label>
-        <p class="text-[10px] text-gray-500">
-          Sent over UDP to <span class="text-gray-300" x-text="form.host + ':' + form.port"></span>.
-        </p>
+
+        <template x-if="!udpRaw">
+          <div class="space-y-4">
+            <label class="flex flex-col gap-1 text-xs">
+              UDP Message
+              <select x-model="udpMessageType"
+                      class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
+                <option value="vehicle_identification">Vehicle Identification (0x0001)</option>
+                <option value="entity_status">Entity Status (0x4001)</option>
+                <option value="power_mode">Power Mode Information (0x4003)</option>
+              </select>
+            </label>
+            <p class="text-[10px] text-gray-500">
+              Sent over UDP to <span class="text-gray-300" x-text="form.host + ':' + form.port"></span>
+              using the gateway's configured protocol version.
+            </p>
+          </div>
+        </template>
+
+        <template x-if="udpRaw">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex flex-col gap-1 text-xs">
+                Protocol Version (hex)
+                <input x-model="udpRawForm.version" type="text" placeholder="auto (e.g. 02)"
+                       class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                Inverse Version (hex)
+                <input x-model="udpRawForm.inverse_version" type="text" placeholder="auto (e.g. FD)"
+                       class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
+              </label>
+            </div>
+            <label class="flex flex-col gap-1 text-xs">
+              Payload Type (hex)
+              <input x-model="udpRawForm.payload_type" type="text" placeholder="0001"
+                     class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
+            </label>
+            <label class="flex flex-col gap-1 text-xs">
+              Payload (hex, optional)
+              <input x-model="udpRawForm.payload_hex" type="text" placeholder=""
+                     class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white uppercase"/>
+            </label>
+            <p class="text-[10px] text-gray-500">
+              Leave version fields blank to use the gateway's configured protocol version.
+            </p>
+          </div>
+        </template>
       </div>
     </template>
 
@@ -200,9 +240,22 @@
           <template x-if="done && udpResponse">
             <div class="space-y-1 text-sm">
               <template x-for="(val, key) in udpResponse" :key="key">
-                <div>
-                  <span class="text-gray-500" x-text="key + ':'"></span>
-                  <span class="text-green-400 font-mono ml-1" x-text="formatUdpValue(val)"></span>
+                <template x-if="key !== 'parsed'">
+                  <div>
+                    <span class="text-gray-500" x-text="key + ':'"></span>
+                    <span class="text-green-400 font-mono ml-1" x-text="formatUdpValue(val)"></span>
+                  </div>
+                </template>
+              </template>
+              <template x-if="udpResponse.parsed">
+                <div class="mt-2 pt-2 border-t border-gray-700 space-y-1">
+                  <div class="text-gray-500 text-[10px] uppercase tracking-wide">Decoded payload</div>
+                  <template x-for="(val, key) in udpResponse.parsed" :key="key">
+                    <div>
+                      <span class="text-gray-500" x-text="key + ':'"></span>
+                      <span class="text-green-400 font-mono ml-1" x-text="formatUdpValue(val)"></span>
+                    </div>
+                  </template>
                 </div>
               </template>
             </div>
@@ -272,6 +325,13 @@ function doipClient() {
     selectedFunctionalAddress: '',
     selectedFunctionalServiceName: '',
     udpMessageType: 'vehicle_identification',
+    udpRaw: false,
+    udpRawForm: {
+      version: '',
+      inverse_version: '',
+      payload_type: '0001',
+      payload_hex: '',
+    },
     udpResponse: null,
     log: [],
     responses: [],
@@ -415,6 +475,9 @@ function doipClient() {
         return this.selectedEcuAddress && this.selectedServiceName && this.form.uds_message;
       }
       if (this.mode === 'udp') {
+        if (this.udpRaw) {
+          return /^[0-9a-fA-F]{1,4}$/.test(this.udpRawForm.payload_type);
+        }
         return !!this.udpMessageType;
       }
       return this.form.target_address != null && this.form.uds_message;
@@ -422,7 +485,11 @@ function doipClient() {
 
     send() {
       if (this.mode === 'udp') {
-        this.sendUdp();
+        if (this.udpRaw) {
+          this.sendUdpRaw();
+        } else {
+          this.sendUdp();
+        }
         return;
       }
 
@@ -454,6 +521,43 @@ function doipClient() {
             message_type: this.udpMessageType,
             timeout: this.form.timeout,
           }),
+        });
+        const result = await res.json();
+        this.log.push(...result.log);
+        this.ok = result.ok;
+        this.udpResponse = result.response;
+      } catch (e) {
+        this.log.push({ ts: Date.now(), event: 'error', detail: String(e) });
+        this.ok = false;
+        this.udpResponse = null;
+      } finally {
+        this.done = true;
+        this.busy = false;
+      }
+    },
+
+    async sendUdpRaw() {
+      this.udpResponse = null;
+      this.done = false;
+      this.busy = true;
+      try {
+        const body = {
+          host: this.form.host,
+          port: this.form.port,
+          payload_type: parseInt(this.udpRawForm.payload_type, 16),
+          payload_hex: this.udpRawForm.payload_hex || '',
+          timeout: this.form.timeout,
+        };
+        if (this.udpRawForm.version !== '') {
+          body.version = parseInt(this.udpRawForm.version, 16);
+        }
+        if (this.udpRawForm.inverse_version !== '') {
+          body.inverse_version = parseInt(this.udpRawForm.inverse_version, 16);
+        }
+        const res = await fetch('/api/client/send-udp-raw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         });
         const result = await res.json();
         this.log.push(...result.log);
