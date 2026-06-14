@@ -73,3 +73,20 @@ class DoIPSendRequest(BaseModel):
         except ValueError:
             raise ValueError("uds_message must be a valid hex string")
         return clean.upper()
+
+
+UDP_MESSAGE_TYPES = {"vehicle_identification", "entity_status", "power_mode"}
+
+
+class DoIPSendUdpRequest(BaseModel):
+    host: str = "localhost"
+    port: int = 13400
+    message_type: str = "vehicle_identification"
+    timeout: float = 5.0
+
+    @field_validator("message_type")
+    @classmethod
+    def validate_message_type(cls, v: str) -> str:
+        if v not in UDP_MESSAGE_TYPES:
+            raise ValueError(f"message_type must be one of {sorted(UDP_MESSAGE_TYPES)}")
+        return v

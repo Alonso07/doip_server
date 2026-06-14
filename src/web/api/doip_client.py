@@ -9,7 +9,7 @@ import time
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from web.models import DoIPSendRequest
+from web.models import DoIPSendRequest, DoIPSendUdpRequest
 from web.state import get_state
 
 router = APIRouter(prefix="/api/client", tags=["doip-client"])
@@ -23,6 +23,33 @@ EXPECTED_RESPONSE_TYPES = {0x0006, 0x8001, 0x8002, 0x8003}
 # Extra time to wait for additional responses from other ECUs after a
 # functional (broadcast) request, once the first UDS response is in.
 FUNCTIONAL_EXTRA_TIMEOUT = 0.5
+
+PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST = 0x0001
+PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE = 0x0004
+PAYLOAD_TYPE_ENTITY_STATUS_REQUEST = 0x4001
+PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE = 0x4002
+PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST = 0x4003
+PAYLOAD_TYPE_POWER_MODE_INFORMATION_RESPONSE = 0x4004
+
+# ISO 13400-2:2019 mandates 0xFF/0x00 for vehicle identification requests;
+# all other UDP messages use the standard DoIP protocol version.
+UDP_MESSAGE_SPECS = {
+    "vehicle_identification": {
+        "version": (0xFF, 0x00),
+        "request_type": PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_REQUEST,
+        "response_type": PAYLOAD_TYPE_VEHICLE_IDENTIFICATION_RESPONSE,
+    },
+    "entity_status": {
+        "version": (DOIP_VERSION, DOIP_INV_VERSION),
+        "request_type": PAYLOAD_TYPE_ENTITY_STATUS_REQUEST,
+        "response_type": PAYLOAD_TYPE_ENTITY_STATUS_RESPONSE,
+    },
+    "power_mode": {
+        "version": (DOIP_VERSION, DOIP_INV_VERSION),
+        "request_type": PAYLOAD_TYPE_POWER_MODE_INFORMATION_REQUEST,
+        "response_type": PAYLOAD_TYPE_POWER_MODE_INFORMATION_RESPONSE,
+    },
+}
 
 
 def _build_header(payload_type: int, payload_len: int) -> bytes:
@@ -67,6 +94,99 @@ def _resolve_loopback_host(host: str, port: int) -> str:
     # Prefer IPv4 — the default server binding is 0.0.0.0, not ::
     ipv4 = [a for a in addresses if a.version == 4]
     return str((ipv4 or addresses)[0])
+
+
+def _parse_udp_response_payload(message_type: str, payload: bytes) -> dict:
+    """Decode a UDP response payload for the given message type."""
+    if message_type == "vehicle_identification":
+        if len(payload) < 33:
+            raise ValueError(
+                f"Vehicle identification payload too short: {len(payload)}"
+            )
+        logical_address = int.from_bytes(payload[17:19], "big")
+        return {
+            "vin": payload[0:17].decode("ascii", errors="ignore").rstrip("\x00"),
+            "logical_address": logical_address,
+            "logical_address_hex": f"0x{logical_address:04X}",
+            "eid": payload[19:25].hex().upper(),
+            "gid": payload[25:31].hex().upper(),
+            "further_action_required": payload[31],
+            "vin_gid_sync_status": payload[32],
+        }
+    if message_type == "entity_status":
+        if len(payload) < 5:
+            raise ValueError(f"Entity status payload too short: {len(payload)}")
+        return {
+            "node_type": payload[0],
+            "max_open_sockets": payload[1],
+            "current_open_sockets": payload[2],
+            "doip_entity_status": payload[3],
+            "diagnostic_power_mode": payload[4],
+        }
+    if message_type == "power_mode":
+        if len(payload) < 1:
+            raise ValueError("Power mode payload too short")
+        return {"power_mode_status": payload[0]}
+    raise ValueError(f"Unknown UDP message type: {message_type}")
+
+
+def _send_udp_sync(req: DoIPSendUdpRequest) -> dict:
+    """Send a single UDP DoIP request (vehicle ID / entity status / power mode)."""
+    log: list[dict] = []
+
+    def note(event: str, detail: str = ""):
+        log.append({"ts": round(time.time() * 1000), "event": event, "detail": detail})
+
+    spec = UDP_MESSAGE_SPECS[req.message_type]
+    try:
+        target_host = _resolve_loopback_host(req.host, req.port)
+        note("connecting", f"{req.host}:{req.port}")
+
+        family = socket.AF_INET6 if ":" in target_host else socket.AF_INET
+        ver, inv = spec["version"]
+        request = struct.pack(">BBHI", ver, inv, spec["request_type"], 0)
+
+        with socket.socket(family, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(req.timeout)
+            sock.sendto(request, (target_host, req.port))
+            note("sent", f"type=0x{spec['request_type']:04X}")
+
+            data, addr = sock.recvfrom(MAX_DOIP_PAYLOAD_LEN)
+            note("received", f"{len(data)} bytes from {addr[0]}:{addr[1]}")
+
+            if len(data) < 8:
+                note("error", "Response too short for DoIP header")
+                return {"ok": False, "log": log, "response": None}
+
+            resp_ver, resp_inv, payload_type, payload_len = struct.unpack(
+                ">BBHI", data[:8]
+            )
+            if resp_ver != DOIP_VERSION or resp_inv != DOIP_INV_VERSION:
+                note(
+                    "error",
+                    f"Invalid response header version 0x{resp_ver:02X}/0x{resp_inv:02X}",
+                )
+                return {"ok": False, "log": log, "response": None}
+            if payload_type != spec["response_type"]:
+                note("unexpected_frame", f"type=0x{payload_type:04X}")
+                return {"ok": False, "log": log, "response": None}
+
+            payload = data[8 : 8 + payload_len]
+            parsed = _parse_udp_response_payload(req.message_type, payload)
+            note("parsed_response")
+            return {
+                "ok": True,
+                "log": log,
+                "response": parsed,
+                "raw_response": payload.hex().upper(),
+            }
+
+    except TimeoutError:
+        note("timeout")
+        return {"ok": False, "log": log, "response": None}
+    except Exception as exc:
+        note("error", str(exc))
+        return {"ok": False, "log": log, "response": None}
 
 
 def _recv_exact(sock: socket.socket, n: int) -> Optional[bytes]:
@@ -214,6 +334,14 @@ async def send_diagnostic(req: DoIPSendRequest):
     """Send a single DoIP diagnostic message and return the UDS response."""
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(None, _send_diagnostic_sync, req)
+    return result
+
+
+@router.post("/send-udp")
+async def send_udp(req: DoIPSendUdpRequest):
+    """Send a UDP DoIP request (vehicle identification / entity status / power mode)."""
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, _send_udp_sync, req)
     return result
 
 

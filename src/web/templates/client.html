@@ -24,6 +24,12 @@
               class="px-3 py-1 rounded font-bold">
         Raw
       </button>
+      <button type="button"
+              @click="setMode('udp')"
+              :class="mode === 'udp' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300'"
+              class="px-3 py-1 rounded font-bold">
+        UDP
+      </button>
     </div>
 
     <label class="flex flex-col gap-1 text-xs">
@@ -160,6 +166,24 @@
       </div>
     </template>
 
+    <!-- UDP mode: vehicle identification / entity status / power mode -->
+    <template x-if="mode === 'udp'">
+      <div class="space-y-4 border-t border-gray-700 pt-4">
+        <label class="flex flex-col gap-1 text-xs">
+          UDP Message
+          <select x-model="udpMessageType"
+                  class="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white">
+            <option value="vehicle_identification">Vehicle Identification (0x0001)</option>
+            <option value="entity_status">Entity Status (0x4001)</option>
+            <option value="power_mode">Power Mode Information (0x4003)</option>
+          </select>
+        </label>
+        <p class="text-[10px] text-gray-500">
+          Sent over UDP to <span class="text-gray-300" x-text="form.host + ':' + form.port"></span>.
+        </p>
+      </div>
+    </template>
+
     <button @click="send()"
             :disabled="busy || !canSend()"
             class="w-full py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded font-bold">
@@ -171,19 +195,39 @@
   <div class="flex flex-col gap-4">
     <div class="bg-gray-800 border border-gray-700 rounded p-4">
       <h2 class="font-bold text-gray-300 mb-2">Response</h2>
-      <template x-if="done && responses.length > 0">
-        <div class="space-y-1">
-          <template x-for="(r, i) in responses" :key="i">
-            <div :class="ok ? 'text-green-400' : 'text-red-400'" class="text-base break-all">
-              <span x-show="responses.length > 1 && r.ecu_address_hex"
-                    class="text-gray-500 text-xs mr-1" x-text="r.ecu_address_hex + ':'"></span>
-              <span x-text="r.response"></span>
+      <template x-if="mode === 'udp'">
+        <div>
+          <template x-if="done && udpResponse">
+            <div class="space-y-1 text-sm">
+              <template x-for="(val, key) in udpResponse" :key="key">
+                <div>
+                  <span class="text-gray-500" x-text="key + ':'"></span>
+                  <span class="text-green-400 font-mono ml-1" x-text="formatUdpValue(val)"></span>
+                </div>
+              </template>
             </div>
           </template>
+          <div x-show="done && !udpResponse" class="text-red-400 text-base">FAILED — no response</div>
+          <div x-show="!done" class="text-gray-500">—</div>
         </div>
       </template>
-      <div x-show="done && responses.length === 0" class="text-red-400 text-base">FAILED — no response</div>
-      <div x-show="!done" class="text-gray-500">—</div>
+      <template x-if="mode !== 'udp'">
+        <div>
+          <template x-if="done && responses.length > 0">
+            <div class="space-y-1">
+              <template x-for="(r, i) in responses" :key="i">
+                <div :class="ok ? 'text-green-400' : 'text-red-400'" class="text-base break-all">
+                  <span x-show="responses.length > 1 && r.ecu_address_hex"
+                        class="text-gray-500 text-xs mr-1" x-text="r.ecu_address_hex + ':'"></span>
+                  <span x-text="r.response"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div x-show="done && responses.length === 0" class="text-red-400 text-base">FAILED — no response</div>
+          <div x-show="!done" class="text-gray-500">—</div>
+        </div>
+      </template>
     </div>
 
     <div class="bg-gray-900 border border-gray-700 rounded p-4 flex-1 overflow-y-auto max-h-96">
@@ -227,6 +271,8 @@ function doipClient() {
     functionalGroups: [],
     selectedFunctionalAddress: '',
     selectedFunctionalServiceName: '',
+    udpMessageType: 'vehicle_identification',
+    udpResponse: null,
     log: [],
     responses: [],
     done: false,
@@ -368,10 +414,18 @@ function doipClient() {
         }
         return this.selectedEcuAddress && this.selectedServiceName && this.form.uds_message;
       }
+      if (this.mode === 'udp') {
+        return !!this.udpMessageType;
+      }
       return this.form.target_address != null && this.form.uds_message;
     },
 
     send() {
+      if (this.mode === 'udp') {
+        this.sendUdp();
+        return;
+      }
+
       this.responses = [];
       this.done = false;
       this.busy = true;
@@ -384,6 +438,42 @@ function doipClient() {
       } else {
         this.ws.send(JSON.stringify(this.form));
       }
+    },
+
+    async sendUdp() {
+      this.udpResponse = null;
+      this.done = false;
+      this.busy = true;
+      try {
+        const res = await fetch('/api/client/send-udp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            host: this.form.host,
+            port: this.form.port,
+            message_type: this.udpMessageType,
+            timeout: this.form.timeout,
+          }),
+        });
+        const result = await res.json();
+        this.log.push(...result.log);
+        this.ok = result.ok;
+        this.udpResponse = result.response;
+      } catch (e) {
+        this.log.push({ ts: Date.now(), event: 'error', detail: String(e) });
+        this.ok = false;
+        this.udpResponse = null;
+      } finally {
+        this.done = true;
+        this.busy = false;
+      }
+    },
+
+    formatUdpValue(val) {
+      if (typeof val === 'number') {
+        return `${val} (0x${val.toString(16).toUpperCase().padStart(2, '0')})`;
+      }
+      return val;
     },
 
     _onMessage(msg) {
@@ -402,6 +492,7 @@ function doipClient() {
     clearLog() {
       this.log = [];
       this.responses = [];
+      this.udpResponse = null;
       this.done = false;
     },
   };
