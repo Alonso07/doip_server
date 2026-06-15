@@ -690,14 +690,14 @@ files = [
 
 [[package]]
 name = "doipclient"
-version = "1.1.7"
+version = "1.2.1"
 description = "A Diagnostic over IP (DoIP) client implementing ISO-13400-2."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "doipclient-1.1.7-py3-none-any.whl", hash = "sha256:5b5842e95dd4da0ab711401a7efc4cdcb71bbbccd04e76d201c92e1a0d756a86"},
-    {file = "doipclient-1.1.7.tar.gz", hash = "sha256:6158427992611b028069c7ea54f43a7fbf4e955b746c0a5ddbb8dc60f55f9fab"},
+    {file = "doipclient-1.2.1-py3-none-any.whl", hash = "sha256:f50af743751200ea376f920a4b674ef5a34a73ba945c7a1430554fe65adb2994"},
+    {file = "doipclient-1.2.1.tar.gz", hash = "sha256:011d906ea0d543c55c4e12c6c67774063bbd9e3fdb24a8771ace28ef9b1402fd"},
 ]
 
 [[package]]
@@ -2858,4 +2858,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.15"
-content-hash = "b198dce3fb696e127ccee3e2081f9629fd5e45ba4d1d15ec763a0283b8cf9567"
+content-hash = "19af75f94d00423615a4d072e4d13d829a175357fb91df34e9954a396f000f7d"
