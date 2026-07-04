@@ -286,6 +286,25 @@ class TestFunctionalDiagnosticsTCPDispatch(unittest.TestCase):
         self.assertEqual(response_ecus, expected_ecus)
         self.assertGreater(len(response_ecus), 0)
 
+    def test_functional_request_rejects_physical_only_service(self):
+        config_manager = HierarchicalConfigManager("config/gateway1.yaml")
+        tcp_server = DoIPTCPServer("127.0.0.1", 0, config_manager)
+
+        source_address = 0x0E00
+        functional_address = 0x1FFF
+        uds_payload = bytes.fromhex("31010001")  # Engine start/stop is physical only.
+        diagnostic_payload = (
+            struct.pack(">HH", source_address, functional_address) + uds_payload
+        )
+        request = self.create_doip_message(0x8001, diagnostic_payload)
+
+        responses = tcp_server.process_doip_message(request)
+        payload_types = [
+            struct.unpack(">H", response[2:4])[0] for response in responses
+        ]
+
+        self.assertEqual(payload_types, [0x8003])
+
 
 if __name__ == "__main__":
     # Run the tests
