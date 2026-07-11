@@ -115,7 +115,8 @@ class DoIPHandlers:
                 f"Diagnostic message: source=0x{source_address:04X}, target=0x{target_address:04X}"
             )
 
-            # Check if source address is authorized
+            # Check if the tester is allowed by configuration for any ECU before
+            # doing target-specific validation below.
             if not self._is_source_address_authorized(source_address):
                 self.logger.warning(
                     f"Unauthorized source address: 0x{source_address:04X}"
@@ -141,6 +142,16 @@ class DoIPHandlers:
                 return [
                     self.message_handler.create_doip_nack(0x03)
                 ]  # Invalid target address
+
+            # Check if source address is authorized for this physical target
+            if not self._is_source_address_authorized(source_address, target_address):
+                self.logger.warning(
+                    f"Unauthorized source address 0x{source_address:04X} "
+                    f"for target 0x{target_address:04X}"
+                )
+                return [
+                    self.message_handler.create_doip_nack(0x02)
+                ]  # Invalid source address
 
             return self._handle_physical_diagnostic_message(
                 source_address, target_address, uds_payload
@@ -478,14 +489,41 @@ class DoIPHandlers:
             )
             return []
 
+        request_hex = uds_payload.hex().upper()
+        functional_ecus = []
+        for ecu_address in responding_ecus:
+            if not self._is_source_address_authorized(source_address, ecu_address):
+                self.logger.warning(
+                    f"Source address 0x{source_address:04X} not allowed for "
+                    f"ECU 0x{ecu_address:04X}"
+                )
+                continue
+
+            service_config = self.config_manager.get_uds_service_by_request(
+                request_hex, ecu_address
+            )
+            if service_config and service_config.get("supports_functional", False):
+                functional_ecus.append(ecu_address)
+            else:
+                self.logger.debug(
+                    f"ECU 0x{ecu_address:04X} does not support functional "
+                    f"addressing for UDS request {request_hex}"
+                )
+
+        if not functional_ecus:
+            self.logger.warning(
+                f"No ECUs support functional addressing for UDS request {request_hex}"
+            )
+            return [self.message_handler.create_doip_nack(0x04)]
+
         # Create ACK first
         ack_response = self.message_handler.create_diagnostic_message_ack(
-            source_address, functional_address
+            functional_address, source_address
         )
 
         # Process UDS message for each responding ECU
         responses = [ack_response]
-        for ecu_address in responding_ecus:
+        for ecu_address in functional_ecus:
             uds_response = self.process_uds_message(uds_payload, ecu_address)
             if uds_response:
                 response = self.message_handler.create_diagnostic_message_response(
@@ -515,7 +553,7 @@ class DoIPHandlers:
 
         # Create ACK first
         ack_response = self.message_handler.create_diagnostic_message_ack(
-            source_address, target_address
+            target_address, source_address
         )
 
         # Process UDS message
@@ -543,18 +581,21 @@ class DoIPHandlers:
         # Functional addresses are typically in the range 0x1FFF-0x1FFE
         return 0x1FFE <= address <= 0x1FFF
 
-    def _is_source_address_authorized(self, source_address: int) -> bool:
+    def _is_source_address_authorized(
+        self, source_address: int, target_address: Optional[int] = None
+    ) -> bool:
         """Check if source address is authorized.
 
         Args:
             source_address: Source address to check
+            target_address: Optional ECU target address for per-ECU validation
 
         Returns:
             True if address is authorized
         """
-        # Check if source address is in the allowed range (0x0E00-0x0EFF for testers)
-        # This is a basic validation - could be enhanced with configuration
-        return 0x0E00 <= source_address <= 0x0EFF
+        return self.config_manager.is_source_address_allowed(
+            source_address, target_address
+        )
 
     def _is_source_already_activated(self, source_address: int) -> bool:
         """Check if source address is already activated.

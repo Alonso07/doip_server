@@ -254,6 +254,19 @@ class TestFunctionalDiagnosticsTCPDispatch(unittest.TestCase):
         header = struct.pack(">BBHI", 0x02, 0xFD, payload_type, len(payload))
         return header + payload
 
+    @staticmethod
+    def create_diagnostic_request(source_address, target_address, uds_payload):
+        diagnostic_payload = (
+            struct.pack(">HH", source_address, target_address) + uds_payload
+        )
+        return TestFunctionalDiagnosticsTCPDispatch.create_doip_message(
+            0x8001, diagnostic_payload
+        )
+
+    @staticmethod
+    def payload_type(response):
+        return struct.unpack(">H", response[2:4])[0]
+
     def test_functional_request_returns_ack_and_ecu_responses(self):
         config_manager = HierarchicalConfigManager("config/gateway1.yaml")
         tcp_server = DoIPTCPServer("127.0.0.1", 0, config_manager)
@@ -261,17 +274,18 @@ class TestFunctionalDiagnosticsTCPDispatch(unittest.TestCase):
         source_address = 0x0E00
         functional_address = 0x1FFF
         uds_payload = bytes.fromhex("22F190")  # Read VIN, supported by all ECUs
-        diagnostic_payload = (
-            struct.pack(">HH", source_address, functional_address) + uds_payload
+        request = self.create_diagnostic_request(
+            source_address, functional_address, uds_payload
         )
-        request = self.create_doip_message(0x8001, diagnostic_payload)
 
         responses = tcp_server.process_doip_message(request)
-        payload_types = [
-            struct.unpack(">H", response[2:4])[0] for response in responses
-        ]
+        payload_types = [self.payload_type(response) for response in responses]
 
         self.assertEqual(payload_types[0], 0x8002)  # one diagnostic ACK first
+        self.assertEqual(
+            responses[0][8:],
+            struct.pack(">HHB", functional_address, source_address, 0x00),
+        )
         self.assertNotIn(0x8003, payload_types)  # not rejected as invalid target
 
         expected_ecus = set(
@@ -285,6 +299,56 @@ class TestFunctionalDiagnosticsTCPDispatch(unittest.TestCase):
 
         self.assertEqual(response_ecus, expected_ecus)
         self.assertGreater(len(response_ecus), 0)
+
+    def test_physical_request_ack_uses_ecu_as_source(self):
+        config_manager = HierarchicalConfigManager("config/gateway1.yaml")
+        tcp_server = DoIPTCPServer("127.0.0.1", 0, config_manager)
+
+        source_address = 0x0E00
+        target_address = 0x1000
+        request = self.create_diagnostic_request(
+            source_address, target_address, bytes.fromhex("22F190")
+        )
+
+        responses = tcp_server.process_doip_message(request)
+
+        self.assertEqual(self.payload_type(responses[0]), 0x8002)
+        self.assertEqual(
+            responses[0][8:],
+            struct.pack(">HHB", target_address, source_address, 0x00),
+        )
+
+    def test_functional_request_rejects_physical_only_service(self):
+        config_manager = HierarchicalConfigManager("config/gateway1.yaml")
+        tcp_server = DoIPTCPServer("127.0.0.1", 0, config_manager)
+
+        request = self.create_diagnostic_request(
+            0x0E00,
+            0x1FFF,
+            bytes.fromhex("220C01"),  # Engine RPM is configured physical-only
+        )
+
+        responses = tcp_server.process_doip_message(request)
+
+        self.assertEqual(len(responses), 1)
+        self.assertEqual(self.payload_type(responses[0]), 0x8003)
+        self.assertEqual(responses[0][8:], struct.pack(">I", 0x04))
+
+    def test_functional_request_rejects_unauthorized_source(self):
+        config_manager = HierarchicalConfigManager("config/gateway1.yaml")
+        tcp_server = DoIPTCPServer("127.0.0.1", 0, config_manager)
+
+        request = self.create_diagnostic_request(
+            0x0E50,  # Inside the tester range, but not configured for any ECU
+            0x1FFF,
+            bytes.fromhex("22F190"),
+        )
+
+        responses = tcp_server.process_doip_message(request)
+
+        self.assertEqual(len(responses), 1)
+        self.assertEqual(self.payload_type(responses[0]), 0x8003)
+        self.assertEqual(responses[0][8:], struct.pack(">I", 0x02))
 
 
 if __name__ == "__main__":
