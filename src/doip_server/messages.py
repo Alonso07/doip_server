@@ -154,14 +154,14 @@ class DoIPMessage:
         """Create DoIP diagnostic message acknowledgment.
 
         Args:
-            source_addr: Source logical address
-            target_addr: Target logical address
+            source_addr: Source logical address (responding ECU or functional address)
+            target_addr: Target logical address (requesting tester)
             ack_code: Acknowledgment code (default: 0x00)
 
         Returns:
             Complete DoIP diagnostic message ACK
         """
-        payload = struct.pack(">BHH", ack_code, source_addr, target_addr)
+        payload = struct.pack(">HHB", source_addr, target_addr, ack_code)
         return self.create_doip_message(PAYLOAD_TYPE_DIAGNOSTIC_MESSAGE_ACK, payload)
 
     def create_doip_nack(self, nack_code: int) -> bytes:
