@@ -140,7 +140,7 @@ class DoIPTCPServer:
 
                     # Send responses
                     for i, response in enumerate(responses):
-                        client_socket.send(response)
+                        client_socket.sendall(response)
                         self.logger.debug(
                             f"Sent response {i+1}/{len(responses)} to {client_address}"
                         )
@@ -229,12 +229,26 @@ class DoIPTCPServer:
         Returns:
             Complete DoIP message as bytes
         """
-        # Use simple approach like original implementation
-        data = client_socket.recv(1024)
-        if not data:
+        header = self._receive_exactly(client_socket, 8)
+        if not header:
             return b""
 
-        return data
+        payload_length = int.from_bytes(header[4:8], byteorder="big")
+        payload = self._receive_exactly(client_socket, payload_length)
+        return header + payload
+
+    @staticmethod
+    def _receive_exactly(client_socket: socket.socket, size: int) -> bytes:
+        """Receive exactly ``size`` bytes without consuming the next frame."""
+        data = bytearray()
+        while len(data) < size:
+            chunk = client_socket.recv(size - len(data))
+            if not chunk:
+                if data:
+                    raise ConnectionError("Connection closed during DoIP frame")
+                return b""
+            data.extend(chunk)
+        return bytes(data)
 
     def get_server_info(self) -> dict:
         """Get TCP server information.
