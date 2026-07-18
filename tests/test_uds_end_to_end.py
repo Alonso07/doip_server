@@ -481,9 +481,7 @@ class TestUDSEndToEnd:
         header = struct.pack(">BBHI", 0x02, 0xFD, 0x0005, 7)
 
         # Routing activation payload
-        payload = struct.pack(
-            ">HHB", 0x0E00, 0x1000, 0x00
-        )  # Client, target, response code
+        payload = struct.pack(">HB", 0x0E00, 0x00)  # Client and activation type
         payload += struct.pack(">I", 0x00000000)  # Reserved
 
         return header + payload
@@ -711,7 +709,7 @@ class TestUDSEndToEndIntegration:
     def _create_routing_activation_request(self):
         """Create DoIP routing activation request"""
         header = struct.pack(">BBHI", 0x02, 0xFD, 0x0005, 7)
-        payload = struct.pack(">HHB", 0x0E00, 0x1000, 0x00) + struct.pack(
+        payload = struct.pack(">HB", 0x0E00, 0x00) + struct.pack(
             ">I", 0x00000000
         )
         return header + payload
