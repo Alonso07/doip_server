@@ -1,6 +1,6 @@
 # Build requirements for PyInstaller
 pyinstaller>=6.0.0
-setuptools>=65.0.0
+setuptools>=83.0.0
 wheel>=0.40.0
 
 # Project dependencies
