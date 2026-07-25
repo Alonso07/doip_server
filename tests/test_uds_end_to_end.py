@@ -440,10 +440,8 @@ class TestUDSEndToEnd:
         # DoIP header
         header = struct.pack(">BBHI", 0x02, 0xFD, 0x0005, 7)
 
-        # Routing activation payload
-        payload = struct.pack(
-            ">HHB", 0x0E00, 0x0001, 0x00
-        )  # Client, target, response code
+        # Routing activation payload: source (2) + activation type (1) + reserved (4)
+        payload = struct.pack(">HB", 0x0E00, 0x00)
         payload += struct.pack(">I", 0x00000000)  # Reserved
 
         return header + payload
@@ -649,9 +647,7 @@ class TestUDSEndToEndIntegration:
     def _create_routing_activation_request(self):
         """Create DoIP routing activation request"""
         header = struct.pack(">BBHI", 0x02, 0xFD, 0x0005, 7)
-        payload = struct.pack(">HHB", 0x0E00, 0x0001, 0x00) + struct.pack(
-            ">I", 0x00000000
-        )
+        payload = struct.pack(">HB", 0x0E00, 0x00) + struct.pack(">I", 0x00000000)
         return header + payload
 
     def _create_diagnostic_message_request(self, source_addr, target_addr, uds_payload):
