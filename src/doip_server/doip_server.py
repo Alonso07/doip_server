@@ -346,11 +346,34 @@ class DoIPServer:
         if self.udp_socket:
             self.udp_socket.close()
 
+    @staticmethod
+    def _receive_exactly(client_socket, size):
+        """Receive exactly ``size`` bytes without consuming the next frame."""
+        data = bytearray()
+        while len(data) < size:
+            chunk = client_socket.recv(size - len(data))
+            if not chunk:
+                if data:
+                    raise ConnectionError("Connection closed during DoIP frame")
+                return b""
+            data.extend(chunk)
+        return bytes(data)
+
+    def _receive_doip_message(self, client_socket):
+        """Read one complete DoIP message using the header payload length."""
+        header = self._receive_exactly(client_socket, 8)
+        if not header:
+            return b""
+
+        payload_length = struct.unpack(">I", header[4:8])[0]
+        payload = self._receive_exactly(client_socket, payload_length)
+        return header + payload
+
     def handle_client(self, client_socket):
         """Handle client connection and send multiple DoIP messages when needed"""
         try:
             while self.running:
-                data = client_socket.recv(1024)
+                data = self._receive_doip_message(client_socket)
                 if not data:
                     break
 
@@ -363,7 +386,7 @@ class DoIPServer:
                         if delay_ms > 0:
                             self.logger.info(f"Delaying response {i+1} by {delay_ms}ms")
                             time.sleep(delay_ms / 1000.0)
-                        client_socket.send(response)
+                        client_socket.sendall(response)
                         self.logger.debug(
                             f"Sent response {i+1}/{len(responses)}: {response.hex()}"
                         )
