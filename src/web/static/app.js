@@ -460,6 +460,19 @@ async function editGateway() {
 async function submitGateway(ev) {
   ev.preventDefault();
   const f = ev.target;
+  const version = parseInt(f.version.value, 16);
+  const inverse_version = parseInt(f.inverse_version.value, 16);
+  if (
+    Number.isNaN(version) ||
+    Number.isNaN(inverse_version) ||
+    version < 0 ||
+    version > 0xff ||
+    inverse_version < 0 ||
+    inverse_version > 0xff
+  ) {
+    toast("Protocol version must be a hex byte (00–FF).", false);
+    return false;
+  }
   const body = {
     name: f.name.value,
     description: f.description.value,
@@ -470,8 +483,8 @@ async function submitGateway(ev) {
       timeout: Number(f.timeout.value),
     },
     protocol: {
-      version: parseInt(f.version.value, 16),
-      inverse_version: parseInt(f.inverse_version.value, 16),
+      version,
+      inverse_version,
     },
   };
   try {

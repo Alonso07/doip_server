@@ -29,7 +29,10 @@ def update_gateway(body: GatewayUpdate, persist: bool = False):
     updates = body.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(400, "No fields to update")
-    result = cm.update_gateway(updates)
+    try:
+        result = cm.update_gateway(updates)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     if persist:
         try:
             cm.persist_gateway(updates)

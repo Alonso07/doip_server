@@ -998,17 +998,29 @@ gateway:
     # Runtime CRUD mutations (thread-safe, in-memory only)
     # -------------------------------------------------------------------------
 
+    @staticmethod
+    def _validate_protocol_update(protocol: Dict[str, Any]) -> None:
+        """Reject protocol version bytes that cannot be packed into DoIP headers."""
+        for key in ("version", "inverse_version"):
+            if key not in protocol:
+                continue
+            value = protocol[key]
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise ValueError(
+                    f"protocol.{key} must be an integer in range 0x00–0xFF"
+                )
+            if not (0x00 <= value <= 0xFF):
+                raise ValueError(f"protocol.{key} must be in range 0x00–0xFF")
+
     def update_gateway(self, updates: Dict[str, Any]) -> Dict[str, Any]:
         """Merge *updates* into the live gateway config and return the result."""
         with self._lock:
             gateway = self.gateway_config.setdefault("gateway", {})
             protocol = updates.get("protocol")
-            if (
-                isinstance(protocol, dict)
-                and "version" in protocol
-                and "inverse_version" not in protocol
-            ):
-                protocol["inverse_version"] = 0xFF - protocol["version"]
+            if isinstance(protocol, dict):
+                self._validate_protocol_update(protocol)
+                if "version" in protocol and "inverse_version" not in protocol:
+                    protocol["inverse_version"] = 0xFF - protocol["version"]
             _deep_merge(gateway, updates)
             self.logger.info("Gateway config updated: %s", list(updates.keys()))
             return dict(gateway)

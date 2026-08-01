@@ -4,11 +4,35 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, field_validator
 
 
+def _validate_protocol_byte(v: Optional[int]) -> Optional[int]:
+    """Accept None or an integer DoIP protocol byte (0x00–0xFF)."""
+    if v is None:
+        return v
+    # bool is a subclass of int; reject it explicitly.
+    if isinstance(v, bool) or not isinstance(v, int):
+        raise ValueError("must be an integer in range 0x00–0xFF")
+    if not (0x00 <= v <= 0xFF):
+        raise ValueError("must be in range 0x00–0xFF")
+    return v
+
+
+class ProtocolUpdate(BaseModel):
+    """DoIP protocol version fields used by gateway runtime updates."""
+
+    version: Optional[int] = None
+    inverse_version: Optional[int] = None
+
+    @field_validator("version", "inverse_version")
+    @classmethod
+    def validate_version_byte(cls, v: Optional[int]) -> Optional[int]:
+        return _validate_protocol_byte(v)
+
+
 class GatewayUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     network: Optional[Dict[str, Any]] = None
-    protocol: Optional[Dict[str, Any]] = None
+    protocol: Optional[ProtocolUpdate] = None
 
 
 class ECUCreate(BaseModel):
