@@ -88,8 +88,6 @@ def test_update_gateway_rejects_non_integer_protocol_version(web_client):
 
 @pytest.mark.unit
 def test_config_manager_rejects_invalid_protocol_version(config_manager):
-    import pytest
-
     before = dict(config_manager.get_protocol_config())
     with pytest.raises(ValueError, match="protocol.version"):
         config_manager.update_gateway({"protocol": {"version": 999}})
