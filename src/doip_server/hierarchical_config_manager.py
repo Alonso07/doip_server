@@ -1402,18 +1402,53 @@ gateway:
                 path,
             )
 
+    def _service_definition_is_shared(
+        self, target_address: int, service_name: str, path: str
+    ) -> bool:
+        """True when deleting this definition would affect other ECUs.
+
+        Generic/shared YAML files are loaded by many ECUs. A per-ECU delete must
+        unbind only the requesting ECU and must not erase the shared definition.
+        """
+        normalized = path.replace("\\", "/").lower()
+        if "generic" in normalized:
+            return True
+        for (addr, name), (other_path, _) in self._service_source.items():
+            if (
+                name == service_name
+                and addr != target_address
+                and os.path.normpath(other_path) == os.path.normpath(path)
+            ):
+                return True
+        return False
+
     def persist_delete_service(self, target_address: int, service_name: str) -> None:
-        """Remove a service entry from its source file and ECU references."""
+        """Remove a service for one ECU without wiping shared definitions.
+
+        ECU-specific service files are updated in place. Shared/generic source
+        files keep their definitions so other ECUs are not affected; only this
+        ECU's name-list references and provenance are cleared.
+        """
         with self._lock:
             src = self._service_source.get((target_address, service_name))
             if src is not None:
                 path, section = src
-                if os.path.exists(path):
+                shared = self._service_definition_is_shared(
+                    target_address, service_name, path
+                )
+                if os.path.exists(path) and not shared:
                     data, y = self._read_rt(path)
                     sect = data.get(section, {})
                     if service_name in sect:
                         del sect[service_name]
                         self._write_rt(path, data, y)
+                elif shared:
+                    self.logger.info(
+                        "Keeping shared service '%s' in %s; unbinding ECU 0x%04X only",
+                        service_name,
+                        path,
+                        target_address,
+                    )
             self._service_source.pop((target_address, service_name), None)
 
             ecu_path = self._ecu_file_paths.get(target_address)

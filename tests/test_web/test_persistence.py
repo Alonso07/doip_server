@@ -326,6 +326,51 @@ def test_persist_new_and_delete_service(cm):
     assert name not in _load(src_path).get(section, {})
 
 
+@pytest.mark.unit
+def test_persist_delete_shared_generic_service_does_not_wipe_other_ecus(cm):
+    """Per-ECU delete of a generic service must not erase the shared YAML entry.
+
+    Trigger: DELETE /api/ecus/{addr}/services/Read_VIN?persist=true for one ECU.
+    Before the fix, persist_delete_service removed Read_VIN from
+    generic_uds_messages.yaml, so every other ECU lost the service after reload.
+    """
+    name = "Read_VIN"
+    usage = cm.get_service_ecu_usage().get(name, [])
+    assert len(usage) >= 2
+    victim, other = usage[0], usage[1]
+    src_path, section = cm._service_source[(victim, name)]
+    assert "generic" in src_path.replace("\\", "/").lower()
+    assert name in _load(src_path).get(section, {})
+
+    assert cm.delete_service(victim, name)
+    cm.persist_delete_service(victim, name)
+
+    # Shared definition must remain for other ECUs.
+    assert name in _load(src_path).get(section, {})
+    assert name in cm.get_ecu_uds_services(other)
+    assert name not in cm.get_ecu_uds_services(victim)
+
+    reloaded = HierarchicalConfigManager(GATEWAY_PATH)
+    assert name in reloaded.get_ecu_uds_services(other)
+    assert name in _load(src_path).get(section, {})
+
+
+@pytest.mark.unit
+def test_api_persist_delete_shared_generic_service_keeps_yaml(persist_client, cm):
+    name = "Read_VIN"
+    usage = cm.get_service_ecu_usage().get(name, [])
+    assert len(usage) >= 2
+    victim, other = usage[0], usage[1]
+    src_path, section = cm._service_source[(victim, name)]
+
+    r = persist_client.delete(f"/api/ecus/{victim}/services/{name}?persist=true")
+    assert r.status_code == 200
+    assert r.json()["persisted"] is True
+    assert name in _load(src_path).get(section, {})
+    assert name in cm.get_ecu_uds_services(other)
+    assert name not in cm.get_ecu_uds_services(victim)
+
+
 # ── Web API level ────────────────────────────────────────────────────────────
 
 
